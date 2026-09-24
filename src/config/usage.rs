@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 /// `[usage]`: provider allowance polling shown in the sidebar usage footer.
 ///
-/// Polling contacts provider services, so it stays off until enabled.
+/// On by default; set `enabled = false` to stop contacting provider services.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(default)]
 pub struct UsageConfig {
@@ -17,15 +17,11 @@ pub struct UsageConfig {
     /// Read the DeepSeek prepaid API balance.
     pub deepseek: bool,
     /// JSON file mapping provider ids to API keys, in pi's `auth.json` layout.
-    /// Used when neither the environment variable nor the provider's key file
-    /// is set. An empty string disables it.
+    /// Used when the provider's environment variable is not set. An empty
+    /// string disables it.
     pub auth_file: String,
-    /// File holding the DeepSeek API key. `DEEPSEEK_API_KEY` takes precedence.
-    pub deepseek_api_key_file: Option<String>,
     /// Read OpenRouter credits when an API key is found.
     pub openrouter: bool,
-    /// File holding the OpenRouter API key. `OPENROUTER_API_KEY` takes precedence.
-    pub openrouter_api_key_file: Option<String>,
 }
 
 pub(crate) const MIN_USAGE_REFRESH_INTERVAL_SECS: u64 = 60;
@@ -33,15 +29,13 @@ pub(crate) const MIN_USAGE_REFRESH_INTERVAL_SECS: u64 = 60;
 impl Default for UsageConfig {
     fn default() -> Self {
         Self {
-            enabled: false,
+            enabled: true,
             refresh_interval_secs: 300,
             claude: true,
             codex: true,
             deepseek: true,
             auth_file: crate::usage::DEFAULT_AUTH_FILE.to_owned(),
-            deepseek_api_key_file: None,
             openrouter: true,
-            openrouter_api_key_file: None,
         }
     }
 }
@@ -60,10 +54,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn usage_config_defaults_to_disabled_with_all_providers_selected() {
+    fn usage_config_defaults_to_enabled_with_all_providers_selected() {
         let config: UsageConfig = toml::from_str("").unwrap();
         assert_eq!(config, UsageConfig::default());
-        assert!(!config.enabled);
+        assert!(config.enabled);
         assert!(config.claude && config.codex && config.deepseek);
     }
 

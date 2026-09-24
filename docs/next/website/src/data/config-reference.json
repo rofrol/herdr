@@ -478,8 +478,8 @@
         {
           "key": "usage.enabled",
           "type": "boolean",
-          "default": "false",
-          "description": "Poll provider subscription and API allowance in the background and show it in a sidebar footer below the agents list. Click the footer for details. Polling contacts provider services, so it is off by default."
+          "default": "true",
+          "description": "Poll provider subscription and API allowance in the background and show it in a sidebar footer below the agents list. Click the footer for details. Polling contacts provider services; set it to false to turn it off."
         },
         {
           "key": "usage.refresh_interval_secs",
@@ -503,31 +503,19 @@
           "key": "usage.deepseek",
           "type": "boolean",
           "default": "true",
-          "description": "Show the DeepSeek prepaid API balance. Requires a key from DEEPSEEK_API_KEY, usage.deepseek_api_key_file, or usage.auth_file."
+          "description": "Show the DeepSeek prepaid API balance. Requires a key from DEEPSEEK_API_KEY or usage.auth_file."
         },
         {
           "key": "usage.auth_file",
           "type": "string",
           "default": "\"~/.pi/agent/auth.json\"",
-          "description": "JSON file mapping provider ids to API keys in the pi coding agent's auth.json layout ({\"deepseek\": {\"key\": ...}, \"openrouter\": {\"access\": ...}}). Used when neither the provider's environment variable nor its key file is set. An empty string disables it."
-        },
-        {
-          "key": "usage.deepseek_api_key_file",
-          "type": "string",
-          "default": "unset",
-          "description": "File holding the DeepSeek API key; ~/ expands to the home directory. DEEPSEEK_API_KEY in the server environment takes precedence."
+          "description": "JSON file mapping provider ids to API keys in the pi coding agent's auth.json layout ({\"deepseek\": {\"key\": ...}, \"openrouter\": {\"access\": ...}}). Used when the provider's environment variable is not set. An empty string disables it."
         },
         {
           "key": "usage.openrouter",
           "type": "boolean",
           "default": "true",
-          "description": "Show the OpenRouter credit balance and API key spend. Hidden unless a key is found in OPENROUTER_API_KEY, usage.openrouter_api_key_file, or usage.auth_file. When the credits endpoint refuses the key, its remaining limit stands in for the account balance."
-        },
-        {
-          "key": "usage.openrouter_api_key_file",
-          "type": "string",
-          "default": "unset",
-          "description": "File holding the OpenRouter API key; ~/ expands to the home directory. OPENROUTER_API_KEY in the server environment takes precedence."
+          "description": "Show the OpenRouter credit balance and API key spend. Hidden unless a key is found in OPENROUTER_API_KEY or usage.auth_file. When the credits endpoint refuses the key, its remaining limit stands in for the account balance."
         }
       ]
     },

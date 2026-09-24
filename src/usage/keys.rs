@@ -1,5 +1,5 @@
-//! API keys for providers billed by key: an environment variable, a
-//! per-provider key file, or the shared auth file (pi's `auth.json` layout).
+//! API keys for providers billed by key: an environment variable or the
+//! shared auth file (pi's `auth.json` layout).
 //!
 //! The auth file maps provider ids to entries, either
 //! `{"type": "api_key", "key": "..."}` or an OAuth entry whose `access` token
@@ -29,25 +29,12 @@ impl KeyedProvider {
             Self::OpenRouter => "OPENROUTER_API_KEY",
         }
     }
-
-    fn key_file<'a>(&self, config: &'a UsageConfig) -> Option<&'a str> {
-        match self {
-            Self::DeepSeek => config.deepseek_api_key_file.as_deref(),
-            Self::OpenRouter => config.openrouter_api_key_file.as_deref(),
-        }
-    }
 }
 
-/// First key found in the environment, the provider's key file, then the auth file.
+/// First key found in the environment, then the auth file.
 pub(super) fn api_key(config: &UsageConfig, provider: &KeyedProvider) -> Result<String, String> {
     if let Some(key) = std::env::var(provider.env_var()).ok().and_then(non_empty) {
         return Ok(key);
-    }
-    if let Some(path) = provider.key_file(config) {
-        let path = super::expand_home(path);
-        let key = std::fs::read_to_string(&path)
-            .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-        return non_empty(key).ok_or_else(|| format!("{} is empty", path.display()));
     }
     let auth_file = config.auth_file.trim();
     if !auth_file.is_empty() {
@@ -60,10 +47,9 @@ pub(super) fn api_key(config: &UsageConfig, provider: &KeyedProvider) -> Result<
         }
     }
     Err(format!(
-        "no {} key: set {}, usage.{}_api_key_file, or add \"{}\" to usage.auth_file",
+        "no {} key: set {} or add \"{}\" to usage.auth_file",
         provider.id(),
         provider.env_var(),
-        provider.id(),
         provider.id()
     ))
 }

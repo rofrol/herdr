@@ -10,20 +10,19 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
   OpenAI/Codex (`OA`) 5-hour and weekly limits with time to reset, and the
   DeepSeek (`DS`) and OpenRouter (`OR`) prepaid balances. Click it for
   details: reset clock times, plans, free Codex limit resets, and a refresh
-  button (`r`). Enable it with:
+  button (`r`). It is on by default; turn it off with:
 
   ```toml
   [usage]
-  enabled = true
+  enabled = false
   ```
 
   Claude uses the Claude Code login, Codex goes through `codex app-server`,
   DeepSeek uses its balance API, OpenRouter its key and credits API (balance
   plus daily/weekly/monthly key spend). DeepSeek and OpenRouter keys come
-  from `DEEPSEEK_API_KEY`/`OPENROUTER_API_KEY`, then
-  `deepseek_api_key_file`/`openrouter_api_key_file`, then `auth_file`
-  (default `~/.pi/agent/auth.json`, the pi coding agent's logins); OpenRouter
-  is hidden without a key. The server refreshes every 5 minutes
+  from `DEEPSEEK_API_KEY`/`OPENROUTER_API_KEY`, then `auth_file` (default
+  `~/.pi/agent/auth.json`, the pi coding agent's logins); OpenRouter is
+  hidden without a key. The server refreshes every 5 minutes
   (`refresh_interval_secs`); set `claude`, `codex`, `deepseek` or
   `openrouter` to `false` to hide a provider. All herdr instances share one
   cache (`~/.local/state/herdr/usage-cache.json`): a recent observation is
