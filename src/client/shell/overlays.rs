@@ -93,7 +93,10 @@ fn usage_overlay_lines(
     p: &Palette,
 ) -> Vec<ratatui::text::Line<'static>> {
     use ratatui::text::{Line, Span};
-    let base = Style::default().bg(p.panel_bg);
+    // Paragraph patches cell styles, so clear modifiers left by the sidebar underneath.
+    let base = Style::default()
+        .bg(p.panel_bg)
+        .remove_modifier(Modifier::BOLD | Modifier::DIM);
     let dim = base.fg(p.overlay0);
     let Some(report) = overlay.report.as_ref() else {
         return vec![Line::from(Span::styled(" waiting for the server…", dim))];
@@ -134,10 +137,14 @@ fn usage_overlay_lines(
                 Span::styled(format!(" {used:>3}% used"), base.fg(color)),
             ];
             if let Some(resets_at) = window.resets_at {
-                let mut reset = format!(
-                    "  resets in {}",
-                    super::usage::detailed_countdown(resets_at, now_unix)
-                );
+                let mut reset = if resets_at < now_unix.saturating_add(60) {
+                    "  resetting now".to_owned()
+                } else {
+                    format!(
+                        "  resets in {}",
+                        super::usage::detailed_countdown(resets_at, now_unix)
+                    )
+                };
                 if let Some(clock) = super::usage::reset_clock(resets_at, overlay.utc_offset_secs) {
                     reset.push_str(&format!(" ({clock})"));
                 }
