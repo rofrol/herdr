@@ -1,5 +1,29 @@
 # herdr
 
+## Fork changes
+
+Personal fork of [herdrdev/herdr](https://github.com/herdrdev/herdr); these
+commits sit on top of upstream `master` and are not meant for upstream PRs.
+
+- **Middle click closes tabs and workspaces.** Middle-click a tab or a
+  workspace in the sidebar to close it, with the same confirmation as the
+  context menu's Close. Pane apps with mouse reporting still get middle clicks
+  inside the pane.
+- **Clickable, richer macOS notifications** (`[ui.toast] delivery = "system"`
+  with `terminal-notifier`):
+  - clicking an agent notification focuses that agent's pane
+    (`herdr agent focus`, falling back to `herdr tab focus`) and activates the
+    terminal;
+  - the message is the agent's task (its terminal title), the subtitle is the
+    workspace and tab;
+  - a new notification from the same pane replaces the previous one.
+- **terminal-notifier fixes.** Titles starting with `(`, `[`, `{`, `<` or a
+  quote no longer crash terminal-notifier, and an empty message is no longer
+  rejected; both made herdr fall back to the Script Editor notification.
+
+Install from source (needs Zig 0.16.0) with `cargo install --path . --locked`.
+Don't run `herdr update`: it replaces the fork with the upstream release.
+
 
 <p align="center">
   <img src="assets/logo.png" alt="herdr" width="100" />
