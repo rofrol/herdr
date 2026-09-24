@@ -245,21 +245,7 @@ impl ClientShellState {
                     }));
                 }
             }
-            ClientContextMenuAction::Close => {
-                if self.config.confirm_close {
-                    self.open_confirm_close_overlay(workspace_id);
-                } else {
-                    self.push_endpoint_method(
-                        crate::api::schema::Method::WorkspaceClose(
-                            crate::api::schema::WorkspaceCloseParams {
-                                workspace_id,
-                                close_group: true,
-                            },
-                        ),
-                        outcome,
-                    );
-                }
-            }
+            ClientContextMenuAction::Close => self.request_workspace_close(workspace_id, outcome),
             ClientContextMenuAction::NewWorktree => {
                 self.begin_worktree_action_for(KeybindAction::NewWorktree, workspace_id, outcome)
             }

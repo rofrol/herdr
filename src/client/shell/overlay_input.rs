@@ -987,6 +987,26 @@ impl ClientShellState {
         outcome.repaint = true;
     }
 
+    pub(super) fn request_workspace_close(
+        &mut self,
+        workspace_id: String,
+        outcome: &mut ClientShellInput,
+    ) {
+        if self.config.confirm_close {
+            self.open_confirm_close_overlay(workspace_id);
+        } else {
+            self.push_endpoint_method(
+                crate::api::schema::Method::WorkspaceClose(
+                    crate::api::schema::WorkspaceCloseParams {
+                        workspace_id,
+                        close_group: true,
+                    },
+                ),
+                outcome,
+            );
+        }
+    }
+
     pub(super) fn request_tab_close(&mut self, tab_id: String, outcome: &mut ClientShellInput) {
         let workspace_id = self.snapshot.as_deref().and_then(|snapshot| {
             let target = snapshot.tabs.iter().find(|tab| tab.tab_id == tab_id)?;
