@@ -6,10 +6,11 @@ Personal fork of [herdrdev/herdr](https://github.com/herdrdev/herdr); these
 commits sit on top of upstream `master` and are not meant for upstream PRs.
 
 - **Usage widget.** A sidebar footer below the agents list shows how much of
-  your coding-agent allowance is used: Anthropic/Claude (`A`) and
-  OpenAI/Codex (`O`) 5-hour and weekly limits with time to reset, and the
-  DeepSeek (`D`) and OpenRouter (`R`) prepaid balances. Click it for details: reset clock times,
-  plans, free Codex limit resets, and a refresh button (`r`). Enable it with:
+  your coding-agent allowance is used: Anthropic/Claude (`AN`) and
+  OpenAI/Codex (`OA`) 5-hour and weekly limits with time to reset, and the
+  DeepSeek (`DS`) and OpenRouter (`OR`) prepaid balances. Click it for
+  details: reset clock times, plans, free Codex limit resets, and a refresh
+  button (`r`). Enable it with:
 
   ```toml
   [usage]

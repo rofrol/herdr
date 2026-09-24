@@ -200,10 +200,10 @@ fn footer_height(report: &UsageReport) -> u16 {
         .saturating_add(1)
 }
 
-/// Column of the provider letter, and of the short and weekly window cells.
+/// Column of the two-letter provider code, and of the short and weekly window cells.
 const CODE_COLUMN: u16 = 1;
-const SHORT_WINDOW_COLUMN: u16 = 3;
-const WEEKLY_WINDOW_COLUMN: u16 = 13;
+const SHORT_WINDOW_COLUMN: u16 = 4;
+const WEEKLY_WINDOW_COLUMN: u16 = 14;
 
 pub(super) fn render_usage_footer(
     buffer: &mut Buffer,
@@ -345,15 +345,17 @@ fn footer_windows(provider: &ProviderUsage) -> (Option<&UsageWindow>, Option<&Us
 
 pub(super) fn provider_code(provider: &ProviderUsage) -> String {
     match provider.provider.as_str() {
-        "claude" => "A".into(),
-        "codex" => "O".into(),
-        "deepseek" => "D".into(),
-        "openrouter" => "R".into(),
+        "claude" => "AN".into(),
+        "codex" => "OA".into(),
+        "deepseek" => "DS".into(),
+        "openrouter" => "OR".into(),
         _ => provider
             .label
             .chars()
-            .next()
-            .map_or_else(|| "?".into(), |first| first.to_uppercase().collect()),
+            .filter(|c| c.is_alphanumeric())
+            .take(2)
+            .flat_map(char::to_uppercase)
+            .collect(),
     }
 }
 
@@ -523,9 +525,9 @@ mod tests {
         let rows = footer_text(&report, 26);
 
         assert_eq!(rows[0], "─".repeat(26));
-        assert_eq!(rows[1], " A   2% 47m   12% 6d");
-        assert_eq!(rows[2], " O  87% 47m  100% 6d");
-        assert_eq!(rows[3], " D $13.41 balance");
+        assert_eq!(rows[1], " AN   2% 47m   12% 6d");
+        assert_eq!(rows[2], " OA  87% 47m  100% 6d");
+        assert_eq!(rows[3], " DS $13.41 balance");
     }
 
     #[test]
@@ -548,7 +550,13 @@ mod tests {
             enabled: true,
             providers: vec![claude],
         };
-        assert_eq!(footer_text(&report, 24)[1], " A!");
+        assert_eq!(footer_text(&report, 24)[1], " AN!");
+    }
+
+    #[test]
+    fn unknown_provider_code_uses_its_label() {
+        assert_eq!(provider_code(&provider("mistral", "Mistral")), "MI");
+        assert_eq!(provider_code(&provider("x", "")), "");
     }
 
     #[test]
