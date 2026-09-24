@@ -11,7 +11,10 @@ mod claude;
 mod codex;
 mod deepseek;
 mod http;
+mod keys;
 mod openrouter;
+
+pub(crate) use keys::DEFAULT_AUTH_FILE;
 
 use std::collections::BTreeMap;
 use std::sync::mpsc::{self, RecvTimeoutError};
@@ -115,9 +118,7 @@ fn enabled_providers(config: &UsageConfig) -> Vec<Provider> {
         (config.deepseek, Provider::DeepSeek),
         // Most setups have no OpenRouter key; skip it rather than show a failed row.
         (
-            config.openrouter
-                && (config.openrouter_api_key_file.is_some()
-                    || env_key("OPENROUTER_API_KEY").is_some()),
+            config.openrouter && keys::api_key(config, &keys::KeyedProvider::OpenRouter).is_ok(),
             Provider::OpenRouter,
         ),
     ]
@@ -300,31 +301,6 @@ fn clamp_percent(value: f64) -> u8 {
     } else {
         0
     }
-}
-
-fn env_key(name: &str) -> Option<String> {
-    std::env::var(name)
-        .ok()
-        .map(|key| key.trim().to_owned())
-        .filter(|key| !key.is_empty())
-}
-
-/// API key from `env_var`, else from the file configured at `config_key`.
-fn api_key(env_var: &str, file: Option<&str>, config_key: &str) -> Result<String, String> {
-    if let Some(key) = env_key(env_var) {
-        return Ok(key);
-    }
-    let Some(path) = file else {
-        return Err(format!("set {env_var} or {config_key}"));
-    };
-    let path = expand_home(path);
-    let key = std::fs::read_to_string(&path)
-        .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-    let key = key.trim();
-    if key.is_empty() {
-        return Err(format!("{} is empty", path.display()));
-    }
-    Ok(key.to_owned())
 }
 
 fn expand_home(path: &str) -> std::path::PathBuf {

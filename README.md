@@ -15,14 +15,15 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
   ```toml
   [usage]
   enabled = true
-  deepseek_api_key_file = "~/.config/deepseek/api_key"  # or DEEPSEEK_API_KEY
-  openrouter_api_key_file = "~/.config/openrouter/api_key"  # or OPENROUTER_API_KEY
   ```
 
   Claude uses the Claude Code login, Codex goes through `codex app-server`,
-  DeepSeek uses its balance API, OpenRouter its key and credits API (the
-  account balance needs a management key; a regular key shows its remaining
-  limit and daily/weekly/monthly spend). The server refreshes every 5 minutes
+  DeepSeek uses its balance API, OpenRouter its key and credits API (balance
+  plus daily/weekly/monthly key spend). DeepSeek and OpenRouter keys come
+  from `DEEPSEEK_API_KEY`/`OPENROUTER_API_KEY`, then
+  `deepseek_api_key_file`/`openrouter_api_key_file`, then `auth_file`
+  (default `~/.pi/agent/auth.json`, the pi coding agent's logins); OpenRouter
+  is hidden without a key. The server refreshes every 5 minutes
   (`refresh_interval_secs`); set `claude`, `codex`, `deepseek` or
   `openrouter` to `false` to hide a provider. All herdr instances share one
   cache (`~/.local/state/herdr/usage-cache.json`): a recent observation is

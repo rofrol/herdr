@@ -16,9 +16,13 @@ pub struct UsageConfig {
     pub codex: bool,
     /// Read the DeepSeek prepaid API balance.
     pub deepseek: bool,
+    /// JSON file mapping provider ids to API keys, in pi's `auth.json` layout.
+    /// Used when neither the environment variable nor the provider's key file
+    /// is set. An empty string disables it.
+    pub auth_file: String,
     /// File holding the DeepSeek API key. `DEEPSEEK_API_KEY` takes precedence.
     pub deepseek_api_key_file: Option<String>,
-    /// Read OpenRouter credits when an API key is configured.
+    /// Read OpenRouter credits when an API key is found.
     pub openrouter: bool,
     /// File holding the OpenRouter API key. `OPENROUTER_API_KEY` takes precedence.
     pub openrouter_api_key_file: Option<String>,
@@ -34,6 +38,7 @@ impl Default for UsageConfig {
             claude: true,
             codex: true,
             deepseek: true,
+            auth_file: crate::usage::DEFAULT_AUTH_FILE.to_owned(),
             deepseek_api_key_file: None,
             openrouter: true,
             openrouter_api_key_file: None,

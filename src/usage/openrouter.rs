@@ -1,8 +1,8 @@
 //! OpenRouter credits and API key spend.
 //!
-//! `/key` works with any API key and reports that key's spend and limit.
-//! `/credits` reports the account balance but only answers management keys, so
-//! a regular key falls back to the key's remaining limit when it has one.
+//! `/key` reports the key's spend and limit. `/credits` reports the account
+//! balance; OpenRouter documents it as management-key only, so when it is
+//! refused the key's remaining limit stands in for the balance.
 
 use serde::Deserialize;
 
@@ -40,11 +40,7 @@ struct Credits {
 }
 
 pub(super) fn fetch(config: &UsageConfig) -> Result<ProviderUsage, FetchError> {
-    let key = super::api_key(
-        "OPENROUTER_API_KEY",
-        config.openrouter_api_key_file.as_deref(),
-        "usage.openrouter_api_key_file",
-    )?;
+    let key = super::keys::api_key(config, &super::keys::KeyedProvider::OpenRouter)?;
     let authorization = format!("Bearer {key}");
     let headers = [("Authorization", authorization.as_str())];
     let response = super::http::get(KEY_URL, &headers)?;
@@ -58,7 +54,7 @@ pub(super) fn fetch(config: &UsageConfig) -> Result<ProviderUsage, FetchError> {
             )))
         }
     };
-    // Regular keys get 403 here; the key limit is the fallback balance.
+    // Documented as management-key only; the key limit is the fallback balance.
     let credits = super::http::get(CREDITS_URL, &headers)
         .ok()
         .filter(|response| response.status == 200)

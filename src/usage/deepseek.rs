@@ -22,11 +22,7 @@ struct BalanceInfo {
 }
 
 pub(super) fn fetch(config: &UsageConfig) -> Result<ProviderUsage, FetchError> {
-    let key = super::api_key(
-        "DEEPSEEK_API_KEY",
-        config.deepseek_api_key_file.as_deref(),
-        "usage.deepseek_api_key_file",
-    )?;
+    let key = super::keys::api_key(config, &super::keys::KeyedProvider::DeepSeek)?;
     let authorization = format!("Bearer {key}");
     let response = super::http::get(BALANCE_URL, &[("Authorization", &authorization)])?;
     match response.status {
