@@ -74,7 +74,7 @@ Don't run `herdr update`: it replaces the fork with the upstream release.
 
 ---
 
-https://github.com/user-attachments/assets/4f8e79ec-2b06-4f8b-b865-a1fe2239f1da
+https://github.com/user-attachments/assets/1a9e3888-e2e0-48c5-adc8-aee87585abd2
 
 **the runtime your coding agents live on.**
 
