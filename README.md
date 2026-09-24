@@ -37,6 +37,9 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
   quote no longer crash terminal-notifier, and an empty message is no longer
   rejected; both made herdr fall back to the Script Editor notification.
 
+The demo video below is recorded with `scripts/fork_demo/record.sh`; see
+[scripts/fork_demo/README.md](scripts/fork_demo/README.md) to re-record it.
+
 Install from source (needs Zig 0.16.0) with `cargo install --path . --locked`.
 Don't run `herdr update`: it replaces the fork with the upstream release.
 
@@ -64,7 +67,7 @@ Don't run `herdr update`: it replaces the fork with the upstream release.
 
 ---
 
-https://github.com/user-attachments/assets/20c5ccd2-a30c-4bda-b26d-05751bb2def4
+https://github.com/user-attachments/assets/eba3492f-96d8-46de-b39f-edfb5a2df854
 
 **the runtime your coding agents live on.**
 
