@@ -75,9 +75,17 @@ impl Provider {
         }
     }
 
-    fn fetch(self, config: &UsageConfig) -> Result<ProviderUsage, String> {
+    /// Last good allowance persisted by any herdr instance, if the provider keeps one.
+    fn cached(self) -> Option<ProviderUsage> {
         match self {
-            Self::Claude => claude::fetch(),
+            Self::Claude => claude::cached(),
+            Self::Codex | Self::DeepSeek => None,
+        }
+    }
+
+    fn fetch(self, config: &UsageConfig, forced: bool) -> Result<ProviderUsage, String> {
+        match self {
+            Self::Claude => claude::fetch(config.refresh_interval(), forced),
             Self::Codex => codex::fetch(),
             Self::DeepSeek => deepseek::fetch(config),
         }
@@ -104,12 +112,16 @@ fn run(
     events: tokio::sync::mpsc::Sender<AppEvent>,
 ) {
     let mut last = BTreeMap::<Provider, ProviderUsage>::new();
+    let mut forced = false;
     loop {
         let providers = enabled_providers(&config);
         last.retain(|provider, _| providers.contains(provider));
         for provider in &providers {
-            last.entry(*provider)
-                .or_insert_with(|| ProviderUsage::pending(provider.id(), provider.label()));
+            last.entry(*provider).or_insert_with(|| {
+                provider
+                    .cached()
+                    .unwrap_or_else(|| ProviderUsage::pending(provider.id(), provider.label()))
+            });
         }
         if !publish(&events, &config, &last) {
             return;
@@ -121,7 +133,10 @@ fn run(
                     .iter()
                     .map(|provider| {
                         let config = &config;
-                        (*provider, scope.spawn(move || provider.fetch(config)))
+                        (
+                            *provider,
+                            scope.spawn(move || provider.fetch(config, forced)),
+                        )
                     })
                     .collect::<Vec<_>>();
                 handles
@@ -144,11 +159,13 @@ fn run(
         }
 
         let deadline = fetched_at + config.refresh_interval();
+        forced = false;
         loop {
             let timeout = deadline.saturating_duration_since(Instant::now());
             match commands.recv_timeout(timeout) {
                 Ok(UsageCommand::Refresh) => {
                     if fetched_at.elapsed() >= MIN_MANUAL_REFRESH_GAP {
+                        forced = true;
                         break;
                     }
                 }
@@ -189,7 +206,7 @@ fn merge_result(
             usage.provider = provider.id().to_owned();
             usage.label = provider.label().to_owned();
             usage.status = ProviderUsageStatus::Ok;
-            usage.observed_at = Some(now_unix());
+            usage.observed_at = usage.observed_at.or_else(|| Some(now_unix()));
             usage
         }
         Err(message) => {
