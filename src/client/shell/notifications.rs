@@ -515,7 +515,7 @@ mod tests {
         );
         assert_eq!(state.queued_notifications.len(), 1);
 
-        state.tick_notifications(now + std::time::Duration::from_secs(5));
+        state.tick_notifications(now + std::time::Duration::from_secs(8));
 
         assert_eq!(
             state

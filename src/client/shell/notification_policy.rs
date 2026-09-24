@@ -14,10 +14,10 @@ enum NotificationValidation {
 
 fn notification_duration(kind: SemanticNotificationKind) -> std::time::Duration {
     std::time::Duration::from_secs(match kind {
-        SemanticNotificationKind::NeedsAttention => 8,
-        SemanticNotificationKind::Finished => 5,
-        SemanticNotificationKind::UpdateInstalled => 3,
-        SemanticNotificationKind::Custom => 5,
+        SemanticNotificationKind::NeedsAttention => 12,
+        SemanticNotificationKind::Finished => 8,
+        SemanticNotificationKind::UpdateInstalled => 5,
+        SemanticNotificationKind::Custom => 8,
     })
 }
 
