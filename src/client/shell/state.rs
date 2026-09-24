@@ -718,8 +718,18 @@ pub(crate) enum ClientShellNotificationEffect {
     },
     System {
         title: String,
+        subtitle: Option<String>,
         body: Option<String>,
+        /// Pane to focus when the notification is clicked; only set for the
+        /// local endpoint, whose API socket this client process can reach.
+        click_target: Option<ClientNotificationClickTarget>,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ClientNotificationClickTarget {
+    pub(crate) pane_id: String,
+    pub(crate) tab_id: Option<String>,
 }
 
 pub(super) struct ClientPendingNotification {
