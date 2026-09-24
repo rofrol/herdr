@@ -13,8 +13,9 @@ shows the fork's features in a real herdr client:
 
 Requirements: macOS, `cargo` (the repo builds with Zig 0.16.0), `uv`, and
 `ffmpeg`. For real numbers in the usage footer, be logged in to Claude Code
-and to Codex with ChatGPT, and keep a DeepSeek API key in
-`~/.config/deepseek/api_key`; a missing provider shows `!` instead.
+and to Codex with ChatGPT, and keep API keys in
+`~/.config/deepseek/api_key` and `~/.config/openrouter/api_key`; a missing
+DeepSeek key shows `!`, a missing OpenRouter key hides its row.
 
 ```sh
 scripts/fork_demo/record.sh              # writes assets/fork-demo.mp4

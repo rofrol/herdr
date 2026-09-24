@@ -233,7 +233,7 @@ def main():
     rec.shot("herdr fork: usage widget, middle-click close, clickable notifications", 2200)
 
     cap = "Click the usage footer to see limits and reset times"
-    fy, fx = rec.find(lambda y, line: (y, 1) if line.startswith(" A ") and "%" in line[:24] else None)
+    fy, fx = rec.find(lambda y, line: (y, 1) if line.startswith(" AN ") and "%" in line[:24] else None)
     rec.add(pointer(render(rec.screen, cap), fy, fx + 4), 1100)
     rec.mouse(fy, fx, 0)
     rec.pump(1.5)

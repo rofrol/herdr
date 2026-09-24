@@ -56,6 +56,7 @@ delivery = "off"
 [usage]
 enabled = true
 deepseek_api_key_file = "~/.config/deepseek/api_key"
+openrouter_api_key_file = "~/.config/openrouter/api_key"
 EOF
 echo "PROMPT='%F{blue}%~%f \$ '" >"$work/zsh/.zshrc"
 
