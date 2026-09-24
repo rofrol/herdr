@@ -376,6 +376,12 @@ pub(crate) fn begin_cli_output() {}
 #[cfg(not(unix))]
 pub(crate) fn end_cli_output() {}
 
+/// Keychain-backed credentials exist only on macOS.
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn read_keychain_generic_password(_service: &str) -> Option<String> {
+    None
+}
+
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "linux")]

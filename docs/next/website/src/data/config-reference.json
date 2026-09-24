@@ -472,6 +472,48 @@
       ]
     },
     {
+      "id": "usage",
+      "title": "Usage",
+      "keys": [
+        {
+          "key": "usage.enabled",
+          "type": "boolean",
+          "default": "false",
+          "description": "Poll provider subscription and API allowance in the background and show it in a sidebar footer below the agents list. Click the footer for details. Polling contacts provider services, so it is off by default."
+        },
+        {
+          "key": "usage.refresh_interval_secs",
+          "type": "integer",
+          "default": "300",
+          "description": "Seconds between background refreshes. Values below 60 are raised to 60."
+        },
+        {
+          "key": "usage.claude",
+          "type": "boolean",
+          "default": "true",
+          "description": "Show Claude 5-hour and weekly limits using the Claude Code login (~/.claude/.credentials.json or the macOS keychain). The Claude usage endpoint is undocumented and may change."
+        },
+        {
+          "key": "usage.codex",
+          "type": "boolean",
+          "default": "true",
+          "description": "Show Codex 5-hour and weekly rate limits through the local codex app-server. Requires the codex CLI logged in with ChatGPT."
+        },
+        {
+          "key": "usage.deepseek",
+          "type": "boolean",
+          "default": "true",
+          "description": "Show the DeepSeek prepaid API balance. Requires DEEPSEEK_API_KEY or usage.deepseek_api_key_file."
+        },
+        {
+          "key": "usage.deepseek_api_key_file",
+          "type": "string",
+          "default": "unset",
+          "description": "File holding the DeepSeek API key; ~/ expands to the home directory. DEEPSEEK_API_KEY in the server environment takes precedence."
+        }
+      ]
+    },
+    {
       "id": "keys",
       "title": "Keybindings",
       "keys": [

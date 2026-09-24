@@ -112,6 +112,7 @@ pub(super) struct ShellHitMap {
     pub(super) mobile_targets: Vec<(Rect, ClientMobileTarget)>,
     pub(super) mobile_max_scroll: usize,
     pub(super) global_launcher: Rect,
+    pub(super) usage_footer: Rect,
     pub(super) notification_toast: Rect,
     pub(super) global_menu_rows: Vec<(Rect, usize)>,
     pub(super) context_menu_rows: Vec<(Rect, usize)>,
@@ -291,6 +292,7 @@ pub(super) enum ClientShellOverlayKind {
     ContextMenu,
     GlobalMenu,
     Settings,
+    Usage,
 }
 
 #[derive(Debug)]
@@ -591,6 +593,7 @@ pub(super) enum ClientShellOverlay {
     ContextMenu(ClientContextMenuOverlay),
     GlobalMenu(ClientGlobalMenuOverlay),
     Settings(ClientSettingsOverlay),
+    Usage(super::usage::ClientUsageOverlay),
 }
 
 impl ClientShellOverlay {
@@ -609,6 +612,7 @@ impl ClientShellOverlay {
             Self::ContextMenu(_) => ClientShellOverlayKind::ContextMenu,
             Self::GlobalMenu(_) => ClientShellOverlayKind::GlobalMenu,
             Self::Settings(_) => ClientShellOverlayKind::Settings,
+            Self::Usage(_) => ClientShellOverlayKind::Usage,
         }
     }
 }
@@ -623,6 +627,9 @@ pub(super) enum PendingEndpointKind {
     ReleaseNotesDismiss,
     PopupCommand,
     ReloadConfig,
+    UsageRead {
+        endpoint_id: ClientEndpointId,
+    },
     IntegrationList,
     IntegrationInstall,
     PrepareWorktreeCreate {
@@ -924,6 +931,7 @@ pub(crate) struct ClientShellState {
     pub(super) pane_scroll_targets: HashMap<String, usize>,
     pub(super) copy_feedback: Option<crate::app::state::CopyFeedback>,
     pub(super) copy_feedback_deadline: Option<std::time::Instant>,
+    pub(super) usage: super::usage::ClientUsageState,
     pub(super) host_mouse_pixels: Option<crate::input::mouse::HostPixels>,
     pub(super) input_leases: ClientInputLeases,
     pub(super) popup_pending: bool,
@@ -1089,6 +1097,7 @@ impl ClientShellState {
             pane_scroll_targets: HashMap::new(),
             copy_feedback: None,
             copy_feedback_deadline: None,
+            usage: super::usage::ClientUsageState::default(),
             host_mouse_pixels: None,
             input_leases: ClientInputLeases::default(),
             popup_pending: false,

@@ -10,6 +10,7 @@ pub(crate) mod plugins;
 pub(super) mod responses;
 mod session;
 mod tabs;
+mod usage;
 mod workspaces;
 mod worktrees;
 
@@ -1182,6 +1183,7 @@ impl App {
             Method::IntegrationList(_) => {
                 return self.handle_integration_list(request.id);
             }
+            Method::UsageRead(params) => return self.handle_usage_read(request.id, params),
             Method::IntegrationInstall(params) => {
                 return self.handle_integration_install(request.id, params);
             }

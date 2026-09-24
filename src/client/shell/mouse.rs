@@ -1720,6 +1720,7 @@ impl ClientShellState {
                     Some(ClientShellOverlay::ConfirmClose(_)) => {
                         self.accept_close_confirmation(outcome);
                     }
+                    Some(ClientShellOverlay::Usage(_)) => self.refresh_usage(outcome),
                     _ => {}
                 }
             } else if super::contains(self.hits.overlay_clear, point) {
@@ -2008,6 +2009,10 @@ impl ClientShellState {
                             }
                         }
                     }
+                    return;
+                }
+                if super::contains(self.hits.usage_footer, point) {
+                    self.open_usage_overlay(outcome);
                     return;
                 }
                 if super::contains(self.hits.agent_sort_toggle, point) {

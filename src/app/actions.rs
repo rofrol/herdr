@@ -1378,6 +1378,10 @@ impl AppState {
                 Vec::new()
             }
             AppEvent::WorktreeRuntimeRestoreFailed { .. } => Vec::new(),
+            AppEvent::UsageUpdated(report) => {
+                self.usage = report;
+                Vec::new()
+            }
             AppEvent::UpdateReady {
                 version,
                 install_command,

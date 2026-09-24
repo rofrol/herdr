@@ -1234,6 +1234,22 @@ pub fn process_exists(pid: u32) -> bool {
     }
 }
 
+/// Reads a generic password from the login keychain without prompting through a TTY.
+pub(crate) fn read_keychain_generic_password(service: &str) -> Option<String> {
+    let output = crate::noninteractive_process::command("security")
+        .args(["find-generic-password", "-s", service, "-w"])
+        .stdin(Stdio::null())
+        .stderr(Stdio::null())
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let secret = String::from_utf8(output.stdout).ok()?;
+    let secret = secret.trim_end_matches(['\r', '\n']);
+    (!secret.is_empty()).then(|| secret.to_owned())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
