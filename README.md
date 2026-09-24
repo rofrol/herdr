@@ -5,6 +5,24 @@
 Personal fork of [herdrdev/herdr](https://github.com/herdrdev/herdr); these
 commits sit on top of upstream `master` and are not meant for upstream PRs.
 
+- **Usage widget.** A sidebar footer below the agents list shows how much of
+  your coding-agent allowance is used: Anthropic/Claude (`A`) and
+  OpenAI/Codex (`O`) 5-hour and weekly limits with time to reset, and the
+  DeepSeek (`D`) prepaid balance. Click it for details: reset clock times,
+  plans, free Codex limit resets, and a refresh button (`r`). Enable it with:
+
+  ```toml
+  [usage]
+  enabled = true
+  deepseek_api_key_file = "~/.config/deepseek/api_key"  # or DEEPSEEK_API_KEY
+  ```
+
+  Claude uses the Claude Code login, Codex goes through `codex app-server`,
+  DeepSeek uses its balance API. The server refreshes every 5 minutes
+  (`refresh_interval_secs`); set `claude`, `codex` or `deepseek` to `false`
+  to hide a provider.
+
+  <img src="assets/usage-widget.png" alt="usage footer and detail modal" width="720" />
 - **Middle click closes tabs and workspaces.** Middle-click a tab or a
   workspace in the sidebar to close it, with the same confirmation as the
   context menu's Close. Pane apps with mouse reporting still get middle clicks
@@ -48,7 +66,9 @@ Don't run `herdr update`: it replaces the fork with the upstream release.
 
 ---
 
-https://github.com/user-attachments/assets/043ec09f-4bdd-41d5-aee0-8fda6b83e267
+<p align="center">
+  <img src="assets/fork-demo.gif" alt="fork demo: usage popup, closing a tab and a space with middle click, jumping to an agent from its notification" width="720" />
+</p>
 
 **the runtime your coding agents live on.**
 
