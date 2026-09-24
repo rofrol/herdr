@@ -44,6 +44,11 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
   quote no longer crash terminal-notifier, and an empty message is no longer
   rejected; both made herdr fall back to the Script Editor notification.
 
+Outside the fork itself, my dotfiles have a local plugin,
+[relaunch](https://github.com/rofrol/dotfiles/tree/master/.config/herdr/local-plugins/relaunch),
+that reruns the programs panes were running (lazygit, editors, ...) after a
+server restart or reboot; herdr itself brings them back as empty shells.
+
 The demo video below is recorded with `scripts/fork_demo/record.sh`; see
 [scripts/fork_demo/README.md](scripts/fork_demo/README.md) to re-record it.
 
