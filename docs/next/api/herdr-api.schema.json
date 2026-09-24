@@ -9200,7 +9200,7 @@
               ]
             },
             "provider": {
-              "description": "Stable provider id such as `claude`, `codex`, or `deepseek`.",
+              "description": "Stable provider id such as `claude`, `codex`, `deepseek`, or `openrouter`.",
               "type": "string"
             },
             "status": {

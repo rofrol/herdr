@@ -510,6 +510,18 @@
           "type": "string",
           "default": "unset",
           "description": "File holding the DeepSeek API key; ~/ expands to the home directory. DEEPSEEK_API_KEY in the server environment takes precedence."
+        },
+        {
+          "key": "usage.openrouter",
+          "type": "boolean",
+          "default": "true",
+          "description": "Show the OpenRouter credit balance and API key spend. Hidden unless OPENROUTER_API_KEY or usage.openrouter_api_key_file is set. The account balance needs a management key; a regular key shows its remaining limit."
+        },
+        {
+          "key": "usage.openrouter_api_key_file",
+          "type": "string",
+          "default": "unset",
+          "description": "File holding the OpenRouter API key; ~/ expands to the home directory. OPENROUTER_API_KEY in the server environment takes precedence."
         }
       ]
     },

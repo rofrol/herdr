@@ -348,6 +348,7 @@ pub(super) fn provider_code(provider: &ProviderUsage) -> String {
         "claude" => "A".into(),
         "codex" => "O".into(),
         "deepseek" => "D".into(),
+        "openrouter" => "R".into(),
         _ => provider
             .label
             .chars()

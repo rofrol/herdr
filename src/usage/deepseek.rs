@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+use super::FetchError;
 use crate::api::schema::{ProviderUsage, UsageBalance};
 use crate::config::UsageConfig;
 
@@ -20,36 +21,22 @@ struct BalanceInfo {
     topped_up_balance: Option<String>,
 }
 
-pub(super) fn fetch(config: &UsageConfig) -> Result<ProviderUsage, String> {
-    let key = api_key(config)?;
+pub(super) fn fetch(config: &UsageConfig) -> Result<ProviderUsage, FetchError> {
+    let key = super::api_key(
+        "DEEPSEEK_API_KEY",
+        config.deepseek_api_key_file.as_deref(),
+        "usage.deepseek_api_key_file",
+    )?;
     let authorization = format!("Bearer {key}");
     let response = super::http::get(BALANCE_URL, &[("Authorization", &authorization)])?;
     match response.status {
-        200 => parse(&response.body),
-        401 | 403 => Err("DeepSeek rejected the API key".into()),
-        status => Err(format!("DeepSeek balance request failed ({status})")),
+        200 => Ok(parse(&response.body)?),
+        401 | 403 => Err(FetchError::Failed("DeepSeek rejected the API key".into())),
+        429 => Err(FetchError::RateLimited),
+        status => Err(FetchError::Failed(format!(
+            "DeepSeek balance request failed ({status})"
+        ))),
     }
-}
-
-fn api_key(config: &UsageConfig) -> Result<String, String> {
-    if let Some(key) = std::env::var("DEEPSEEK_API_KEY")
-        .ok()
-        .map(|key| key.trim().to_owned())
-        .filter(|key| !key.is_empty())
-    {
-        return Ok(key);
-    }
-    let Some(path) = config.deepseek_api_key_file.as_deref() else {
-        return Err("set DEEPSEEK_API_KEY or usage.deepseek_api_key_file".into());
-    };
-    let path = super::expand_home(path);
-    let key = std::fs::read_to_string(&path)
-        .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-    let key = key.trim();
-    if key.is_empty() {
-        return Err(format!("{} is empty", path.display()));
-    }
-    Ok(key.to_owned())
 }
 
 fn parse(body: &str) -> Result<ProviderUsage, String> {

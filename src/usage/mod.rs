@@ -3,22 +3,39 @@
 //! One background thread refreshes every enabled provider on an interval and
 //! hands the merged report to the app loop as an [`AppEvent::UsageUpdated`].
 //! Credentials stay inside this module; reports carry only allowance facts.
+//! Observations and rate-limit backoff are shared across herdr instances
+//! through [`cache::UsageCache`].
 
+mod cache;
 mod claude;
 mod codex;
 mod deepseek;
 mod http;
+mod openrouter;
 
 use std::collections::BTreeMap;
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use self::cache::{Plan, UsageCache};
 use crate::api::schema::{ProviderUsage, ProviderUsageStatus, UsageReport};
 use crate::config::UsageConfig;
 use crate::events::AppEvent;
 
 /// Manual refreshes closer together than this reuse the running cycle.
 const MIN_MANUAL_REFRESH_GAP: Duration = Duration::from_secs(30);
+
+/// Why a provider refresh failed. A rate limit backs the provider off.
+enum FetchError {
+    RateLimited,
+    Failed(String),
+}
+
+impl From<String> for FetchError {
+    fn from(message: String) -> Self {
+        Self::Failed(message)
+    }
+}
 
 enum UsageCommand {
     Refresh,
@@ -56,6 +73,7 @@ enum Provider {
     Claude,
     Codex,
     DeepSeek,
+    OpenRouter,
 }
 
 impl Provider {
@@ -64,6 +82,7 @@ impl Provider {
             Self::Claude => "claude",
             Self::Codex => "codex",
             Self::DeepSeek => "deepseek",
+            Self::OpenRouter => "openrouter",
         }
     }
 
@@ -72,22 +91,16 @@ impl Provider {
             Self::Claude => "Claude",
             Self::Codex => "Codex",
             Self::DeepSeek => "DeepSeek",
+            Self::OpenRouter => "OpenRouter",
         }
     }
 
-    /// Last good allowance persisted by any herdr instance, if the provider keeps one.
-    fn cached(self) -> Option<ProviderUsage> {
+    fn fetch(self, config: &UsageConfig) -> Result<ProviderUsage, FetchError> {
         match self {
-            Self::Claude => claude::cached(),
-            Self::Codex | Self::DeepSeek => None,
-        }
-    }
-
-    fn fetch(self, config: &UsageConfig, forced: bool) -> Result<ProviderUsage, String> {
-        match self {
-            Self::Claude => claude::fetch(config.refresh_interval(), forced),
-            Self::Codex => codex::fetch(),
+            Self::Claude => claude::fetch(),
+            Self::Codex => Ok(codex::fetch()?),
             Self::DeepSeek => deepseek::fetch(config),
+            Self::OpenRouter => openrouter::fetch(config),
         }
     }
 }
@@ -100,6 +113,13 @@ fn enabled_providers(config: &UsageConfig) -> Vec<Provider> {
         (config.claude, Provider::Claude),
         (config.codex, Provider::Codex),
         (config.deepseek, Provider::DeepSeek),
+        // Most setups have no OpenRouter key; skip it rather than show a failed row.
+        (
+            config.openrouter
+                && (config.openrouter_api_key_file.is_some()
+                    || env_key("OPENROUTER_API_KEY").is_some()),
+            Provider::OpenRouter,
+        ),
     ]
     .into_iter()
     .filter_map(|(enabled, provider)| enabled.then_some(provider))
@@ -116,10 +136,12 @@ fn run(
     loop {
         let providers = enabled_providers(&config);
         last.retain(|provider, _| providers.contains(provider));
+        let cache = UsageCache::load();
         for provider in &providers {
             last.entry(*provider).or_insert_with(|| {
-                provider
-                    .cached()
+                cache
+                    .usage(provider.id())
+                    .cloned()
                     .unwrap_or_else(|| ProviderUsage::pending(provider.id(), provider.label()))
             });
         }
@@ -128,28 +150,7 @@ fn run(
         }
         let fetched_at = Instant::now();
         if !providers.is_empty() {
-            let results = std::thread::scope(|scope| {
-                let handles = providers
-                    .iter()
-                    .map(|provider| {
-                        let config = &config;
-                        (
-                            *provider,
-                            scope.spawn(move || provider.fetch(config, forced)),
-                        )
-                    })
-                    .collect::<Vec<_>>();
-                handles
-                    .into_iter()
-                    .map(|(provider, handle)| {
-                        let result = handle
-                            .join()
-                            .unwrap_or_else(|_| Err("usage fetch panicked".into()));
-                        (provider, result)
-                    })
-                    .collect::<Vec<_>>()
-            });
-            for (provider, result) in results {
+            for (provider, result) in refresh(&providers, &config, &cache, forced) {
                 let previous = last.remove(&provider);
                 last.insert(provider, merge_result(provider, previous, result));
             }
@@ -181,6 +182,73 @@ fn run(
             }
         }
     }
+}
+
+/// Fetch every provider the shared cache does not answer, then record the outcomes.
+fn refresh(
+    providers: &[Provider],
+    config: &UsageConfig,
+    cache: &UsageCache,
+    forced: bool,
+) -> Vec<(Provider, Result<ProviderUsage, String>)> {
+    let now = now_unix();
+    let interval_secs = config.refresh_interval().as_secs();
+    let fetched = std::thread::scope(|scope| {
+        let handles = providers
+            .iter()
+            .map(|provider| {
+                let plan = cache.plan(provider.id(), now, interval_secs, forced);
+                let handle = matches!(plan, Plan::Fetch)
+                    .then(|| scope.spawn(move || provider.fetch(config)));
+                (*provider, plan, handle)
+            })
+            .collect::<Vec<_>>();
+        handles
+            .into_iter()
+            .map(|(provider, plan, handle)| {
+                let fetched = handle.map(|handle| {
+                    handle
+                        .join()
+                        .unwrap_or_else(|_| Err(FetchError::Failed("usage fetch panicked".into())))
+                });
+                (provider, plan, fetched)
+            })
+            .collect::<Vec<_>>()
+    });
+
+    let mut results = Vec::with_capacity(fetched.len());
+    UsageCache::update(|cache| {
+        for (provider, plan, fetched) in fetched {
+            let result = match (plan, fetched) {
+                (Plan::Blocked(retry_in), _) => Err(rate_limited_message(provider, retry_in)),
+                (Plan::Fresh(usage), _) => Ok(usage),
+                (Plan::Fetch, Some(Ok(mut usage))) => {
+                    usage.provider = provider.id().to_owned();
+                    usage.label = provider.label().to_owned();
+                    usage.status = ProviderUsageStatus::Ok;
+                    usage.observed_at = Some(now);
+                    cache.record_success(&usage);
+                    Ok(usage)
+                }
+                (Plan::Fetch, Some(Err(FetchError::RateLimited))) => {
+                    let retry_in = cache.record_rate_limit(provider.id(), now);
+                    Err(rate_limited_message(provider, retry_in))
+                }
+                (Plan::Fetch, Some(Err(FetchError::Failed(message)))) => Err(message),
+                (Plan::Fetch, None) => Err("usage fetch did not run".into()),
+            };
+            results.push((provider, result));
+        }
+    });
+    results
+}
+
+fn rate_limited_message(provider: Provider, retry_in_secs: u64) -> String {
+    let minutes = retry_in_secs.div_ceil(60).max(1);
+    format!(
+        "{} usage endpoint is rate limited; retrying in {minutes}m",
+        provider.label()
+    )
 }
 
 fn publish(
@@ -232,6 +300,31 @@ fn clamp_percent(value: f64) -> u8 {
     } else {
         0
     }
+}
+
+fn env_key(name: &str) -> Option<String> {
+    std::env::var(name)
+        .ok()
+        .map(|key| key.trim().to_owned())
+        .filter(|key| !key.is_empty())
+}
+
+/// API key from `env_var`, else from the file configured at `config_key`.
+fn api_key(env_var: &str, file: Option<&str>, config_key: &str) -> Result<String, String> {
+    if let Some(key) = env_key(env_var) {
+        return Ok(key);
+    }
+    let Some(path) = file else {
+        return Err(format!("set {env_var} or {config_key}"));
+    };
+    let path = expand_home(path);
+    let key = std::fs::read_to_string(&path)
+        .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+    let key = key.trim();
+    if key.is_empty() {
+        return Err(format!("{} is empty", path.display()));
+    }
+    Ok(key.to_owned())
 }
 
 fn expand_home(path: &str) -> std::path::PathBuf {
@@ -294,6 +387,7 @@ mod tests {
         assert!(enabled_providers(&config).is_empty());
         config.enabled = true;
         config.codex = false;
+        config.openrouter = false;
         assert_eq!(
             enabled_providers(&config)
                 .into_iter()

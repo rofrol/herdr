@@ -8,19 +8,25 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
 - **Usage widget.** A sidebar footer below the agents list shows how much of
   your coding-agent allowance is used: Anthropic/Claude (`A`) and
   OpenAI/Codex (`O`) 5-hour and weekly limits with time to reset, and the
-  DeepSeek (`D`) prepaid balance. Click it for details: reset clock times,
+  DeepSeek (`D`) and OpenRouter (`R`) prepaid balances. Click it for details: reset clock times,
   plans, free Codex limit resets, and a refresh button (`r`). Enable it with:
 
   ```toml
   [usage]
   enabled = true
   deepseek_api_key_file = "~/.config/deepseek/api_key"  # or DEEPSEEK_API_KEY
+  openrouter_api_key_file = "~/.config/openrouter/api_key"  # or OPENROUTER_API_KEY
   ```
 
   Claude uses the Claude Code login, Codex goes through `codex app-server`,
-  DeepSeek uses its balance API. The server refreshes every 5 minutes
-  (`refresh_interval_secs`); set `claude`, `codex` or `deepseek` to `false`
-  to hide a provider.
+  DeepSeek uses its balance API, OpenRouter its key and credits API (the
+  account balance needs a management key; a regular key shows its remaining
+  limit and daily/weekly/monthly spend). The server refreshes every 5 minutes
+  (`refresh_interval_secs`); set `claude`, `codex`, `deepseek` or
+  `openrouter` to `false` to hide a provider. All herdr instances share one
+  cache (`~/.local/state/herdr/usage-cache.json`): a recent observation is
+  reused instead of refetched, and a rate-limited provider backs off
+  (5 min doubling to 1 h) while the footer keeps its last good values.
 - **Middle click closes tabs and workspaces.** Middle-click a tab or a
   workspace in the sidebar to close it, with the same confirmation as the
   context menu's Close. Pane apps with mouse reporting still get middle clicks

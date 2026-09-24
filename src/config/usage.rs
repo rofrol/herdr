@@ -18,6 +18,10 @@ pub struct UsageConfig {
     pub deepseek: bool,
     /// File holding the DeepSeek API key. `DEEPSEEK_API_KEY` takes precedence.
     pub deepseek_api_key_file: Option<String>,
+    /// Read OpenRouter credits when an API key is configured.
+    pub openrouter: bool,
+    /// File holding the OpenRouter API key. `OPENROUTER_API_KEY` takes precedence.
+    pub openrouter_api_key_file: Option<String>,
 }
 
 pub(crate) const MIN_USAGE_REFRESH_INTERVAL_SECS: u64 = 60;
@@ -31,6 +35,8 @@ impl Default for UsageConfig {
             codex: true,
             deepseek: true,
             deepseek_api_key_file: None,
+            openrouter: true,
+            openrouter_api_key_file: None,
         }
     }
 }
