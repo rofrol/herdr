@@ -54,6 +54,13 @@ The demo video below is recorded with `scripts/fork_demo/record.sh`; see
 
 Install from source (needs Zig 0.16.0) with `cargo install --path . --locked`.
 Don't run `herdr update`: it replaces the fork with the upstream release.
+To switch the running server to the new build without losing panes, hand it
+off live (experimental upstream), then start the client again:
+
+```sh
+herdr server live-handoff
+herdr
+```
 
 
 <p align="center">
