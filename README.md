@@ -21,8 +21,6 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
   DeepSeek uses its balance API. The server refreshes every 5 minutes
   (`refresh_interval_secs`); set `claude`, `codex` or `deepseek` to `false`
   to hide a provider.
-
-  <img src="assets/usage-widget.png" alt="usage footer and detail modal" width="720" />
 - **Middle click closes tabs and workspaces.** Middle-click a tab or a
   workspace in the sidebar to close it, with the same confirmation as the
   context menu's Close. Pane apps with mouse reporting still get middle clicks
@@ -66,9 +64,7 @@ Don't run `herdr update`: it replaces the fork with the upstream release.
 
 ---
 
-<p align="center">
-  <img src="assets/fork-demo.gif" alt="fork demo: usage popup, closing a tab and a space with middle click, jumping to an agent from its notification" width="720" />
-</p>
+https://github.com/user-attachments/assets/20c5ccd2-a30c-4bda-b26d-05751bb2def4
 
 **the runtime your coding agents live on.**
 
