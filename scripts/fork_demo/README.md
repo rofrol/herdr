@@ -64,7 +64,7 @@ the repository:
 
 With the Claude in Chrome extension (Chrome logged in to GitHub), pass the MP4
 to the edit page's `#blob-dragged-file-input` with the file upload tool, copy
-the link, and close the tab. The browser tools load only at session start, so
-if they are missing, restart with `claude --continue --chrome`. Ignore
-`/chrome`'s "Extension: Not detected": on macOS the terminal can't read
-Chrome's profile (TCC), but the extension still works.
+the link, and close the tab. If the browser tools are missing and the
+extension is already installed, run `/chrome` and pick "Select browser…" (it
+may still say "Extension: Not detected": on macOS the terminal can't read
+Chrome's profile, TCC), or restart with `claude --continue --chrome`.
