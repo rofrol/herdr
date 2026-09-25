@@ -8,14 +8,18 @@ pane that started it. The state lives in files, not in the agent, so it works
 the same for Claude Code, pi, or any other agent, and for you.
 
 ```sh
-id=$(herdr-job run --name "Build b17" -- make image)   # returns at once
+id=$(herdr-job run --name "Build b17" --why "test the new app set" -- make image)
 herdr-job wait "$id"      # follows the log, exits with the command's exit code
 herdr-job list            # all jobs: running / ok / failed (code) / lost
 herdr-job log "$id"       # log path
-herdr-job clean           # close tabs of finished jobs and forget them
+herdr-job clean           # close this pane's finished job tabs (--all: everyone's)
 ```
 
 - The job tab is labelled `⏳ Build b17`, then `✓ Build b17` or `✗ Build b17`.
+  After success it closes itself 10 s later (`--keep` leaves it open); after a
+  failure it stays open with the output.
+- The tab's last row is a pinned footer: state, name, `--why`, which agent and
+  workspace started it, and the job id. Output scrolls above it.
 - The starting pane gets a `$jobs` token: `⏳ Build b17` (or `⏳ 2 jobs`) while
   running, then `✓ …` or `✗ <code> …` for 30 minutes.
 - An agent runs `herdr-job wait <id>` as its background task, so it wakes up
@@ -31,6 +35,28 @@ State: `~/.local/state/herdr-job/<id>/` (`meta.json`, `log`, `exit`, `lock`).
 macOS and Linux only. The state directory must be on a local filesystem:
 a job's liveness is an `flock` held by its executor, which network
 filesystems may not honour.
+
+## Design and limits
+
+- State lives in files, not in the agent, so Claude, pi and a person share it,
+  and it survives the agent's context. A rule in the agent's instructions
+  alone was not enough: agents forget it, and a launcher that returns at once
+  still looks finished.
+- Notifications: a job started by hand notifies when it ends; a job started
+  by an agent does not, because the agent reports it when `herdr-job wait`
+  wakes it, and two notifications for one event are noise. `--notify`
+  overrides both.
+- Clicking the notification focuses the job tab, or its workspace once the
+  tab is closed (herdr's `notification.show_for_pane`; older herdr builds get
+  a notification without a click target). A click only moves focus; it never
+  runs a command, so a remote server cannot choose what your machine runs.
+  Click actions work on macOS with `terminal-notifier`; Linux (D-Bus) is not
+  done yet.
+- A job is alive while its executor holds an `flock`, not while its PID
+  exists: after a crash or reboot the PID can belong to another process and
+  `wait` would hang forever.
+- macOS and Linux only (`flock`, `/bin/sh`, POSIX signals). State files are
+  private (0600): commands and logs may contain secrets.
 
 ## Claude background tasks: `herdr-bg-badge`
 
@@ -80,7 +106,8 @@ global instruction file of each agent, so it applies in every project:
 # Long-running work
 
 Run work that takes more than a minute (builds, exports, VM or remote jobs,
-long test suites) with `herdr-job run --name "<short description>" -- <command>`,
+long test suites) with
+`herdr-job run --name "<short description>" --why "<what it is for>" -- <command>`,
 then wait for it in the background with `herdr-job wait <id>`. The command must
 block until the work is really done: if it only starts work elsewhere (a VM,
 a remote host, a detached process), make it wait for that work, e.g. by polling

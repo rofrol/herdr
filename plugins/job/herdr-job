@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """herdr-job: run long commands in their own herdr tab and wait for them.
 
-  herdr-job run --name "Build b17" [--cwd DIR] -- COMMAND...   print job id, return at once
+  herdr-job run --name "Build b17" [--why TEXT] [--keep] [--notify WHEN] [--cwd DIR] -- COMMAND...
+                                 print job id, return at once
   herdr-job wait ID [--quiet]    follow the log until the job ends; exit with its code
   herdr-job list                 show jobs and their state
   herdr-job log ID               print the log path
-  herdr-job clean                close tabs of finished jobs and forget them
+  herdr-job clean [--all]        close tabs of this pane's finished jobs (--all: everyone's)
 
 The job runs in a new unfocused tab, so its output is visible live. The pane
 that started it (HERDR_PANE_ID) gets a `$jobs` sidebar token. Any agent can use
@@ -31,6 +32,7 @@ if not os.access(HERDR, os.X_OK):
 DONE_TTL_MS = 30 * 60 * 1000
 RUNNING_TTL_MS = 24 * 60 * 60 * 1000
 EXIT_LOST = 125
+CLOSE_OK_AFTER_S = 10
 
 
 def herdr(*args, check=True):
@@ -165,9 +167,14 @@ def cmd_run(args):
     command = args.command[0] if len(args.command) == 1 else shlex.join(args.command)
     job_id = time.strftime("%Y%m%d-%H%M%S-") + secrets.token_hex(2)
     create = ["tab", "create", "--no-focus", "--label", f"⏳ {short(args.name, 30)}", "--cwd", cwd]
+    origin = "started by hand"
+    owner_is_agent = False
     if owner:
         pane = json.loads(herdr("pane", "get", owner))["result"]["pane"]
         create += ["--workspace", pane["workspace_id"]]
+        workspace = json.loads(herdr("workspace", "get", pane["workspace_id"]))["result"]["workspace"]
+        origin = f"from {pane.get('agent') or 'pane ' + owner} in {workspace.get('label') or pane['workspace_id']}"
+        owner_is_agent = bool(pane.get("agent"))
     created = json.loads(herdr(*create))["result"]
     path = STATE / job_id
     path.mkdir(parents=True, mode=0o700)
@@ -176,6 +183,12 @@ def cmd_run(args):
         "name": args.name,
         "command": command,
         "cwd": cwd,
+        "why": args.why,
+        "keep": args.keep,
+        # An agent reports its own jobs when `herdr-job wait` wakes it; a person
+        # who started a job by hand has nobody else to tell them.
+        "notify": args.notify or ("never" if owner_is_agent else "always"),
+        "origin": origin,
         "owner_pane": owner,
         "tab_id": created["tab"]["tab_id"],
         "pane_id": created["root_pane"]["pane_id"],
@@ -187,6 +200,76 @@ def cmd_run(args):
     print(job_id)
 
 
+def notify(meta, code):
+    """Desktop notification through herdr's own delivery settings. `--pane`
+    makes a click focus the job tab, or its workspace once the tab is closed;
+    herdr builds without `notification.show_for_pane` get a plain one."""
+    when = meta.get("notify", "always")
+    if when == "never" or (when == "failure" and code == 0):
+        return
+    title = f"✓ {meta['name']}" if code == 0 else f"✗ {code} {meta['name']}"
+    cmd = ["notification", "show", short(title, 80), "--sound", "done" if code == 0 else "request"]
+    body = meta.get("why") or meta.get("origin")
+    if body:
+        cmd += ["--body", short(body, 240)]
+    try:
+        herdr(*cmd, "--pane", meta["pane_id"])
+    except SystemExit:
+        herdr(*cmd, check=False)
+
+
+class Footer:
+    """A status line pinned to the pane's last row: the command's output scrolls
+    in the rows above it (a DECSTBM scroll region)."""
+
+    def __init__(self, meta):
+        self.meta = meta
+        self.state = "⏳ running"
+
+    def text(self):
+        parts = [f"{self.state}: {self.meta['name']}"]
+        if self.meta.get("why"):
+            parts.append(f"why: {self.meta['why']}")
+        parts.append(self.meta.get("origin", ""))
+        parts.append(f"herdr-job {self.meta['id']}")
+        return " · ".join(p for p in parts if p)
+
+    def size(self):
+        try:
+            return os.get_terminal_size(sys.stdout.fileno())
+        except OSError:
+            return None
+
+    def draw(self, rows, cols):
+        line = short(self.text(), max(cols - 1, 10))
+        sys.stdout.write(f"\x1b7\x1b[{rows};1H\x1b[2K\x1b[7m {line}\x1b[0m\x1b8")
+        sys.stdout.flush()
+
+    def start(self):
+        size = self.size()
+        if not size or size.lines < 4:
+            return
+        rows, cols = size.lines, size.columns
+        sys.stdout.write(f"\x1b[1;{rows - 1}r\x1b[{rows - 1};1H")
+        self.draw(rows, cols)
+
+    def finish(self, code):
+        self.state = "✓ done" if code == 0 else f"✗ exit {code}"
+        size = self.size()
+        if not size or size.lines < 4:
+            return
+        self.draw(size.lines, size.columns)
+
+    def release(self):
+        """Drop the scroll region; scroll the footer up one row so the shell
+        prompt that follows lands below it instead of over it."""
+        size = self.size()
+        if not size or size.lines < 4:
+            return
+        sys.stdout.write(f"\x1b[r\x1b[{size.lines};1H\n")
+        sys.stdout.flush()
+
+
 def cmd_exec(args):
     """Runs inside the job's own pane: stream output to the terminal and the log."""
     path = job_dir(args.id)
@@ -196,6 +279,8 @@ def cmd_exec(args):
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         meta["started"] = True
+    # Never run a job twice: after a server restart the relaunch plugin replays
+    # the command line typed into this pane, which is `herdr-job _exec <id>`.
     if "started" in meta:
         print(f"herdr-job {meta['id']} already ran; not running it again", file=sys.stderr)
         sys.exit(1)
@@ -204,7 +289,12 @@ def cmd_exec(args):
     meta["pid"] = os.getpid()
     meta["started"] = time.time()
     write_meta(path, meta)
-    print(f"herdr-job {meta['id']}: {meta['name']}\n$ {meta['command']}\n", flush=True)
+    footer = Footer(meta)
+    footer.start()
+    print(f"herdr-job {meta['id']}: {meta['name']}", flush=True)
+    if meta.get("why"):
+        print(f"why: {meta['why']}", flush=True)
+    print(f"$ {meta['command']}\n", flush=True)
     code = EXIT_LOST
     with open(path / "log", "ab", buffering=0) as log:
         proc = subprocess.Popen(
@@ -223,6 +313,7 @@ def cmd_exec(args):
 
         for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
             signal.signal(sig, forward)
+        signal.signal(signal.SIGWINCH, lambda *_: footer.start())
         assert proc.stdout is not None
         for chunk in iter(lambda: proc.stdout.read1(65536), b""):
             sys.stdout.buffer.write(chunk)
@@ -237,7 +328,15 @@ def cmd_exec(args):
     mark = "✓" if code == 0 else "✗"
     herdr("tab", "rename", meta["tab_id"], f"{mark} {short(meta['name'], 30)}", check=False)
     update_owner_token(meta.get("owner_pane"))
+    notify(meta, code)
+    footer.finish(code)
     print(f"\nherdr-job {meta['id']}: exit {code}", flush=True)
+    if code == 0 and not meta.get("keep"):
+        # The log stays in the state dir and the sidebar keeps ✓; the tab is noise now.
+        print(f"closing this tab in {CLOSE_OK_AFTER_S} s (herdr-job run --keep leaves it open)", flush=True)
+        time.sleep(CLOSE_OK_AFTER_S)
+        herdr("tab", "close", meta["tab_id"], check=False)
+    footer.release()
     sys.exit(code)
 
 
@@ -288,9 +387,12 @@ def cmd_log(args):
     print(job_dir(args.id) / "log")
 
 
-def cmd_clean(_args):
+def cmd_clean(args):
     owners = set()
+    here = os.environ.get("HERDR_PANE_ID")
     for path, meta in all_jobs():
+        if not args.all and meta.get("owner_pane") != here:
+            continue
         st, _ = status(path, meta)
         if st == "running":
             continue
@@ -309,6 +411,13 @@ def main():
     sub = parser.add_subparsers(dest="cmd", required=True)
     run = sub.add_parser("run", help="start a job in its own tab")
     run.add_argument("--name", required=True)
+    run.add_argument("--why", help="why the job runs; shown in the job tab's footer")
+    run.add_argument("--keep", action="store_true", help="keep the tab open after success")
+    run.add_argument(
+        "--notify",
+        choices=["always", "failure", "never"],
+        help="desktop notification when the job ends (default: always when started by hand, never from an agent)",
+    )
     run.add_argument("--cwd")
     run.add_argument("command", nargs=argparse.REMAINDER)
     run.set_defaults(func=cmd_run)
@@ -320,7 +429,9 @@ def main():
     log = sub.add_parser("log", help="print the log path")
     log.add_argument("id")
     log.set_defaults(func=cmd_log)
-    sub.add_parser("clean", help="close finished job tabs").set_defaults(func=cmd_clean)
+    clean = sub.add_parser("clean", help="close tabs of this pane's finished jobs")
+    clean.add_argument("--all", action="store_true", help="also jobs started from other panes")
+    clean.set_defaults(func=cmd_clean)
     exec_ = sub.add_parser("_exec")
     exec_.add_argument("id")
     exec_.set_defaults(func=cmd_exec)
