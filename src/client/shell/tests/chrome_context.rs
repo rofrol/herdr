@@ -12,6 +12,8 @@ fn tab_overflow_controls_scroll_the_client_owned_tab_bar() {
         zoomed: false,
         focused: false,
         agent_status: AgentStatus::Idle,
+        parent_tab_id: None,
+        status: None,
     }));
     let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
     state.set_snapshot(Box::new(snapshot));
@@ -58,6 +60,8 @@ fn tab_bar_wheel_stops_at_the_first_and_last_tab() {
         zoomed: false,
         focused: false,
         agent_status: AgentStatus::Idle,
+        parent_tab_id: None,
+        status: None,
     });
     let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
     state.set_snapshot(Box::new(snapshot));
@@ -122,6 +126,8 @@ fn focused_last_overflow_tab_shows_its_full_label() {
             zoomed: false,
             focused: index == 7,
             agent_status: AgentStatus::Idle,
+            parent_tab_id: None,
+            status: None,
         })
         .collect();
     let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
@@ -606,6 +612,8 @@ fn snapshot_with_second_tab() -> ClientShellSnapshot {
         zoomed: false,
         focused: false,
         agent_status: AgentStatus::Idle,
+        parent_tab_id: None,
+        status: None,
     });
     snapshot
 }

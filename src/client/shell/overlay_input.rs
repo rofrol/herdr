@@ -1020,6 +1020,9 @@ impl ClientShellState {
     }
 
     pub(super) fn request_tab_close(&mut self, tab_id: String, outcome: &mut ClientShellInput) {
+        if self.request_parent_tab_close(&tab_id, outcome) {
+            return;
+        }
         let workspace_id = self.snapshot.as_deref().and_then(|snapshot| {
             let target = snapshot.tabs.iter().find(|tab| tab.tab_id == tab_id)?;
             (self.config.confirm_close
@@ -1041,6 +1044,67 @@ impl ClientShellState {
         );
     }
 
+    /// A tab with child tabs (usually jobs) closes only together with them,
+    /// after the user confirms with a summary of their statuses.
+    fn request_parent_tab_close(&mut self, tab_id: &str, outcome: &mut ClientShellInput) -> bool {
+        let Some(snapshot) = self.snapshot.as_deref() else {
+            return false;
+        };
+        let children = super::tab_groups::child_tabs(snapshot, tab_id);
+        if children.is_empty() {
+            return false;
+        }
+        let summary = super::tab_groups::children_summary(&children);
+        let children = children
+            .iter()
+            .map(|tab| tab.tab_id.clone())
+            .collect::<Vec<_>>();
+        let Some(target) = snapshot.tabs.iter().find(|tab| tab.tab_id == tab_id) else {
+            return false;
+        };
+        let label = target.label.clone();
+        let workspace_id = target.workspace_id.clone();
+        if !self.config.confirm_close {
+            for child in children {
+                self.push_endpoint_method(
+                    crate::api::schema::Method::TabClose(crate::api::schema::TabTarget {
+                        tab_id: child,
+                    }),
+                    outcome,
+                );
+            }
+            self.push_endpoint_method(
+                crate::api::schema::Method::TabClose(crate::api::schema::TabTarget {
+                    tab_id: tab_id.to_owned(),
+                }),
+                outcome,
+            );
+            return true;
+        }
+        let Some(workspace) = self.navigation_target(&self.active_endpoint_id, &workspace_id)
+        else {
+            return false;
+        };
+        let count = children.len();
+        self.overlay = Some(ClientShellOverlay::ConfirmClose(
+            ClientConfirmCloseOverlay {
+                workspace_id,
+                tab_target: Some(ClientTabCloseConfirmation {
+                    tab_id: tab_id.to_owned(),
+                    workspace,
+                    children,
+                }),
+                title: "Close tab and its child tabs?".to_owned(),
+                detail: format!(
+                    "{label} — {count} child {}: {summary}",
+                    if count == 1 { "tab" } else { "tabs" }
+                ),
+            },
+        ));
+        outcome.repaint = true;
+        true
+    }
+
     pub(super) fn accept_close_confirmation(&mut self, outcome: &mut ClientShellInput) {
         let Some(ClientShellOverlay::ConfirmClose(confirm)) = self.overlay.take() else {
             return;
@@ -1060,6 +1124,14 @@ impl ClientShellState {
                     "Close target changed; try closing the tab again".into(),
                 );
                 return;
+            }
+            for child in target.children {
+                self.push_endpoint_method(
+                    crate::api::schema::Method::TabClose(crate::api::schema::TabTarget {
+                        tab_id: child,
+                    }),
+                    outcome,
+                );
             }
             crate::api::schema::Method::TabClose(crate::api::schema::TabTarget {
                 tab_id: target.tab_id,
@@ -1117,7 +1189,11 @@ impl ClientShellState {
             else {
                 return false;
             };
-            Some(ClientTabCloseConfirmation { tab_id, workspace })
+            Some(ClientTabCloseConfirmation {
+                tab_id,
+                workspace,
+                children: Vec::new(),
+            })
         } else {
             None
         };

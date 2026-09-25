@@ -491,6 +491,12 @@ fn restore_tab(
     imported_panes: &mut HashMap<u32, crate::handoff_runtime::ImportedHandoffRuntime>,
     public_pane_ids_by_old_raw: &HashMap<u32, String>,
 ) -> RestoreFailures<Option<RestoredTab>> {
+    // A live handoff imports this tab's pane runtimes, so its running work
+    // survives; after a cold restore it is gone and `running` would be stale.
+    let handoff = !imported_panes.is_empty();
+    let status = snap
+        .status
+        .filter(|status| handoff || *status != crate::api::schema::TabStatus::Running);
     let (node, id_map) = restore_node_remapped(&snap.layout);
     let reverse_id_map: HashMap<PaneId, u32> = id_map
         .iter()
@@ -767,6 +773,8 @@ fn restore_tab(
             crate::workspace::Tab {
                 custom_name: snap.custom_name.clone(),
                 number,
+                parent: snap.parent_tab_number,
+                status,
                 root_pane,
                 layout,
                 panes,
@@ -1338,6 +1346,8 @@ mod tests {
                     zoomed: false,
                     focused: Some(0),
                     root_pane: Some(0),
+                    parent_tab_number: None,
+                    status: None,
                 }],
                 active_tab: 0,
             }],
@@ -1431,6 +1441,8 @@ mod tests {
                     zoomed: false,
                     focused: Some(10),
                     root_pane: Some(10),
+                    parent_tab_number: None,
+                    status: None,
                 }],
                 active_tab: 0,
             }],
@@ -1513,6 +1525,8 @@ mod tests {
                         zoomed: false,
                         focused: Some(10),
                         root_pane: Some(10),
+                        parent_tab_number: None,
+                        status: None,
                     },
                     TabSnapshot {
                         custom_name: None,
@@ -1521,6 +1535,8 @@ mod tests {
                         zoomed: false,
                         focused: Some(11),
                         root_pane: Some(11),
+                        parent_tab_number: None,
+                        status: None,
                     },
                     TabSnapshot {
                         custom_name: None,
@@ -1529,6 +1545,8 @@ mod tests {
                         zoomed: false,
                         focused: Some(12),
                         root_pane: Some(12),
+                        parent_tab_number: None,
+                        status: None,
                     },
                     TabSnapshot {
                         custom_name: None,
@@ -1537,6 +1555,8 @@ mod tests {
                         zoomed: false,
                         focused: Some(13),
                         root_pane: Some(13),
+                        parent_tab_number: None,
+                        status: None,
                     },
                 ],
                 active_tab: 3,
@@ -1600,6 +1620,8 @@ mod tests {
                 zoomed: false,
                 focused: Some(10),
                 root_pane: Some(10),
+                parent_tab_number: None,
+                status: None,
             }],
             active_tab: 0,
         };
@@ -1649,6 +1671,8 @@ mod tests {
                     zoomed: false,
                     focused: Some(0),
                     root_pane: Some(0),
+                    parent_tab_number: None,
+                    status: None,
                 }],
                 active_tab: 0,
             }],
@@ -1988,6 +2012,8 @@ mod tests {
                     zoomed: false,
                     focused: Some(0),
                     root_pane: Some(0),
+                    parent_tab_number: None,
+                    status: None,
                 }],
                 active_tab: 0,
             }],
