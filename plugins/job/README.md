@@ -58,6 +58,22 @@ filesystems may not honour.
 - macOS and Linux only (`flock`, `/bin/sh`, POSIX signals). State files are
   private (0600): commands and logs may contain secrets.
 
+## TODO: clickable notifications on Linux
+
+On Linux the completion notification is shown (`notify-send`), but clicking
+it does nothing: `show_desktop_notification_with_details` in
+`src/platform/linux.rs` drops the click action. To do, in the fork's Rust code
+(needs a Linux desktop to test, e.g. GNOME and KDE):
+
+- Send click-capable notifications over D-Bus
+  (`org.freedesktop.Notifications.Notify` with a `default` action) through the
+  existing `zbus` dependency; keep `notify-send` as the fallback.
+- Check `GetCapabilities` for `actions` first; some daemons ignore actions.
+- Keep one listener per client for `ActionInvoked` and `NotificationClosed`,
+  matched by the id `Notify` returns, bounded, and surviving a daemon restart.
+- On `ActionInvoked`, run the same focus commands macOS runs (agent → tab →
+  workspace); never a command chosen by the server.
+
 ## Claude background tasks: `herdr-bg-badge`
 
 A Claude Code `Stop`/`SubagentStop` hook that shows Claude's own background
