@@ -331,9 +331,15 @@ fn render_provider_row(
 }
 
 /// The 5-hour and weekly windows, falling back to the first two windows reported.
+/// A provider with a weekly window but no 5-hour one leaves the short column empty.
 fn footer_windows(provider: &ProviderUsage) -> (Option<&UsageWindow>, Option<&UsageWindow>) {
     let by_id = |id: &str| provider.windows.iter().find(|window| window.id == id);
-    let short = by_id("five_hour").or_else(|| provider.windows.first());
+    let short = by_id("five_hour").or_else(|| {
+        by_id("weekly")
+            .is_none()
+            .then(|| provider.windows.first())
+            .flatten()
+    });
     let weekly = by_id("weekly").or_else(|| {
         provider
             .windows
@@ -347,6 +353,7 @@ pub(super) fn provider_code(provider: &ProviderUsage) -> String {
     match provider.provider.as_str() {
         "claude" => "AN".into(),
         "codex" => "OA".into(),
+        "gemini" => "GO".into(),
         "deepseek" => "DS".into(),
         "openrouter" => "OR".into(),
         _ => provider
@@ -566,6 +573,19 @@ mod tests {
         let (short, weekly) = footer_windows(&other);
         assert!(short.is_some());
         assert!(weekly.is_none());
+    }
+
+    #[test]
+    fn weekly_only_windows_leave_the_short_column_empty() {
+        let mut gemini = provider("gemini", "Gemini");
+        for (id, used) in [("weekly", 53), ("weekly_3p", 0)] {
+            let mut window = window(used, 1_000 + 86_400);
+            window.id = id.into();
+            gemini.windows.push(window);
+        }
+        let (short, weekly) = footer_windows(&gemini);
+        assert!(short.is_none());
+        assert_eq!(weekly.map(|window| window.used_percent), Some(53));
     }
 
     #[test]

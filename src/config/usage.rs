@@ -14,6 +14,8 @@ pub struct UsageConfig {
     pub claude: bool,
     /// Read Codex rate limits through the local `codex app-server`.
     pub codex: bool,
+    /// Read Gemini weekly limits through the Antigravity CLI (`agy /quota`).
+    pub gemini: bool,
     /// Read the DeepSeek prepaid API balance.
     pub deepseek: bool,
     /// JSON file mapping provider ids to API keys, in pi's `auth.json` layout.
@@ -33,6 +35,7 @@ impl Default for UsageConfig {
             refresh_interval_secs: 300,
             claude: true,
             codex: true,
+            gemini: true,
             deepseek: true,
             auth_file: crate::usage::DEFAULT_AUTH_FILE.to_owned(),
             openrouter: true,
@@ -58,7 +61,7 @@ mod tests {
         let config: UsageConfig = toml::from_str("").unwrap();
         assert_eq!(config, UsageConfig::default());
         assert!(config.enabled);
-        assert!(config.claude && config.codex && config.deepseek);
+        assert!(config.claude && config.codex && config.gemini && config.deepseek);
     }
 
     #[test]

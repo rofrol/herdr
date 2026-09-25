@@ -10,6 +10,7 @@ mod cache;
 mod claude;
 mod codex;
 mod deepseek;
+mod gemini;
 mod http;
 mod keys;
 mod openrouter;
@@ -75,6 +76,7 @@ impl UsagePoller {
 enum Provider {
     Claude,
     Codex,
+    Gemini,
     DeepSeek,
     OpenRouter,
 }
@@ -84,6 +86,7 @@ impl Provider {
         match self {
             Self::Claude => "claude",
             Self::Codex => "codex",
+            Self::Gemini => "gemini",
             Self::DeepSeek => "deepseek",
             Self::OpenRouter => "openrouter",
         }
@@ -93,6 +96,7 @@ impl Provider {
         match self {
             Self::Claude => "Claude",
             Self::Codex => "Codex",
+            Self::Gemini => "Gemini",
             Self::DeepSeek => "DeepSeek",
             Self::OpenRouter => "OpenRouter",
         }
@@ -102,6 +106,7 @@ impl Provider {
         match self {
             Self::Claude => claude::fetch(),
             Self::Codex => Ok(codex::fetch()?),
+            Self::Gemini => Ok(gemini::fetch()?),
             Self::DeepSeek => deepseek::fetch(config),
             Self::OpenRouter => openrouter::fetch(config),
         }
@@ -115,6 +120,7 @@ fn enabled_providers(config: &UsageConfig) -> Vec<Provider> {
     [
         (config.claude, Provider::Claude),
         (config.codex, Provider::Codex),
+        (config.gemini, Provider::Gemini),
         (config.deepseek, Provider::DeepSeek),
         // Most setups have no OpenRouter key; skip it rather than show a failed row.
         (
@@ -363,6 +369,7 @@ mod tests {
         assert!(enabled_providers(&config).is_empty());
         config.enabled = true;
         config.codex = false;
+        config.gemini = false;
         config.openrouter = false;
         assert_eq!(
             enabled_providers(&config)

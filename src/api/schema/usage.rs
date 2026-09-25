@@ -17,7 +17,7 @@ pub struct UsageReport {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ProviderUsage {
-    /// Stable provider id such as `claude`, `codex`, `deepseek`, or `openrouter`.
+    /// Stable provider id such as `claude`, `codex`, `gemini`, `deepseek`, or `openrouter`.
     pub provider: String,
     /// Human-readable provider name.
     pub label: String,

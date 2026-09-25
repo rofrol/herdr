@@ -7,10 +7,10 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
 
 - **Usage widget.** A sidebar footer below the agents list shows how much of
   your coding-agent allowance is used: Anthropic/Claude (`AN`) and
-  OpenAI/Codex (`OA`) 5-hour and weekly limits with time to reset, and the
-  DeepSeek (`DS`) and OpenRouter (`OR`) prepaid balances. Click it for
-  details: reset clock times, plans, free Codex limit resets, and a refresh
-  button (`r`). It is on by default; turn it off with:
+  OpenAI/Codex (`OA`) 5-hour and weekly limits with time to reset, the
+  Google/Gemini (`GO`) weekly limit, and the DeepSeek (`DS`) and OpenRouter
+  (`OR`) prepaid balances. Click it for details: reset clock times, plans,
+  free Codex limit resets, and a refresh button (`r`). It is on by default; turn it off with:
 
   ```toml
   [usage]
@@ -18,12 +18,14 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
   ```
 
   Claude uses the Claude Code login, Codex goes through `codex app-server`,
-  DeepSeek uses its balance API, OpenRouter its key and credits API (balance
-  plus daily/weekly/monthly key spend). DeepSeek and OpenRouter keys come
+  Gemini runs the Antigravity CLI's `agy -p /quota` (the details also show
+  Antigravity's separate Claude/GPT weekly group), DeepSeek uses its balance
+  API, OpenRouter its key and credits API (balance plus daily/weekly/monthly
+  key spend). DeepSeek and OpenRouter keys come
   from `DEEPSEEK_API_KEY`/`OPENROUTER_API_KEY`, then `auth_file` (default
   `~/.pi/agent/auth.json`, the pi coding agent's logins); OpenRouter is
   hidden without a key. The server refreshes every 5 minutes
-  (`refresh_interval_secs`); set `claude`, `codex`, `deepseek` or
+  (`refresh_interval_secs`); set `claude`, `codex`, `gemini`, `deepseek` or
   `openrouter` to `false` to hide a provider. All herdr instances share one
   cache (`~/.local/state/herdr/usage-cache.json`): a recent observation is
   reused instead of refetched, and a rate-limited provider backs off

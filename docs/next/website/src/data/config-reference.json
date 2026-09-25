@@ -500,6 +500,12 @@
           "description": "Show Codex 5-hour and weekly rate limits through the local codex app-server. Requires the codex CLI logged in with ChatGPT."
         },
         {
+          "key": "usage.gemini",
+          "type": "boolean",
+          "default": "true",
+          "description": "Show Gemini weekly limits for a Google AI subscription through the Antigravity CLI (agy -p /quota), per model group (Gemini, and Claude/GPT models served by Antigravity). Requires agy on PATH and logged in; running /quota does not consume quota."
+        },
+        {
           "key": "usage.deepseek",
           "type": "boolean",
           "default": "true",
