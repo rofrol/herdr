@@ -27,7 +27,10 @@ herdr-job clean           # close tabs of finished jobs and forget them
   (a VM, `nohup`, a remote host) and returns, wait for that work inside the
   command (e.g. poll its status file).
 
-State: `~/.local/state/herdr-job/<id>/` (`meta.json`, `log`, `exit`).
+State: `~/.local/state/herdr-job/<id>/` (`meta.json`, `log`, `exit`, `lock`).
+macOS and Linux only. The state directory must be on a local filesystem:
+a job's liveness is an `flock` held by its executor, which network
+filesystems may not honour.
 
 ## Claude background tasks: `herdr-bg-badge`
 

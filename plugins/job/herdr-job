@@ -12,6 +12,7 @@ that started it (HERDR_PANE_ID) gets a `$jobs` sidebar token. Any agent can use
 it: the state lives in files under ~/.local/state/herdr-job/, not in the agent.
 """
 import argparse
+import fcntl
 import json
 import os
 import secrets
@@ -72,17 +73,44 @@ def pid_alive(pid):
     return True
 
 
+def executor_alive(path, meta):
+    """Whether `_exec` still runs: it holds an exclusive flock on `lock` for its
+    whole life, and the kernel drops the lock however the process dies, so a
+    reused PID after a crash or reboot cannot fake a running job."""
+    try:
+        fd = os.open(path / "lock", os.O_RDWR)
+    except FileNotFoundError:
+        return pid_alive(meta.get("pid"))  # job started before lock files existed
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return True
+    except OSError:
+        return pid_alive(meta.get("pid"))
+    finally:
+        os.close(fd)
+    return False
+
+
+def finished(path):
+    exit_file = path / "exit"
+    if not exit_file.exists():
+        return None
+    code = int(exit_file.read_text().strip() or EXIT_LOST)
+    return ("ok" if code == 0 else "failed"), code
+
+
 def status(path, meta=None):
     """running | ok | failed | lost, plus the exit code when finished."""
     meta = meta or read_meta(path)
-    exit_file = path / "exit"
-    if exit_file.exists():
-        code = int(exit_file.read_text().strip() or EXIT_LOST)
-        return ("ok" if code == 0 else "failed"), code
-    started = time.time() - meta["created"]
-    if meta.get("pid") and not pid_alive(meta["pid"]):
-        return "lost", EXIT_LOST
-    if not meta.get("pid") and started > 60:
+    if result := finished(path):
+        return result
+    if "started" in meta:
+        if executor_alive(path, meta):
+            return "running", None
+        # `_exec` may have written `exit` and died between the two checks.
+        return finished(path) or ("lost", EXIT_LOST)
+    if time.time() - meta["created"] > 60:
         return "lost", EXIT_LOST
     return "running", None
 
@@ -163,9 +191,16 @@ def cmd_exec(args):
     """Runs inside the job's own pane: stream output to the terminal and the log."""
     path = job_dir(args.id)
     meta = read_meta(path)
+    lock = os.open(path / "lock", os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        meta["started"] = True
     if "started" in meta:
         print(f"herdr-job {meta['id']} already ran; not running it again", file=sys.stderr)
         sys.exit(1)
+    # The lock stays held until this process exits; Python fds are not
+    # inherited by the command (PEP 446), so only `_exec` holds it.
     meta["pid"] = os.getpid()
     meta["started"] = time.time()
     write_meta(path, meta)
