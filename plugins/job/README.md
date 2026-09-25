@@ -63,6 +63,8 @@ rows = [
 ]
 ```
 
+then apply it to the running server with `herdr server reload-config`.
+
 ## Tell your agents to use it
 
 Agents only use `herdr-job` if their instructions say so. Add this to the
