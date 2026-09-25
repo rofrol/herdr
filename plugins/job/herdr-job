@@ -21,6 +21,7 @@ import shlex
 import signal
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -33,6 +34,10 @@ DONE_TTL_MS = 30 * 60 * 1000
 RUNNING_TTL_MS = 24 * 60 * 60 * 1000
 EXIT_LOST = 125
 CLOSE_OK_AFTER_S = 10
+REFRESH_S = 60
+# Keeps the typed `_exec` line out of zsh's history file; the leading space
+# keeps it out of atuin. zsh imports it from the environment.
+HISTORY_IGNORE = "*herdr-job _exec *"
 
 
 def herdr(*args, check=True):
@@ -133,27 +138,46 @@ def short(text, width=40):
 
 
 def update_owner_token(owner_pane):
-    """Summarise the owner's jobs into its `$jobs` sidebar token."""
+    """Summarise the owner's jobs into its `$jobs` sidebar token as counts,
+    e.g. `2⏳ 1✗ 3✓`: the agents panel cannot scroll, so a list of names
+    would push other agents out of view. Finished jobs count for
+    DONE_TTL_MS after they ended; a lost job counts as failed."""
     if not owner_pane:
         return
-    mine = [(p, m, status(p, m)) for p, m in all_jobs() if m.get("owner_pane") == owner_pane]
-    running = [m for _, m, (s, _) in mine if s == "running"]
-    cmd = ["pane", "report-metadata", owner_pane, "--source", "herdr-job"]
-    if len(running) == 1:
-        cmd += ["--token", f"jobs=⏳ {short(running[0]['name'])}", "--ttl-ms", str(RUNNING_TTL_MS)]
-    elif running:
-        cmd += ["--token", f"jobs=⏳ {len(running)} jobs", "--ttl-ms", str(RUNNING_TTL_MS)]
-    else:
-        finished = sorted(
-            ((m, s, c) for _, m, (s, c) in mine if s != "running"),
-            key=lambda item: item[0].get("ended") or item[0]["created"],
-        )
-        if not finished:
-            cmd += ["--clear-token", "jobs"]
+    now = time.time()
+    running = failed = ok = 0
+    newest_end = 0.0
+    for path, meta in all_jobs():
+        if meta.get("owner_pane") != owner_pane:
+            continue
+        st, _ = status(path, meta)
+        if st == "running":
+            running += 1
+            continue
+        if "ended" not in meta:
+            # A lost job never wrote `ended`; start its window when it is noticed.
+            meta["ended"] = now
+            try:
+                write_meta(path, meta)
+            except OSError:  # another process recorded it at the same moment
+                pass
+        if now - meta["ended"] >= DONE_TTL_MS / 1000:
+            continue
+        newest_end = max(newest_end, meta["ended"])
+        if st == "ok":
+            ok += 1
         else:
-            meta, st, code = finished[-1]
-            mark = "✓" if st == "ok" else f"✗ {code}"
-            cmd += ["--token", f"jobs={mark} {short(meta['name'])}", "--ttl-ms", str(DONE_TTL_MS)]
+            failed += 1
+    parts = [f"{n}{mark}" for n, mark in ((running, "⏳"), (failed, "✗"), (ok, "✓")) if n]
+    cmd = ["pane", "report-metadata", owner_pane, "--source", "herdr-job"]
+    if not parts:
+        cmd += ["--clear-token", "jobs"]
+    else:
+        # While a job runs its executor refreshes the token (REFRESH_S), so
+        # finished counts still age out; afterwards the token lives until the
+        # newest finished job's window ends.
+        ttl_ms = RUNNING_TTL_MS if running else int((newest_end - now) * 1000 + DONE_TTL_MS)
+        cmd += ["--token", f"jobs={' '.join(parts)}", "--ttl-ms", str(ttl_ms)]
     herdr(*cmd, check=False)
 
 
@@ -167,6 +191,7 @@ def cmd_run(args):
     command = args.command[0] if len(args.command) == 1 else shlex.join(args.command)
     job_id = time.strftime("%Y%m%d-%H%M%S-") + secrets.token_hex(2)
     create = ["tab", "create", "--no-focus", "--label", f"⏳ {short(args.name, 30)}", "--cwd", cwd]
+    create += ["--env", f"HISTORY_IGNORE={HISTORY_IGNORE}"]
     origin = "started by hand"
     owner_is_agent = False
     if owner:
@@ -195,7 +220,8 @@ def cmd_run(args):
         "created": time.time(),
     }
     write_meta(path, meta)
-    herdr("pane", "run", meta["pane_id"], f"{shlex.quote(str(SELF))} _exec {job_id}")
+    # `pane run` types into the tab's interactive shell; see HISTORY_IGNORE.
+    herdr("pane", "run", meta["pane_id"], f" {shlex.quote(str(SELF))} _exec {job_id}")
     update_owner_token(owner)
     print(job_id)
 
@@ -275,6 +301,16 @@ class Footer:
         sys.stdout.flush()
 
 
+def refresh_owner_token(owner_pane):
+    """Recount the owner's jobs while this one runs, so finished counts age out."""
+    while True:
+        time.sleep(REFRESH_S)
+        try:
+            update_owner_token(owner_pane)
+        except Exception:  # a missed refresh only leaves a count stale
+            pass
+
+
 def cmd_exec(args):
     """Runs inside the job's own pane: stream output to the terminal and the log."""
     path = job_dir(args.id)
@@ -282,6 +318,7 @@ def cmd_exec(args):
     lock = os.open(path / "lock", os.O_CREAT | os.O_RDWR, 0o600)
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        meta = read_meta(path)  # another executor may have run it before we locked
     except BlockingIOError:
         meta["started"] = True
     # Never run a job twice: after a server restart the relaunch plugin replays
@@ -302,6 +339,7 @@ def cmd_exec(args):
     print(f"$ {meta['command']}\n", flush=True)
     code = EXIT_LOST
     env = dict(os.environ, HERDR_JOB_ID=meta["id"])
+    env.pop("HISTORY_IGNORE", None)
     try:
         # The job has no controlling terminal (its own session, output piped to
         # the log), so /dev/tty fails; this lets it show progress in the tab
@@ -328,6 +366,7 @@ def cmd_exec(args):
         for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
             signal.signal(sig, forward)
         signal.signal(signal.SIGWINCH, lambda *_: footer.start())
+        threading.Thread(target=refresh_owner_token, args=(meta.get("owner_pane"),), daemon=True).start()
         assert proc.stdout is not None
         for chunk in iter(lambda: proc.stdout.read1(65536), b""):
             sys.stdout.buffer.write(chunk)

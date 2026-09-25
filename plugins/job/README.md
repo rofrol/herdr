@@ -26,8 +26,17 @@ herdr-job clean           # close this pane's finished job tabs (--all: everyone
   runs without a controlling terminal, so `/dev/tty` fails; writing progress
   to `$HERDR_JOB_TTY` shows it in the tab but keeps it out of the log that
   `wait` streams (see [Skills](#skills-a-script-in-its-own-job-tab)).
-- The starting pane gets a `$jobs` token: `⏳ Build b17` (or `⏳ 2 jobs`) while
-  running, then `✓ …` or `✗ <code> …` for 30 minutes.
+- The starting pane gets a `$jobs` token with counts, e.g. `2⏳ 1✗ 3✓`:
+  running jobs, then failed (or lost) and successful ones that ended in the
+  last 30 minutes. Counts, not names: the agents panel cannot scroll, so a
+  list would push other agents out of view. Names and exit codes are in
+  `herdr-job list` and the tab labels.
+- `herdr-bg-badge` (a Claude Code Stop hook) puts the number of Claude's own
+  background tasks in `$bg` (`2 bg`), skipping `herdr-job wait` tasks, which
+  `$jobs` already counts.
+- The job tab's shell gets the `_exec` line typed into it, so it is kept out of
+  your history: a leading space for atuin, and `HISTORY_IGNORE` in the tab's
+  environment for zsh's history file.
 - An agent runs `herdr-job wait <id>` as its background task, so it wakes up
   with the real result instead of "started".
 - Closing a job tab stops the job; `wait` then reports `lost` (exit 125) or
@@ -171,10 +180,11 @@ Show the tokens in the sidebar (`~/.config/herdr/config.toml`):
 [ui.sidebar.agents]
 rows = [
   ["state_icon", "machine", "workspace", "tab"],
-  ["agent"],
-  ["$jobs", "$bg"],
+  ["agent", "$jobs", "$bg"],
 ]
 ```
+
+The tokens sit next to the agent name, so jobs never add a row.
 
 then apply it to the running server with `herdr server reload-config`.
 

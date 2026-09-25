@@ -3,11 +3,13 @@
 
 Reads the hook payload's `background_tasks` (Claude Code 2.1.28x), logs it to
 ~/.local/state/herdr-bg/payloads.jsonl, and reports `$bg` pane metadata:
-one running task -> its description, several -> a count, none -> cleared.
+the number of running tasks (`2 bg`), or cleared when none run. Tasks that
+only wait for a herdr-job are skipped: its `$jobs` token already counts them.
 Never fails the hook: all errors are swallowed.
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -17,6 +19,7 @@ LOG = Path.home() / ".local/state/herdr-bg/payloads.jsonl"
 LOG_MAX_BYTES = 1_000_000
 DONE = {"completed", "failed", "killed", "stopped", "cancelled", "canceled", "error"}
 TTL_MS = 12 * 60 * 60 * 1000
+JOB_WAIT = re.compile(r"(^|[\s/])herdr-job\s+wait\s")
 HERDR = os.environ.get("HERDR_BIN_PATH", "")
 if not os.access(HERDR, os.X_OK):
     HERDR = "herdr"
@@ -31,10 +34,8 @@ def log(entry):
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
-def label(task):
-    text = task.get("description") or task.get("name") or task.get("command") or task.get("type") or "?"
-    text = " ".join(str(text).split())
-    return text if len(text) <= 40 else text[:39] + "…"
+def waits_for_job(task):
+    return bool(JOB_WAIT.search(str(task.get("command") or "")))
 
 
 def main():
@@ -52,14 +53,14 @@ def main():
     pane = os.environ.get("HERDR_PANE_ID")
     if not pane or not os.environ.get("HERDR_SOCKET_PATH") or tasks is None:
         return
-    running = [t for t in tasks if str(t.get("status", "")).lower() not in DONE]
+    running = [
+        t for t in tasks if str(t.get("status", "")).lower() not in DONE and not waits_for_job(t)
+    ]
     cmd = [HERDR, "pane", "report-metadata", pane, "--source", "claude-bg"]
     if not running:
         cmd += ["--clear-token", "bg"]
-    elif len(running) == 1:
-        cmd += ["--token", f"bg=⏳ {label(running[0])}", "--ttl-ms", str(TTL_MS)]
     else:
-        cmd += ["--token", f"bg=⏳ {len(running)} bg", "--ttl-ms", str(TTL_MS)]
+        cmd += ["--token", f"bg={len(running)} bg", "--ttl-ms", str(TTL_MS)]
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
 
 
