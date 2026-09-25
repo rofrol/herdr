@@ -342,3 +342,7 @@ git push --force-with-lease origin master
 
 Do not create merge commits from `upstream/master`. Keep the fork's own commits
 linear on top of upstream.
+
+To re-record the fork demo video and upload it for the README, follow
+`scripts/fork_demo/README.md`; uploading needs the Claude in Chrome tools
+(see "Uploading as an agent" there).

@@ -59,3 +59,17 @@ the repository:
 3. Copy that link and cancel the edit.
 4. Replace the `user-attachments` line near the top of `README.md` with it,
    and commit the new `assets/fork-demo.mp4` together with the README change.
+
+### Uploading as an agent
+
+An agent can do the upload through the Claude in Chrome extension, in a Chrome
+where you are logged in to GitHub. On the edit page, pass the MP4 to the
+hidden `#blob-dragged-file-input` file input with the extension's file upload
+tool (no dragging needed), read the `user-attachments` link from the editor,
+then close the tab without committing.
+
+Until the Claude Code `/chrome` bug is fixed, the browser tools only load at
+session start: `/chrome` in a running session does not add them, and its
+menu shows "Extension: Not detected" even when the extension works. If the
+`mcp__claude-in-chrome__*` tools are missing, restart with
+`claude --continue --chrome` and ignore the "Not detected" label.
