@@ -13,7 +13,7 @@ shows the fork's features in a real herdr client:
 
 Requirements: macOS, `cargo` (the repo builds with Zig 0.16.0), `uv`, and
 `ffmpeg`. For real numbers in the usage footer, be logged in to Claude Code
-and to Codex with ChatGPT, and log in to DeepSeek and OpenRouter in pi
+to Codex with ChatGPT, and to the Antigravity CLI (`agy`) for Gemini, and log in to DeepSeek and OpenRouter in pi
 (`~/.pi/agent/auth.json`); a missing DeepSeek key shows `!`, a missing
 OpenRouter key hides its row.
 
