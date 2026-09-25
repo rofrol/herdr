@@ -62,44 +62,53 @@ filesystems may not honour.
 
 On Linux the completion notification is shown (`notify-send`), but clicking
 it does nothing: `show_desktop_notification_with_details` in
-`src/platform/linux.rs` drops the click action.
+`src/platform/linux.rs` drops the click action. The client shows
+notifications, so it is on the desktop's session bus even when the server runs
+elsewhere.
 
-Implementation, in the fork's Rust code:
+**Step 0, feasibility (before any code).** On a Wayland desktop, send one
+notification with a `default` action and click it:
 
-- Send click-capable notifications over D-Bus
-  (`org.freedesktop.Notifications.Notify` with a `default` action) through the
-  existing `zbus` dependency; `notify-send` stays the fallback.
-- Check `GetCapabilities` for `actions` first; some daemons ignore actions.
-- One listener per client for `ActionInvoked` and `NotificationClosed`,
-  matched by the id `Notify` returns, bounded, and reset when the daemon
-  restarts (ids are daemon-local and get reused).
-- On `ActionInvoked`, run the same focus commands macOS runs (agent → tab →
-  workspace); never a command chosen by the server.
-- Raise the terminal window too. Focusing a herdr tab does not bring the
-  terminal forward on Wayland, which blocks focus stealing; macOS gets this
-  from `terminal-notifier -activate`. Candidates: the `ActivationToken`
-  signal (xdg-activation), compositor commands such as
-  `hyprctl dispatch focuswindow`.
+```sh
+gdbus monitor --session --dest org.freedesktop.Notifications &
+notify-send --action=default=Open --wait "herdr test" "click me"
+```
 
-Testing, so any maintainer can repeat it (no personal VMs):
+Does clicking print `default` / emit `ActionInvoked`? Does the daemon report
+`actions` in `GetCapabilities` and send `ActivationToken`? If clicks never
+arrive, stop here.
 
-1. Feasibility first: on a Wayland desktop, send one notification with a
-   `default` action (`gdbus call --session --dest org.freedesktop.Notifications
-   ... Notify`), watch `gdbus monitor`, click it: does the daemon send
-   `ActionInvoked` and `ActivationToken`? This decides the window-raising
-   approach.
-2. Rust tests on a private session bus (`just test`, Linux CI): a fake
-   notification server via `zbus`; command order, no-actions fallback,
-   unknown or repeated ids, bounds, daemon restart.
-3. A scripted real-daemon test in a container (Docker/OrbStack/CI): headless
-   sway + mako, herdr server and client, `makoctl invoke` as the click,
-   assert the focused tab. Does not cover window raising.
-4. Manual checklist on public images: Fedora Workstation (GNOME), Fedora KDE,
-   any Hyprland distribution. Build the fork, run
+**v1: switch to the job's tab, nothing more.**
+
+- Simplest: for click-capable notifications run
+  `notify-send --action=default=Open --wait` on a background thread (needs
+  libnotify >= 0.7.10); when it prints `default`, run the same focus commands
+  macOS runs (agent → tab → workspace), never a command chosen by the server.
+  Less Rust in a file the upstream keeps changing than a `zbus` listener.
+- Alternative if that is not enough: D-Bus `Notify` with a `default` action via
+  the existing `zbus` dependency, checking `GetCapabilities`, one listener for
+  `ActionInvoked`/`NotificationClosed` matched by id, reset when the daemon
+  restarts.
+- Decide: with several clients attached, which one acts on the click; and
+  what a click does when the workspace is gone too (nothing, quietly).
+
+**Later, research: bring the terminal window forward.** Wayland blocks focus
+stealing, so switching herdr's tab may leave the terminal behind another
+window or on another desktop workspace (macOS gets this from
+`terminal-notifier -activate`). Every desktop differs (`ActivationToken`
+handling, compositor commands such as `hyprctl`), so it is not part of v1.
+
+**Testing, repeatable without personal VMs:**
+
+1. Rust tests of the click handling (`just test`, Linux CI).
+2. Manual check on a public image, e.g. Fedora Workstation (GNOME) in a VM,
+   and any Hyprland distribution: build the fork, run
    `herdr-job run --notify always --name T -- 'sleep 20; false'`, switch to
-   another desktop workspace, click; then with `true` (tab closed → herdr
-   workspace). Record daemon, version, `actions` capability, whether herdr
-   focused the tab and whether the window came forward.
+   another herdr workspace, click; then with `true` (tab closed → workspace).
+   Record daemon, version, `actions` capability, result.
+3. Optional: a scripted container test (headless sway + mako,
+   `makoctl invoke` as the click). Not a gate; it cannot test real clicks or
+   window raising.
 
 ## Claude background tasks: `herdr-bg-badge`
 
