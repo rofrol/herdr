@@ -78,6 +78,15 @@ Does clicking print `default` / emit `ActionInvoked`? Does the daemon report
 `actions` in `GetCapabilities` and send `ActivationToken`? If clicks never
 arrive, stop here.
 
+Results so far:
+
+| Desktop | Daemon | `actions` | Click → `default` | `ActivationToken` | Date |
+|---|---|---|---|---|---|
+| Fedora 44 Workstation, aarch64 VM (QEMU) | GNOME Shell 50.0, spec 1.2 | yes | yes (`ActionInvoked`) | yes, sent just before `ActionInvoked` | 2026-09-25 |
+
+`notify-send` 0.8.8 prints the action (`default`) but not the token, so
+raising the window would need the D-Bus route.
+
 **v1: switch to the job's tab, nothing more.**
 
 - Simplest: for click-capable notifications run
