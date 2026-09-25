@@ -227,7 +227,7 @@ class Footer:
         self.state = "⏳ running"
 
     def text(self):
-        parts = [f"{self.state}: {self.meta['name']}"]
+        parts = [self.meta["name"]]
         if self.meta.get("why"):
             parts.append(f"why: {self.meta['why']}")
         parts.append(self.meta.get("origin", ""))
@@ -241,8 +241,13 @@ class Footer:
             return None
 
     def draw(self, rows, cols):
-        line = short(self.text(), max(cols - 1, 10))
-        sys.stdout.write(f"\x1b7\x1b[{rows};1H\x1b[2K\x1b[7m {line}\x1b[0m\x1b8")
+        # No reverse video or background: it turns into a black bar on light
+        # themes. The state is bold in a palette colour, which themes adapt.
+        colour = {"⏳": 33, "✓": 32}.get(self.state[:1], 31)
+        line = short(self.text(), max(cols - len(self.state) - 4, 10))
+        sys.stdout.write(
+            f"\x1b7\x1b[{rows};1H\x1b[2K\x1b[1;{colour}m {self.state}\x1b[0m: {line}\x1b8"
+        )
         sys.stdout.flush()
 
     def start(self):
@@ -296,10 +301,19 @@ def cmd_exec(args):
         print(f"why: {meta['why']}", flush=True)
     print(f"$ {meta['command']}\n", flush=True)
     code = EXIT_LOST
+    env = dict(os.environ, HERDR_JOB_ID=meta["id"])
+    try:
+        # The job has no controlling terminal (its own session, output piped to
+        # the log), so /dev/tty fails; this lets it show progress in the tab
+        # without putting it in the log that `wait` streams.
+        env["HERDR_JOB_TTY"] = os.ttyname(sys.stdout.fileno())
+    except OSError:
+        pass
     with open(path / "log", "ab", buffering=0) as log:
         proc = subprocess.Popen(
             ["/bin/sh", "-c", meta["command"]],
             cwd=meta["cwd"],
+            env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             start_new_session=True,

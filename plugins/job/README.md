@@ -19,7 +19,13 @@ herdr-job clean           # close this pane's finished job tabs (--all: everyone
   After success it closes itself 10 s later (`--keep` leaves it open); after a
   failure it stays open with the output.
 - The tab's last row is a pinned footer: state, name, `--why`, which agent and
-  workspace started it, and the job id. Output scrolls above it.
+  workspace started it, and the job id. Output scrolls above it. It has no
+  background (reverse video is a black bar on light themes); the state is
+  bold in a palette colour.
+- The command gets `HERDR_JOB_ID` and `HERDR_JOB_TTY`, the tab's terminal. It
+  runs without a controlling terminal, so `/dev/tty` fails; writing progress
+  to `$HERDR_JOB_TTY` shows it in the tab but keeps it out of the log that
+  `wait` streams (see [Skills](#skills-a-script-in-its-own-job-tab)).
 - The starting pane gets a `$jobs` token: `⏳ Build b17` (or `⏳ 2 jobs`) while
   running, then `✓ …` or `✗ <code> …` for 30 minutes.
 - An agent runs `herdr-job wait <id>` as its background task, so it wakes up
@@ -118,6 +124,26 @@ handling, compositor commands such as `hyprctl`), so it is not part of v1.
 3. Optional: a scripted container test (headless sway + mako,
    `makoctl invoke` as the click). Not a gate; it cannot test real clicks or
    window raising.
+
+## Skills: a script in its own job tab
+
+A skill's script can re-run itself as a job, so you watch it in a tab while
+the agent that called it sees nothing different: the same stdout, stderr and
+exit code, and no desktop notification (the agent reports the result).
+
+```sh
+# at the top of the script; the variable stops the recursion
+if [ -z "${IN_JOB:-}" ] && [ -n "${HERDR_SOCKET_PATH:-}" ] && command -v herdr-job >/dev/null; then
+  id=$(herdr-job run --name "ask gpt" --why "$1" --notify never --cwd "$PWD" -- \
+    env IN_JOB=1 "$0" "$@" ...)   # save stdout/stderr to files in the job
+  herdr-job wait --quiet "$id"; ...  # then print them and exit with its code
+fi
+```
+
+The job runs in another pane, so it cannot read the caller's stdin: save it
+to a file first. Progress meant only for you goes to `$HERDR_JOB_TTY`.
+The oracle skills (`ask_gpt.sh`, `ask_gemini.sh`, `ask_deepseek.py`) do this
+through `~/.claude/skills/oracle-stats/in_herdr_job.sh` (in rofrol/dotfiles).
 
 ## Claude background tasks: `herdr-bg-badge`
 
