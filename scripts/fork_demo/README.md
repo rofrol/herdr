@@ -62,14 +62,9 @@ the repository:
 
 ### Uploading as an agent
 
-An agent can do the upload through the Claude in Chrome extension, in a Chrome
-where you are logged in to GitHub. On the edit page, pass the MP4 to the
-hidden `#blob-dragged-file-input` file input with the extension's file upload
-tool (no dragging needed), read the `user-attachments` link from the editor,
-then close the tab without committing.
-
-Until the Claude Code `/chrome` bug is fixed, the browser tools only load at
-session start: `/chrome` in a running session does not add them, and its
-menu shows "Extension: Not detected" even when the extension works. If the
-`mcp__claude-in-chrome__*` tools are missing, restart with
-`claude --continue --chrome` and ignore the "Not detected" label.
+With the Claude in Chrome extension (Chrome logged in to GitHub), pass the MP4
+to the edit page's `#blob-dragged-file-input` with the file upload tool, copy
+the link, and close the tab. The browser tools load only at session start, so
+if they are missing, restart with `claude --continue --chrome`. Ignore
+`/chrome`'s "Extension: Not detected": on macOS the terminal can't read
+Chrome's profile (TCC), but the extension still works.
