@@ -2,7 +2,7 @@ use super::*;
 
 pub(super) const MIN_TAB_WIDTH: u16 = 8;
 pub(super) const NEW_TAB_WIDTH: u16 = 3;
-pub(super) const WORKSPACE_HEADER_ROWS: u16 = 2;
+pub(super) const WORKSPACE_HEADER_ROWS: u16 = 1;
 const ENDPOINT_ERROR_TIMEOUT_SECS: u64 = 5;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
