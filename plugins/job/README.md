@@ -15,9 +15,18 @@ herdr-job log "$id"       # log path
 herdr-job clean           # close this pane's finished job tabs (--all: everyone's)
 ```
 
-- The job tab is labelled `⏳ Build b17`, then `✓ Build b17` or `✗ Build b17`.
-  After success it closes itself 10 s later (`--keep` leaves it open); after a
-  failure it stays open with the output.
+- The job tab is a child of the tab that started it. While the workspace
+  has jobs, a second row under the tab bar lists the active tab's own
+  content first (named after its agent, e.g. `claude`) and then its jobs,
+  e.g. `claude  ⏳ tests  ! build`; the parent tab shows a summary such as
+  `1 ⏳1 !2 ✓3`. herdr draws the icons from the tab's status
+  (`herdr tab status`), set to running, then succeeded or failed; failure
+  is `!` because `✗` next to a tab label reads as a close button. After
+  success the tab closes itself 10 s later (`--keep` leaves it open); after
+  a failure it stays open with the output. Closing the parent tab asks first
+  and closes its jobs too. herdr builds without child tabs get a top-level
+  tab labelled
+  `⏳ Build b17`, then `✓ Build b17` or `✗ Build b17`.
 - The tab's last row is a pinned footer: state, name, `--why`, which agent and
   workspace started it, and the job id. Output scrolls above it. It has no
   background (reverse video is a black bar on light themes); the state is

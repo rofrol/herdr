@@ -45,6 +45,15 @@ def herdr(*args, check=True):
     return out.stdout
 
 
+def herdr_ok(*args):
+    """Runs a herdr command that older herdr builds may not have."""
+    try:
+        out = subprocess.run([HERDR, *args], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return out.returncode == 0
+
+
 def job_dir(job_id):
     path = STATE / job_id
     if not (path / "meta.json").exists():
@@ -200,7 +209,7 @@ def cmd_run(args):
     cwd = str(Path(args.cwd or os.getcwd()).resolve())
     command = args.command[0] if len(args.command) == 1 else shlex.join(args.command)
     job_id = time.strftime("%Y%m%d-%H%M%S-") + secrets.token_hex(2)
-    create = ["tab", "create", "--no-focus", "--label", f"⏳ {short(args.name, 30)}", "--cwd", cwd]
+    create = ["tab", "create", "--no-focus", "--label", short(args.name, 30), "--cwd", cwd]
     create += ["--env", f"HISTORY_IGNORE={HISTORY_IGNORE}"]
     origin = "started by hand"
     owner_is_agent = False
@@ -211,6 +220,15 @@ def cmd_run(args):
         origin = f"from {pane.get('agent') or 'pane ' + owner} in {workspace.get('label') or pane['workspace_id']}"
         owner_is_agent = bool(pane.get("agent"))
     created = json.loads(herdr(*create))["result"]
+    tab_id = created["tab"]["tab_id"]
+    # herdr draws the state icon from the tab status and nests the tab under the
+    # agent's tab (a second tab row with a summary on the agent's tab). Older
+    # herdr builds have neither, so the label carries the icon there.
+    tab_status = herdr_ok("tab", "status", tab_id, "running")
+    if not tab_status:
+        herdr("tab", "rename", tab_id, f"⏳ {short(args.name, 30)}", check=False)
+    if owner and pane.get("tab_id"):
+        herdr_ok("tab", "parent", tab_id, pane["tab_id"])
     path = STATE / job_id
     path.mkdir(parents=True, mode=0o700)
     meta = {
@@ -225,7 +243,8 @@ def cmd_run(args):
         "notify": args.notify or ("never" if owner_is_agent else "always"),
         "origin": origin,
         "owner_pane": owner,
-        "tab_id": created["tab"]["tab_id"],
+        "tab_id": tab_id,
+        "tab_status": tab_status,
         "pane_id": created["root_pane"]["pane_id"],
         "created": time.time(),
     }
@@ -261,6 +280,7 @@ class Footer:
     def __init__(self, meta):
         self.meta = meta
         self.state = "⏳ running"
+        self.rows = None
 
     def text(self):
         parts = [self.meta["name"]]
@@ -291,7 +311,22 @@ class Footer:
         if not size or size.lines < 4:
             return
         rows, cols = size.lines, size.columns
+        self.rows = rows
         sys.stdout.write(f"\x1b[1;{rows - 1}r\x1b[{rows - 1};1H")
+        self.draw(rows, cols)
+
+    def resize(self):
+        """SIGWINCH: a taller pane gets blank rows at the bottom and keeps the
+        old footer where it was, now inside the output area, so erase it.
+        A shorter one pushes rows off the top and the footer stays last."""
+        size = self.size()
+        if not size or size.lines < 4:
+            return
+        rows, cols = size.lines, size.columns
+        erase = f"\x1b[{self.rows};1H\x1b[2K" if self.rows and rows > self.rows else ""
+        self.rows = rows
+        # DECSTBM homes the cursor; keep the command's output position.
+        sys.stdout.write(f"\x1b7{erase}\x1b[1;{rows - 1}r\x1b8")
         self.draw(rows, cols)
 
     def finish(self, code):
@@ -365,7 +400,7 @@ def cmd_exec(args):
 
         for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
             signal.signal(sig, forward)
-        signal.signal(signal.SIGWINCH, lambda *_: footer.start())
+        signal.signal(signal.SIGWINCH, lambda *_: footer.resize())
         assert proc.stdout is not None
         for chunk in iter(lambda: proc.stdout.read1(65536), b""):
             sys.stdout.buffer.write(chunk)
@@ -377,11 +412,16 @@ def cmd_exec(args):
     meta["ended"] = time.time()
     write_meta(path, meta)
     write_atomic(path / "exit", f"{code}\n")
-    mark = "✓" if code == 0 else "✗"
-    herdr("tab", "rename", meta["tab_id"], f"{mark} {short(meta['name'], 30)}", check=False)
+    # The footer first: the herdr calls below take a moment, and the tab
+    # label should not be ahead of the job's own status line.
+    footer.finish(code)
+    if meta.get("tab_status"):
+        herdr("tab", "status", meta["tab_id"], "succeeded" if code == 0 else "failed", check=False)
+    else:
+        mark = "✓" if code == 0 else "✗"
+        herdr("tab", "rename", meta["tab_id"], f"{mark} {short(meta['name'], 30)}", check=False)
     update_owner_token(meta.get("owner_pane"))
     notify(meta, code)
-    footer.finish(code)
     print(f"\nherdr-job {meta['id']}: exit {code}", flush=True)
     if code == 0 and not meta.get("keep"):
         # The log stays in the state dir and the sidebar keeps ✓; the tab is noise now.
