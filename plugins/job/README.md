@@ -26,9 +26,11 @@ herdr-job clean           # close this pane's finished job tabs (--all: everyone
   runs without a controlling terminal, so `/dev/tty` fails; writing progress
   to `$HERDR_JOB_TTY` shows it in the tab but keeps it out of the log that
   `wait` streams (see [Skills](#skills-a-script-in-its-own-job-tab)).
-- The starting pane gets a `$jobs` token with counts, e.g. `2⏳ 1✗ 3✓`:
-  running jobs, then failed (or lost) and successful ones that ended in the
-  last 30 minutes. Counts, not names: the agents panel cannot scroll, so a
+- The starting pane gets a `$jobs` token with counts of its jobs that still
+  have a tab, e.g. `2⏳ 1✗ 1✓`: running, failed (or lost) and successful.
+  Closing a job tab drops it from the counts (a `tab.closed` hook recounts),
+  so a success shows until its tab closes itself and a failure until you
+  close its tab. Counts, not names: the agents panel cannot scroll, so a
   list would push other agents out of view. Names and exit codes are in
   `herdr-job list` and the tab labels.
 - `herdr-bg-badge` (a Claude Code Stop hook) puts the number of Claude's own
