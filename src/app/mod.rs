@@ -168,13 +168,19 @@ fn auto_updates_enabled(background_updates: bool) -> bool {
     background_updates && !cfg!(debug_assertions)
 }
 
+/// Set by the test runner so servers spawned by integration tests never poll.
+const DISABLE_USAGE_ENV: &str = "HERDR_DISABLE_USAGE";
+
 /// Usage polling contacts provider services, so tests and disabled configs never start it.
 fn spawn_usage_poller(
     policy: &AppPolicy,
     config: &crate::config::UsageConfig,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> Option<crate::usage::UsagePoller> {
-    if !policy.background_updates || !config.enabled {
+    if !policy.background_updates
+        || !config.enabled
+        || std::env::var_os(DISABLE_USAGE_ENV).is_some_and(|value| !value.is_empty())
+    {
         return None;
     }
     crate::usage::UsagePoller::spawn(config.clone(), event_tx.clone())
