@@ -143,6 +143,36 @@ pub(crate) fn render_tab_bar(
             right_padding = padding.saturating_sub(left) as usize,
         );
         put_text(buffer, rect.x, rect.y, rect.width, &text, style);
+        // Color the children's counts like the sidebar's job counts. A parent
+        // with children is never accent filled, so the colors stay visible;
+        // a disconnected endpoint's counts are stale and stay plain.
+        let segments =
+            tab_groups::children_summary_segments(&tab_groups::child_tabs(snapshot, &tab.tab_id));
+        if !stale && !segments.is_empty() {
+            let summary_width = segments
+                .iter()
+                .fold(0_u16, |width, (_, segment)| {
+                    width.saturating_add(display_width(segment) + 1)
+                })
+                .saturating_sub(1);
+            let mut segment_x = rect
+                .x
+                .saturating_add(left)
+                .saturating_add(display_width(&name).saturating_sub(summary_width));
+            for (status, segment) in segments {
+                if let Some(fg) = tab_status_color(status, palette) {
+                    put_text(
+                        buffer,
+                        segment_x,
+                        rect.y,
+                        rect.right().saturating_sub(segment_x),
+                        &segment,
+                        style.fg(fg),
+                    );
+                }
+                segment_x = segment_x.saturating_add(display_width(&segment) + 1);
+            }
+        }
         // Color the agent state like the sidebar does, except on the accent
         // fill, where the palette's state colors can vanish. A disconnected
         // endpoint's state is stale, so it is dimmed like in the sidebar.
@@ -343,7 +373,8 @@ pub(crate) fn render_child_tab_bar(
                 .fg(panel_contrast_fg(palette))
                 .bg(palette.accent)
         } else {
-            Style::default().fg(palette.overlay1).bg(band)
+            // Muted overlay text is too faint on the accent tint.
+            Style::default().fg(palette.text).bg(band)
         };
         put_text(
             buffer,
@@ -353,10 +384,28 @@ pub(crate) fn render_child_tab_bar(
             &format!(" {} ", labels[index]),
             style,
         );
+        // The status icon takes the sidebar's color, except on the accent fill.
+        if let (false, Some(_), Some(fg)) = (
+            tab.focused,
+            tab.parent_tab_id.as_ref(),
+            tab_status_color(tab.status, palette),
+        ) {
+            if let Some(icon) = tab_groups::status_icon(tab.status) {
+                put_text(
+                    buffer,
+                    rect.x.saturating_add(1),
+                    rect.y,
+                    rect.width.saturating_sub(1),
+                    icon,
+                    style.fg(fg),
+                );
+            }
+        }
         hits.child_tabs.push((rect, tab.tab_id.clone()));
         x = x.saturating_add(width);
-        // A divider in the gap after the parent sets it apart from its children.
-        if tab.parent_tab_id.is_none() && x < content.right() {
+        // A divider in each gap keeps neighbouring entries, whose padding
+        // shares the band colour, from running together.
+        if index + 1 < tabs.len() && x < content.right() {
             put_text(
                 buffer,
                 x,
@@ -378,6 +427,20 @@ pub(crate) fn render_child_tab_bar(
             );
             break;
         }
+    }
+}
+
+/// The sidebar's colors for job statuses: running yellow, failed red.
+fn tab_status_color(
+    status: Option<crate::api::schema::TabStatus>,
+    palette: &Palette,
+) -> Option<ratatui::style::Color> {
+    use crate::api::schema::TabStatus;
+    match status? {
+        TabStatus::Running => Some(palette.yellow),
+        TabStatus::Failed => Some(palette.red),
+        TabStatus::Succeeded => Some(palette.green),
+        TabStatus::Unknown => None,
     }
 }
 
