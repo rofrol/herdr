@@ -103,3 +103,73 @@
     could vouch for); Qwen/DashScope only through Alibaba Cloud BSS
     `QueryAccountBalance` with signed AccessKey requests, out of scope.
   - Order: Kimi balance, then OpenAI spend (admin key), then GLM Coding Plan.
+- [ ] Clicking a top-level tab that has child tabs should open the most
+  recently active tab of that group, not the first one.
+  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): remember
+    the last selection per group, the parent itself included, in the per-client
+    location state (one client's navigation must not move another's). Fall back
+    to the parent when there is no history or the remembered child was closed.
+    Keep a way to select the parent directly (its entry in the second row).
+- [ ] Bug: a herdr-job child tab keeps ⧖ running after the job finished. The
+  try-roguix job "Publish Roguix packages and channel" wrote exit 0 at 18:14,
+  but its tab stayed running; the final `herdr tab status ... succeeded` is a
+  single call with `check=False`, and the server was being live-handed-off
+  repeatedly at that time.
+  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): the wrapper
+    already writes `exit` first; retry the status call with bounded backoff
+    until it succeeds, and reconcile afterwards: `herdr-job` (e.g. on `list`,
+    `wait` or a sweep) re-applies succeeded/failed to tabs still marked
+    running whose job has an `exit` file. Never infer success merely from a
+    missing process. Key updates by job id so a stale one cannot win.
+- [ ] Is there a "reload agents" item in the herdr menu (restart agent CLIs
+  after they update, resuming their sessions)? There is none now; see the
+  "restart Claude instances" item above.
+  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): call it
+    "Restart agents…", not "reload" (that reads as a config reload). A scoped
+    picker: current agent, selected agents, or the workspace, showing which
+    support resume; from the agents panel menu and the global menu. Restart
+    idle agents, queue busy ones until idle; interrupting work needs an
+    explicit choice. The server orchestrates, agent adapters know resume.
+- [ ] herdr > menu > settings > usage: checkboxes choosing which providers the
+  usage footer shows. Also token-based usage?
+  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): the
+    checkboxes, yes. Tokens answer a different question ("what did this
+    cost?") than the footer ("can I keep going?"): if ever, a separate usage
+    details view, not the footer. Transcript scraping is brittle (resumed
+    sessions, retries and cache tokens double-count), so only with a concrete
+    need; split input, output and cache, and label estimates.
+- [ ] herdr > menu > settings > consults: an "enabled" checkbox column per
+  model (which models get consulted), and next to it the consult stats
+  columns. Then drop the separate "consult stats" menu item.
+  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): consult is
+    a plugin, so core needs a declarative plugin settings page (a versioned
+    schema of tables, checkbox fields, loading/error states, actions proxied
+    over the endpoint); core renders standard widgets, no plugin-drawn TUI and
+    no consult-specific code in core. Keep latency/tokens from crushing the
+    checkbox and model name (a detail view per model).
+- [ ] The consult stats should show the coordinator's actual model and
+  reasoning effort (now Opus 5.5 at `medium`; self entries are logged just as
+  `claude`), and add Opus at a lower effort as a participant to compare.
+  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): snapshot
+    the resolved model id, effort and its source per self entry
+    (`CLAUDE_EFFORT` is set by Claude Code, but it is a hint); record
+    `unknown`, never a guessed default, and the CLI version.
+  - The self entry is not a fair peer (full context, repo access, rates
+    itself): show it separately as a baseline. To measure effort, pair
+    `claude -p --model <same id> --effort low` with a fresh-context call at
+    the coordinator's effort, same prompt; "fresh" must also exclude project
+    instructions and tools. It uses the same subscription, so it can starve
+    the coordinator: log failures, never drop them.
+  - Pilot 10 rounds, conclude after about 20-30 paired rounds. Rate blind
+    where practical (same-family bias), and "unique" only relative to that
+    round's roster.
+- [ ] Spaces panel redesign: line 1 `<workspace> <git branch> <behind/ahead
+  of the tracked branch>`; then one line per agent: `<agent state dot>
+  <its herdr-job status counts>`.
+  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): agent rows
+    need the agent's name (several bare dots are ambiguous). Cap the rows
+    ("+N more"), maybe expand only the active workspace; truncate the branch
+    before hiding counts. Clear click targets: workspace row, agent row (to
+    its tab). Needs explicit job-to-agent ownership from the server
+    (`owner_pane` is already in job metadata); keep unowned jobs visible and
+    never count a job twice.
