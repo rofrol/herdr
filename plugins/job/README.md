@@ -42,6 +42,9 @@ herdr-job clean           # close this pane's finished job tabs (--all: everyone
   close its tab. Counts, not names: the agents panel cannot scroll, so a
   list would push other agents out of view. Names and exit codes are in
   `herdr-job list` and the tab labels.
+- The space's row in the sidebar counts its running and failed tabs, e.g.
+  `○ repo ⏳1`: the space's dot is its agents' state, so it stays idle while
+  the agent waits for a job (the `tab_jobs` token).
 - `herdr-bg-badge` (a Claude Code Stop hook) puts the number of Claude's own
   background tasks in `$bg` (`2 bg`), skipping `herdr-job wait` tasks, which
   `$jobs` already counts.
