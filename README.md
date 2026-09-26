@@ -33,11 +33,11 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
 - **Job tabs from the [job plugin](plugins/job/README.md).** Each
   `herdr-job` job gets a child tab of the tab that started it. While a
   workspace has child tabs, a second row under the tab bar lists the active
-  tab's own content and its jobs (`claude  ⏳ tests  ! build`), and the parent
-  tab shows a summary such as `⏳1 !2 ✓3`. The space's sidebar row counts
-  its running and failed tabs (`○ repo ⏳1`, the `tab_jobs` token), so
+  tab's own content and its jobs (`claude  ⧖ tests  ! build`), and the parent
+  tab shows a summary such as `⧖1 !2 ✓3`. The space's sidebar row counts
+  its running and failed tabs (`○ repo ⧖1`, the `tab_jobs` token), so
   background work stays visible while the agent is idle, and the agent that
-  started the jobs shows their counts (`2⏳ 1✗ 1✓`, the `$jobs` token).
+  started the jobs shows their counts (`2⧖ 1✗ 1✓`, the `$jobs` token).
   Closing a parent tab asks first and closes its jobs too. Child tabs and
   statuses are ordinary API (`herdr tab parent`, `herdr tab status`), usable
   by any script.
@@ -69,7 +69,7 @@ or link it from a checkout with `herdr plugin link plugins/<name>`.
 
 - [**job**](plugins/job/README.md): `herdr-job run --name "Build" -- make`
   runs a long command in its own unfocused tab (live output one click away)
-  and shows `⏳ Build`, then `✓`/`✗ <code>`, in the sidebar of the pane that
+  and shows `⧖ Build`, then `✓`/`✗ <code>`, in the sidebar of the pane that
   started it; `herdr-job wait <id>` follows the log and exits with the
   command's code. It keeps state in files, so it works for any agent (Claude
   Code, pi, ...) or by hand. Also has `herdr-bg-badge`, a Claude Code hook
@@ -118,7 +118,7 @@ herdr
 
 ---
 
-https://github.com/user-attachments/assets/2ac8a20d-9b26-4d06-8744-45d20aaf30dc
+https://github.com/user-attachments/assets/2eabe9c9-02c3-41e4-ab0f-d0fb06e87ac9
 
 **the runtime your coding agents live on.**
 
