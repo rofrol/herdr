@@ -3,7 +3,7 @@
 - [ ] Do I still need the Agents panel? Maybe an Agents tab next to Spaces,
   sorted by priority by default, where a click switches to the right tab in
   Spaces.
-  - Oracles (DeepSeek, GPT-6 Luna, 2026-09-26): keep Agents as an attention
+  - Consulted models (DeepSeek, GPT-6 Luna, 2026-09-26): keep Agents as an attention
     inbox in a `Spaces | Agents` sidebar tab; Spaces keeps its badges.
     Clicking an agent focuses its pane but the sidebar stays on Agents
     (otherwise every click loses the queue); "reveal in Spaces" separately.
@@ -12,7 +12,7 @@
 - [ ] Claude reports that a new version is available. A herdr menu item that
   restarts Claude instances when possible? How: send the instances a message
   to restart once they finish their work? Same for pi.
-  - Oracles: do not ask the agent (it costs context and cannot replace its
+  - Consulted models: do not ask the agent (it costs context and cannot replace its
     own process); herdr restarts it. Version: record `claude --version` when
     the pane starts, compare with the binary on disk (mtime only as a hint).
   - Restart only when the pane is idle, not blocked, with no draft in the
@@ -25,9 +25,36 @@
     not restore them. For pi, check that `--session` restores everything.
 - [x] Make the tabs consistent (two rows: main `1 ⧖ 1 | lazygit | 3 | +`,
   below it `claude:` and the job tabs).
-  - Oracles: only the active main tab gets the filled blue background; the
+  - Consulted models: only the active main tab gets the filled blue background; the
     active entry in the second row gets an underline or bold (now there are
     two blue highlights at once). The parent entry without the colon and the
     grey block, e.g. `claude` with an icon, then a `│` separator. One rule
     for dimming. A number on every main tab or on none.
   - Done 2026-09-26 as variant D: full accent only on the entry on screen.
+- [ ] Publish the consult stats (`consult.py stats`) through a separate
+  project, `consultstats` (its own repo, e.g. `~/personal_projects/consultstats/`).
+  Nothing about where it is published belongs in this repo or in that
+  project's code: the host, path and deploy command come from its config
+  (e.g. an ignored `.env`), so anyone can publish their own stats anywhere.
+  Mine will go to `consultstats.frolow.dev`.
+  - Name (DeepSeek, GPT-6 Luna, 2026-09-26): not `llmstats` (JEV, a System 1
+    model, and other non-LLM systems come later), not `skilloraclestats`
+    (long, and "oracle" reads as the company).
+  - Split: this plugin only gets an export (e.g. `consult.py export`) that
+    writes the allowlisted aggregates as JSON; `consultstats` turns that JSON
+    into a static site and deploys it. The raw log
+    (`~/.local/state/consult/log.jsonl`) never leaves the machine.
+  - Consulted models (DeepSeek, GPT-6 Luna, 2026-09-26): a static site built
+    locally, deployed by rsync of the output only. For my frolow.dev: like
+    `frolow.dev/deploy.sh`, subdomain like `matchalove.frolow.dev` (Porkbun A
+    record, nginx `conf.d`, `certbot --nginx`); that setup lives in my
+    frolow.dev repo, not in `consultstats`.
+  - Export from an allowlist of aggregates only: no prompts, answers, notes,
+    cwd, round ids or exact timestamps (weekly/monthly at most); hide groups
+    with few calls. A test on a fake log checks that forbidden fields never
+    reach the output.
+  - Honest presentation: `n` next to every rate, confidence intervals
+    (Wilson), "preliminary" below ~5 rated calls, a note on bias (self-chosen
+    tasks, non-blind ratings, `unique` depends on who else was asked).
+    accepted/findings is an acceptance rate, not recall; check the name.
+  - Update manually first (export, review the diff, deploy); launchd later.
