@@ -143,19 +143,24 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   marker like real targets. Here it sat under `herdr`, a drop that changes
   nothing. Do it together with, or right after, the spaces redesign above,
   whose blocks are taller.
-  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26; Luna
-    preferred a live preview): keep the list geometry fixed while dragging,
-    no live reorder: in a terminal the list would reflow under a still pointer
-    and the target would oscillate. Mark the source with an accent bar and
-    dimmed text instead of the selection grey, draw the insert marker between
-    whole blocks (never inside a worktree family), and add a fixed hint line:
-    `move herdr before try-roguix · Esc cancel`, or `no change` over a no-op
-    slot. Hide the no-op marker, not its hit region, so the nearest other slot
-    is not picked by surprise. Redraw only when the target changes; a little
-    hysteresis at slot boundaries.
+  - Decided 2026-09-26 after trying a prototype
+    (https://claude.ai/artifact/MNP3sXkyHSZSwCNnUDCiTX): variant C, live
+    swap, without collapsing. Past the drag threshold the block lifts
+    (accent bar in its first column, raised background, not the selection
+    grey) and follows the pointer row by row. When its middle passes a
+    neighbour's middle, the neighbour slides past it one row per frame
+    (~40 ms/row); swapping back needs the middle to pass the neighbour's new
+    middle, which gives hysteresis, so it does not flicker. On release the
+    block settles into its slot; on Esc or release outside the sidebar it
+    slides back. A fixed hint line says `move herdr before try-roguix · Esc`
+    or `no change`.
+  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26) preferred
+    a still list with a labelled marker (Astra, DeepSeek) or a guarded live
+    preview (Luna); their constraints still apply to C: swaps happen only
+    between whole blocks (never inside a worktree family), and redraw only
+    when the order or the block's row changes.
   - Do not collapse spaces while dragging (it moves the target as the user
-    aims). Worktree children move with the parent, labelled
-    `herdr (+2)`. The marker must also work with `row_gap = 0`.
+    aims). Worktree children move with the parent, labelled `herdr (+2)`.
   - Drag starts only from the space's name line after a small threshold, so
     clicks, chevrons and agent/job rows keep working; a click is suppressed
     after a drag. Esc cancels. Time-based auto-scroll near the list edges.
