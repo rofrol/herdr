@@ -23,10 +23,11 @@
   - Menu with a preview: how many idle / working / blocked, pick which.
     Launch flags (permission mode, model, env) must be recorded; resume does
     not restore them. For pi, check that `--session` restores everything.
-- [ ] Make the tabs consistent (two rows: main `1 ⧖ 1 | lazygit | 3 | +`,
+- [x] Make the tabs consistent (two rows: main `1 ⧖ 1 | lazygit | 3 | +`,
   below it `claude:` and the job tabs).
   - Oracles: only the active main tab gets the filled blue background; the
     active entry in the second row gets an underline or bold (now there are
     two blue highlights at once). The parent entry without the colon and the
     grey block, e.g. `claude` with an icon, then a `│` separator. One rule
     for dimming. A number on every main tab or on none.
+  - Done 2026-09-26 as variant D: full accent only on the entry on screen.

@@ -280,7 +280,7 @@ fn child_tabs_get_their_own_row_and_a_summary_on_the_parent() {
     assert_eq!(state.hits.tabs.len(), 1, "children leave the main row");
     assert!(rows[0].contains("1 ⧖ 1 !1"), "{}", rows[0]);
     assert!(
-        rows[1].contains(": │ ! build") && rows[1].contains("⧖ tests"),
+        rows[1].contains("◆ ") && rows[1].contains("│ ! build") && rows[1].contains("⧖ tests"),
         "{}",
         rows[1]
     );
@@ -295,6 +295,50 @@ fn child_tabs_get_their_own_row_and_a_summary_on_the_parent() {
         "the parent's own entry comes first"
     );
     assert_eq!(state.layout(106, 24).pane_surface.y, 2);
+}
+
+#[test]
+fn only_the_entry_on_screen_gets_the_full_accent() {
+    let mut state = parent_with_jobs_state(true);
+    let accent = state.config.palette.accent;
+    let backgrounds = |state: &mut ClientShellState| {
+        let frame = state.compose(106, 24).unwrap();
+        let buffer = frame.to_ratatui_buffer().expect("tab bar buffer");
+        let bg = |rect: Rect| buffer[(rect.x + 1, rect.y)].bg;
+        let main = bg(state.hits.tabs[0].0);
+        let children = state
+            .hits
+            .child_tabs
+            .iter()
+            .map(|(rect, _)| bg(*rect))
+            .collect::<Vec<_>>();
+        (main, children)
+    };
+
+    let (main, children) = backgrounds(&mut state);
+    assert_ne!(main, accent, "a parent with children is only tinted");
+    assert_eq!(children, [accent, children[1], children[1]]);
+    assert_ne!(children[1], accent);
+
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    for tab in &mut projected.tabs {
+        tab.focused = tab.tab_id == "tab_3";
+    }
+    projected.focused_tab_id = Some("tab_3".into());
+    state.set_snapshot(Box::new(projected));
+    let (main_on_child, children) = backgrounds(&mut state);
+    assert_eq!(main_on_child, main);
+    assert_eq!(children, [children[0], children[0], accent]);
+    assert_ne!(children[0], accent);
+}
+
+#[test]
+fn a_tab_without_children_keeps_the_full_accent() {
+    let mut state = close_state(true, 2);
+    let frame = state.compose(106, 24).unwrap();
+    let buffer = frame.to_ratatui_buffer().expect("tab bar buffer");
+    let rect = state.hits.tabs[0].0;
+    assert_eq!(buffer[(rect.x + 1, rect.y)].bg, state.config.palette.accent);
 }
 
 #[test]
