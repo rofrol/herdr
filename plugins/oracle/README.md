@@ -37,7 +37,8 @@ The plugin pane list has:
 - **Oracle: install skills**: runs `install-skills`.
 
 This fork's herdr menu (the launcher at the top of the sidebar) also has a
-**stats** item that opens the **Oracle stats** popup.
+**oracle stats** item that opens the **Oracle stats** popup; a click
+outside the popup closes it.
 
 Popups run in the herdr server's environment, not your shell's, so they only
 read the log; asking a model stays with the agent.

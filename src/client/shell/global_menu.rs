@@ -7,7 +7,7 @@ pub(super) enum ClientGlobalMenuAction {
     WhatsNew,
 }
 
-/// Plugin pane behind the menu's `stats` item: the oracle plugin's usage stats.
+/// Plugin pane behind the menu's `oracle stats` item: the oracle plugin's usage stats.
 const ORACLE_STATS_PLUGIN_ID: &str = "local.oracle";
 const ORACLE_STATS_ENTRYPOINT: &str = "stats";
 
@@ -40,7 +40,7 @@ pub(super) fn global_menu_items(
             "reload config",
             ClientGlobalMenuAction::Binding(crate::input::KeybindAction::ReloadConfig),
         ),
-        ("stats", ClientGlobalMenuAction::OracleStats),
+        ("oracle stats", ClientGlobalMenuAction::OracleStats),
     ];
     if snapshot.update_available.is_some() || snapshot.latest_release_notes_available {
         items.push((
@@ -131,12 +131,14 @@ impl ClientShellState {
         };
         self.popup_pending = true;
         self.popup_pending_deadline = None;
+        self.popup_pending_dismissable = true;
         if !self.push_endpoint_method_with_kind(
             crate::api::schema::Method::PluginPaneOpen(params),
             PendingEndpointKind::PopupCommand,
             outcome,
         ) {
             self.popup_pending = false;
+            self.popup_pending_dismissable = false;
         }
     }
 }

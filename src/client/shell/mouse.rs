@@ -957,6 +957,14 @@ impl ClientShellState {
                     }
                     MouseEventKind::Up(_) | MouseEventKind::Drag(_) | MouseEventKind::Moved => {}
                 }
+            } else if mouse.kind == MouseEventKind::Down(MouseButton::Left)
+                && !super::contains(hit.rect, point)
+                && self.dismissable_popup_id.as_deref() == Some(hit.pane_id.as_str())
+            {
+                self.push_endpoint_method(
+                    crate::api::schema::Method::PopupClose(Default::default()),
+                    outcome,
+                );
             }
             return;
         }
