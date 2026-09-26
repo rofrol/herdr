@@ -49,6 +49,20 @@ pub(super) fn active_child_tabs(snapshot: &ClientShellSnapshot) -> Vec<&ClientSh
         .unwrap_or_default()
 }
 
+/// Entries of the second row: the active group's parent, then its children;
+/// empty while the parent has no children.
+pub(super) fn active_row_entries(snapshot: &ClientShellSnapshot) -> Vec<&ClientShellTab> {
+    let children = active_child_tabs(snapshot);
+    if children.is_empty() {
+        return children;
+    }
+    active_main_tab_id(snapshot)
+        .and_then(|id| snapshot.tabs.iter().find(|tab| tab.tab_id == id))
+        .into_iter()
+        .chain(children)
+        .collect()
+}
+
 /// Maps an insert position among main-row tabs to one in the workspace's flat
 /// tab list, which `tab.move` takes.
 pub(super) fn flat_insert_index(snapshot: &ClientShellSnapshot, main_row_index: usize) -> usize {

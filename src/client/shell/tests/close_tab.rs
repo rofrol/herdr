@@ -280,7 +280,7 @@ fn child_tabs_get_their_own_row_and_a_summary_on_the_parent() {
     assert_eq!(state.hits.tabs.len(), 1, "children leave the main row");
     assert!(rows[0].contains("1 ⧖ 1 !1"), "{}", rows[0]);
     assert!(
-        rows[1].contains("! build") && rows[1].contains("⧖ tests"),
+        rows[1].contains(": │ ! build") && rows[1].contains("⧖ tests"),
         "{}",
         rows[1]
     );
@@ -324,8 +324,8 @@ fn the_child_row_stays_while_the_workspace_has_child_tabs() {
             .iter()
             .map(|(_, id)| id.as_str())
             .collect::<Vec<_>>(),
-        ["tab_4"],
-        "a tab without children shows only itself"
+        Vec::<&str>::new(),
+        "a tab without children leaves the row empty"
     );
 }
 

@@ -234,8 +234,9 @@ pub(crate) fn render_tab_bar(
     render_tab_bar_status(buffer, area, snapshot, palette);
 }
 
-/// The second row: the active tab's own content, then its children, each
-/// with its status icon.
+/// The second row: the active tab's own content, marked as the parent, then
+/// its children, each with its status icon. It stays empty while the active
+/// tab has no children.
 /// It has no new-tab button or drag and drop; tabs past the edge are cut
 /// off with `…`, starting from the focused one when it would not fit.
 pub(crate) fn render_child_tab_bar(
@@ -249,17 +250,15 @@ pub(crate) fn render_child_tab_bar(
     buffer.set_style(area, Style::default().bg(palette.panel_bg));
     // The parent's own content comes first, so exactly one entry of the row is
     // the tab on screen.
-    let parent = tab_groups::active_main_tab_id(snapshot)
-        .and_then(|id| snapshot.tabs.iter().find(|tab| tab.tab_id == id));
-    let tabs = parent
-        .into_iter()
-        .chain(tab_groups::active_child_tabs(snapshot))
-        .collect::<Vec<_>>();
+    let tabs = tab_groups::active_row_entries(snapshot);
+    if tabs.is_empty() {
+        return;
+    }
     let labels = tabs
         .iter()
         .map(|tab| {
             if tab.parent_tab_id.is_none() {
-                return tab_groups::parent_entry_label(snapshot, tab);
+                return format!("{}:", tab_groups::parent_entry_label(snapshot, tab));
             }
             match tab_groups::status_icon(tab.status) {
                 Some(icon) => format!("{icon} {}", tab_label(tab)),
@@ -335,7 +334,19 @@ pub(crate) fn render_child_tab_bar(
             style,
         );
         hits.child_tabs.push((rect, tab.tab_id.clone()));
-        x = x.saturating_add(width + 1);
+        x = x.saturating_add(width);
+        // A divider in the gap after the parent sets it apart from its children.
+        if tab.parent_tab_id.is_none() && x < content.right() {
+            put_text(
+                buffer,
+                x,
+                area.y,
+                1,
+                "│",
+                Style::default().fg(palette.overlay0).bg(band),
+            );
+        }
+        x = x.saturating_add(1);
         if width < widths[index] {
             put_text(
                 buffer,
