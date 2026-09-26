@@ -47,13 +47,16 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     finished job tabs close at once). The server sends each pane's
     `running_program`. Still open: the API `force` guard and computing the
     impact on the server.
-- [ ] Clicking a top-level tab that has child tabs should open the most
+- [x] Clicking a top-level tab that has child tabs should open the most
   recently active tab of that group, not the first one.
   - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): remember
     the last selection per group, the parent itself included, in the per-client
     location state (one client's navigation must not move another's). Fall back
     to the parent when there is no history or the remembered child was closed.
     Keep a way to select the parent directly (its entry in the second row).
+  - Done 2026-09-26: the client remembers each group's last focused tab per
+    endpoint; a main-row click, the tab number keys and the main-row wheel
+    return there. The parent's entry in the second row selects the parent.
 - [ ] The consult stats should show the coordinator's actual model and
   reasoning effort (now Opus 5.5 at `medium`; self entries are logged just as
   `claude`), and add Opus at a lower effort as a participant to compare.

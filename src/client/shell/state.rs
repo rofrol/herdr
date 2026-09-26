@@ -191,6 +191,9 @@ pub(super) struct ClientWorkspacePress {
 pub(super) struct ClientTabPress {
     pub(super) tab_id: String,
     pub(super) workspace_id: String,
+    /// Pressed in the main row, not the second row (where a parent also has
+    /// its own entry).
+    pub(super) main_row: bool,
     pub(super) start_column: u16,
     pub(super) start_row: u16,
 }
@@ -900,6 +903,10 @@ pub(crate) struct ClientShellState {
     pub(super) chrome_drag: Option<ClientChromeDrag>,
     pub(super) workspace_press: Option<ClientWorkspacePress>,
     pub(super) tab_press: Option<ClientTabPress>,
+    /// Last focused tab of each tab group, by endpoint and the group's
+    /// top-level tab. Kept by this client, so one client's navigation never
+    /// moves another's.
+    pub(super) last_group_tabs: HashMap<(ClientEndpointId, String), String>,
     pub(super) collapsed_groups: HashSet<String>,
     pub(super) remote_collapsed_groups: HashMap<ClientEndpointId, HashSet<String>>,
     pub(super) workspace_scroll: usize,
@@ -1070,6 +1077,7 @@ impl ClientShellState {
             chrome_drag: None,
             workspace_press: None,
             tab_press: None,
+            last_group_tabs: HashMap::new(),
             collapsed_groups: preferences.collapsed_groups.into_iter().collect(),
             remote_collapsed_groups,
             workspace_scroll: 0,
@@ -1609,6 +1617,7 @@ impl ClientShellState {
             }
         }
         self.snapshot = Some(snapshot);
+        self.remember_focused_group_tab();
         self.reconcile_pending_workspace_highlight();
         let pending_surface = self.pending_pane_surface.take();
         if let Some(surface) = pending_surface {

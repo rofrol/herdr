@@ -617,3 +617,109 @@ fn closing_a_workspace_names_its_busy_agent() {
             if confirm.title == "Close workspace?"
                 && confirm.running.as_deref() == Some("claude working in 1")));
 }
+
+fn focus_tab(state: &mut ClientShellState, tab_id: &str) {
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    for tab in &mut projected.tabs {
+        tab.focused = tab.tab_id == tab_id;
+    }
+    projected.focused_tab_id = Some(tab_id.into());
+    state.set_snapshot(Box::new(projected));
+    state.compose(106, 24).unwrap();
+}
+
+fn click_up(state: &mut ClientShellState, rect: Rect) -> ClientShellInput {
+    click(state, rect);
+    state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+        kind: MouseEventKind::Up(MouseButton::Left),
+        column: rect.x,
+        row: rect.y,
+        modifiers: KeyModifiers::empty(),
+    })])
+}
+
+fn focused_by(outcome: &ClientShellInput) -> Vec<String> {
+    outcome
+        .actions
+        .iter()
+        .filter_map(|action| match action {
+            ClientShellAction::Endpoint { request, .. } => match &request.method {
+                Method::TabFocus(target) => Some(target.tab_id.clone()),
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect()
+}
+
+/// `tab_1` with children `tab_2` and `tab_3`, and a plain `tab_4`.
+fn group_memory_state() -> ClientShellState {
+    let mut state = parent_with_jobs_state(true);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    let mut other = projected.tabs[0].clone();
+    other.tab_id = "tab_4".into();
+    other.number = 4;
+    other.label = "lazygit".into();
+    other.focused = false;
+    projected.tabs.push(other);
+    state.set_snapshot(Box::new(projected));
+    state
+}
+
+fn main_row_rect(state: &ClientShellState, tab_id: &str) -> Rect {
+    state
+        .hits
+        .tabs
+        .iter()
+        .find(|(_, id)| id == tab_id)
+        .map(|(rect, _)| *rect)
+        .expect("main-row tab")
+}
+
+#[test]
+fn a_main_row_tab_returns_to_its_groups_last_tab() {
+    let mut state = group_memory_state();
+    focus_tab(&mut state, "tab_3");
+    focus_tab(&mut state, "tab_4");
+
+    let rect = main_row_rect(&state, "tab_1");
+    assert_eq!(focused_by(&click_up(&mut state, rect)), ["tab_3"]);
+
+    let mut switched = ClientShellInput::default();
+    state.record_binding(
+        crate::input::KeybindMatch::Action(crate::input::KeybindAction::SwitchTab(0)),
+        &mut switched,
+    );
+    assert_eq!(focused_by(&switched), ["tab_3"]);
+}
+
+#[test]
+fn a_group_without_history_or_with_its_last_tab_closed_opens_the_parent() {
+    let mut state = group_memory_state();
+    focus_tab(&mut state, "tab_4");
+    let rect = main_row_rect(&state, "tab_4");
+    assert_eq!(focused_by(&click_up(&mut state, rect)), ["tab_4"]);
+
+    focus_tab(&mut state, "tab_3");
+    focus_tab(&mut state, "tab_4");
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    projected.tabs.retain(|tab| tab.tab_id != "tab_3");
+    state.set_snapshot(Box::new(projected));
+    state.compose(106, 24).unwrap();
+    let rect = main_row_rect(&state, "tab_1");
+    assert_eq!(focused_by(&click_up(&mut state, rect)), ["tab_1"]);
+}
+
+#[test]
+fn the_parents_own_entry_in_the_second_row_selects_the_parent() {
+    let mut state = group_memory_state();
+    focus_tab(&mut state, "tab_3");
+    let parent_entry = state
+        .hits
+        .child_tabs
+        .iter()
+        .find(|(_, id)| id == "tab_1")
+        .map(|(rect, _)| *rect)
+        .expect("parent entry");
+    assert_eq!(focused_by(&click_up(&mut state, parent_entry)), ["tab_1"]);
+}

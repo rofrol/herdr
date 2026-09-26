@@ -959,7 +959,7 @@ impl ClientShellState {
                 // Numbers go to main-row tabs; child tabs are reached from their parent.
                 let tabs = super::tab_groups::main_row_tabs(snapshot);
                 Some(Method::TabFocus(TabTarget {
-                    tab_id: tabs.get(index)?.tab_id.clone(),
+                    tab_id: self.group_entry_tab(&tabs.get(index)?.tab_id),
                 }))
             }
             KeybindAction::PreviousTab | KeybindAction::NextTab => {

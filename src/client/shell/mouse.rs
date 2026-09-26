@@ -488,7 +488,7 @@ impl ClientShellState {
         let tabs = super::tab_groups::main_row_tabs(snapshot);
         let current = tabs.iter().position(|tab| tab.tab_id == active)?;
         let next = current.checked_add_signed(delta)?;
-        tabs.get(next).map(|tab| tab.tab_id.clone())
+        tabs.get(next).map(|tab| self.group_entry_tab(&tab.tab_id))
     }
 
     /// The second-row entry `delta` steps from the focused one; `None` past
@@ -1267,8 +1267,7 @@ impl ClientShellState {
                     .abs_diff(press.start_column)
                     .max(mouse.row.abs_diff(press.start_row));
                 // Child tabs are not dragged: their order follows their parent.
-                let main_row = self.hits.tabs.iter().any(|(_, id)| *id == press.tab_id);
-                if delta >= 1 && main_row {
+                if delta >= 1 && press.main_row {
                     if let Some(insert_index) = self.tab_drop_index_at(point) {
                         self.chrome_drag = Some(ClientChromeDrag::Tab {
                             tab_id: press.tab_id.clone(),
@@ -1401,10 +1400,15 @@ impl ClientShellState {
                 return;
             }
             if let Some(press) = self.tab_press.take() {
+                // A main-row tab stands for its whole group; its own entry in
+                // the second row selects the tab itself.
+                let tab_id = if press.main_row {
+                    self.group_entry_tab(&press.tab_id)
+                } else {
+                    press.tab_id
+                };
                 self.push_endpoint_method(
-                    crate::api::schema::Method::TabFocus(crate::api::schema::TabTarget {
-                        tab_id: press.tab_id,
-                    }),
+                    crate::api::schema::Method::TabFocus(crate::api::schema::TabTarget { tab_id }),
                     outcome,
                 );
                 return;
@@ -2150,9 +2154,10 @@ impl ClientShellState {
                         self.hits
                             .tabs
                             .iter()
-                            .chain(&self.hits.child_tabs)
-                            .find(|(rect, _)| super::contains(*rect, point))
-                            .and_then(|(_, tab_id)| {
+                            .map(|hit| (hit, true))
+                            .chain(self.hits.child_tabs.iter().map(|hit| (hit, false)))
+                            .find(|((rect, _), _)| super::contains(*rect, point))
+                            .and_then(|((_, tab_id), main_row)| {
                                 let tab = self
                                     .snapshot
                                     .as_deref()?
@@ -2162,6 +2167,7 @@ impl ClientShellState {
                                 Some(ClientTabPress {
                                     tab_id: tab.tab_id.clone(),
                                     workspace_id: tab.workspace_id.clone(),
+                                    main_row,
                                     start_column: mouse.column,
                                     start_row: mouse.row,
                                 })
