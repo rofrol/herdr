@@ -365,6 +365,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
 # Blank rows between space entries. Set to 1 to restore the previous spacing.
 # row_gap = 0
 # rows = [["state_icon", "workspace"], ["branch", "git_status"]]
+# Experimental: list each space's agents under it, each with its state and
+# task, and a line with its herdr-job counts when it has jobs.
+# agents = false
 
 # Background notification popup delivery
 [ui.toast]

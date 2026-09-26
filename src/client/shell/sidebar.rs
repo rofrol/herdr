@@ -325,7 +325,7 @@ pub(crate) fn render_sidebar(
                 .workspaces
                 .get(entry.index)
                 .map(|workspace| {
-                    workspace_rows(
+                    let rows = workspace_rows(
                         workspace,
                         displayed_workspace_status(snapshot, workspace, state.collapsed_groups),
                         displayed_workspace_tab_jobs(snapshot, workspace, state.collapsed_groups),
@@ -333,8 +333,15 @@ pub(crate) fn render_sidebar(
                         &config.spaces,
                     )
                     .len()
-                    .max(1)
-                    .min(u16::MAX as usize) as u16
+                    .max(1);
+                    let agents = super::space_agents::space_agent_lines(
+                        snapshot,
+                        workspace,
+                        state.collapsed_groups,
+                        config,
+                    )
+                    .len();
+                    (rows + agents).min(u16::MAX as usize) as u16
                 })
                 .unwrap_or(1)
         })
@@ -389,7 +396,16 @@ pub(crate) fn render_sidebar(
         let status = displayed_workspace_status(snapshot, workspace, state.collapsed_groups);
         let tab_jobs = displayed_workspace_tab_jobs(snapshot, workspace, state.collapsed_groups);
         let rows = workspace_rows(workspace, status, tab_jobs, entry.indented, &config.spaces);
-        let row_height = (rows.len().max(1).min(u16::MAX as usize) as u16).min(body.height);
+        let own_rows = rows.len().max(1).min(u16::MAX as usize) as u16;
+        let agent_lines = super::space_agents::space_agent_lines(
+            snapshot,
+            workspace,
+            state.collapsed_groups,
+            config,
+        );
+        let row_height = own_rows
+            .saturating_add(agent_lines.len().min(u16::MAX as usize) as u16)
+            .min(body.height);
         if y.saturating_add(row_height) > body.bottom() {
             break;
         }
@@ -417,6 +433,17 @@ pub(crate) fn render_sidebar(
             state.selected_workspace_id.is_some(),
             dragged,
             palette,
+        );
+        super::space_agents::render_space_agent_lines(
+            buffer,
+            Rect::new(
+                rect.x,
+                rect.y.saturating_add(own_rows),
+                rect.width,
+                rect.height.saturating_sub(own_rows),
+            ),
+            &agent_lines,
+            config,
         );
         let group_toggle = render_parent_group_toggle(
             buffer,
@@ -730,7 +757,7 @@ pub(in crate::client::shell) fn displayed_workspace_tab_jobs(
 
 /// The workspace itself, or every workspace of its group when it is the
 /// collapsed parent row that stands for them.
-fn displayed_workspaces<'a>(
+pub(in crate::client::shell) fn displayed_workspaces<'a>(
     snapshot: &'a ClientShellSnapshot,
     workspace: &'a ClientShellWorkspace,
     collapsed_groups: &HashSet<String>,
