@@ -14,6 +14,7 @@ fn tab_overflow_controls_scroll_the_client_owned_tab_bar() {
         agent_status: AgentStatus::Idle,
         parent_tab_id: None,
         status: None,
+        program: None,
     }));
     let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
     state.set_snapshot(Box::new(snapshot));
@@ -62,6 +63,7 @@ fn tab_bar_wheel_stops_at_the_first_and_last_tab() {
         agent_status: AgentStatus::Idle,
         parent_tab_id: None,
         status: None,
+        program: None,
     });
     let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
     state.set_snapshot(Box::new(snapshot));
@@ -128,6 +130,7 @@ fn focused_last_overflow_tab_shows_its_full_label() {
             agent_status: AgentStatus::Idle,
             parent_tab_id: None,
             status: None,
+            program: None,
         })
         .collect();
     let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
@@ -631,6 +634,7 @@ fn snapshot_with_second_tab() -> ClientShellSnapshot {
         agent_status: AgentStatus::Idle,
         parent_tab_id: None,
         status: None,
+        program: None,
     });
     snapshot
 }
@@ -728,6 +732,7 @@ fn tab_bar_shows_each_tabs_agent_state_like_the_sidebar() {
                 agent_status,
                 parent_tab_id: None,
                 status: None,
+                program: None,
             },
         ));
     let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
@@ -771,24 +776,29 @@ fn tab_bar_shows_each_tabs_agent_state_like_the_sidebar() {
 #[test]
 fn title_tab_label_shows_the_agents_task_title_at_a_fixed_width() {
     let mut snapshot = snapshot();
-    snapshot.tabs.extend(
-        [(2, false), (3, true), (4, false)].map(|(number, custom_label)| ClientShellTab {
-            tab_id: format!("tab_{number}"),
-            workspace_id: "ws_1".into(),
-            number,
-            label: if custom_label {
-                "mine".into()
-            } else {
-                number.to_string()
-            },
-            custom_label,
-            zoomed: false,
-            focused: false,
-            agent_status: AgentStatus::Idle,
-            parent_tab_id: None,
-            status: None,
-        }),
-    );
+    snapshot
+        .tabs
+        .extend(
+            [(2, false), (3, true), (4, false), (5, false)].map(|(number, custom_label)| {
+                ClientShellTab {
+                    tab_id: format!("tab_{number}"),
+                    workspace_id: "ws_1".into(),
+                    number,
+                    label: if custom_label {
+                        "mine".into()
+                    } else {
+                        number.to_string()
+                    },
+                    custom_label,
+                    zoomed: false,
+                    focused: false,
+                    agent_status: AgentStatus::Idle,
+                    parent_tab_id: None,
+                    status: None,
+                    program: (number != 4).then(|| "lazygit".into()),
+                }
+            }),
+        );
     let agent = |pane: &str, tab: &str, title: Option<&str>, focused: bool| ClientShellAgent {
         pane_id: pane.into(),
         workspace_id: "ws_1".into(),
@@ -843,4 +853,10 @@ fn title_tab_label_shows_the_agents_task_title_at_a_fixed_width() {
     assert!(tab("tab_3").1.contains("mine"), "user names win");
     assert!(!tab("tab_3").1.contains("Ignored"));
     assert_eq!(tab("tab_4").1.split_whitespace().last(), Some("4"));
+    assert_eq!(
+        tab("tab_5").1.split_whitespace().last(),
+        Some("lazygit"),
+        "a tab without an agent title shows its program"
+    );
+    assert!(!tab("tab_2").1.contains("lazygit"), "agent titles win");
 }

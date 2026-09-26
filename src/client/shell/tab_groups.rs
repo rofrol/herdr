@@ -170,6 +170,7 @@ mod tests {
             agent_status: crate::api::schema::AgentStatus::Unknown,
             parent_tab_id: parent.map(str::to_string),
             status,
+            program: None,
         }
     }
 

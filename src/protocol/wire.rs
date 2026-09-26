@@ -1064,6 +1064,10 @@ pub struct ClientShellTab {
     pub parent_tab_id: Option<String>,
     #[serde(default)]
     pub status: Option<crate::api::schema::TabStatus>,
+    /// What runs in the tab's focused pane: its label, agent, the current
+    /// program's terminal title, or the program name.
+    #[serde(default)]
+    pub program: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -2861,6 +2865,7 @@ mod tests {
                 agent_status: crate::api::schema::AgentStatus::Idle,
                 parent_tab_id: None,
                 status: None,
+                program: None,
             }],
             panes: vec![ClientShellPane {
                 pane_id: "w1:p1".into(),

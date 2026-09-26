@@ -644,7 +644,9 @@ fn tab_label(
             let pad = TAB_TITLE_WIDTH.saturating_sub(display_width(&title) as usize);
             format!("{title}{:pad$}", "")
         }
-        None => tab.label.clone(),
+        None => running_program(tab, config)
+            .map(|program| crate::ui::truncate_end(program, TAB_TITLE_WIDTH))
+            .unwrap_or_else(|| tab.label.clone()),
     };
     if tab.zoomed {
         format!("{label} Z")
@@ -678,6 +680,18 @@ fn agent_task_title<'a>(
         .as_deref()
         .map(str::trim)
         .filter(|title| !title.is_empty())
+}
+
+/// With `ui.tab_label = "title"`, an unnamed tab without an agent title shows
+/// what runs in it (`lazygit`, a shell's own title) instead of its number.
+fn running_program<'a>(tab: &'a ClientShellTab, config: &ClientShellConfig) -> Option<&'a str> {
+    if config.tab_label != crate::config::TabLabelConfig::Title || tab.custom_label {
+        return None;
+    }
+    tab.program
+        .as_deref()
+        .map(str::trim)
+        .filter(|program| !program.is_empty())
 }
 
 #[cfg(test)]

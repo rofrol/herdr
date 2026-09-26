@@ -290,6 +290,51 @@ async fn publish_agent_process_detected_event(
     }
 }
 
+/// Name of the process leading the terminal's foreground group, falling back to
+/// any member when the leader already exited (the head of a pipeline).
+#[cfg(unix)]
+fn foreground_program_name(shell_pid: u32, process_group_id: u32) -> Option<String> {
+    let job = crate::detect::foreground_group_leader_job(process_group_id)
+        .or_else(|| crate::detect::foreground_job(shell_pid))?;
+    let process = job
+        .processes
+        .iter()
+        .find(|process| process.pid == process_group_id)
+        .or_else(|| job.processes.first())?;
+    program_display_name(&process.name)
+}
+
+/// Login shells report themselves as `-zsh`; paths keep only their file name.
+#[cfg(unix)]
+fn program_display_name(name: &str) -> Option<String> {
+    let name = name.trim().trim_start_matches('-');
+    let name = name.rsplit(['/', '\\']).next().unwrap_or(name);
+    (!name.is_empty()).then(|| name.to_string())
+}
+
+#[cfg(unix)]
+async fn publish_foreground_program_event(
+    state_events: &mpsc::Sender<AppEvent>,
+    pane_id: PaneId,
+    program: Option<String>,
+    observed_at: std::time::Instant,
+) {
+    if let Err(e) = state_events
+        .send(AppEvent::ForegroundProgramChanged {
+            pane_id,
+            program,
+            observed_at,
+        })
+        .await
+    {
+        warn!(
+            pane = pane_id.raw(),
+            err = %e,
+            "failed to deliver ForegroundProgramChanged event"
+        );
+    }
+}
+
 async fn publish_codex_prompt_observation(
     state_events: &mpsc::Sender<AppEvent>,
     pane_id: PaneId,
@@ -797,6 +842,8 @@ fn spawn_basic_detection_task(
         let mut agent_startup_grace_until = None;
         let mut pending_idle = PendingIdleConfirmation::default();
         let mut last_codex_prompt_ready = false;
+        let mut last_program_pgid = None;
+        let mut last_program = None;
 
         loop {
             let sleep_duration = if pending_idle.active() {
@@ -829,6 +876,7 @@ fn spawn_basic_detection_task(
                     last_screen_scan_detection_content_seq = None;
                     agent_startup_grace_until = None;
                     pending_idle.clear();
+                    last_program_pgid = None;
                 }
             }
 
@@ -850,6 +898,14 @@ fn spawn_basic_detection_task(
                 .flatten();
             let process_group_changed =
                 foreground_group_changed(foreground_pgid, last_foreground_pgid);
+            if let Some(pgid) = foreground_pgid.filter(|pgid| last_program_pgid != Some(*pgid)) {
+                last_program_pgid = Some(pgid);
+                let program = foreground_program_name(pid, pgid);
+                if program != last_program {
+                    last_program.clone_from(&program);
+                    publish_foreground_program_event(&state_events, pane_id, program, now).await;
+                }
+            }
             let should_check_process = pid > 0 && {
                 let process_probe_input = ProcessProbeInput {
                     current_agent: agent,
@@ -3822,6 +3878,17 @@ impl PaneRuntime {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn program_display_name_drops_login_dash_and_directories() {
+        assert_eq!(program_display_name("-zsh").as_deref(), Some("zsh"));
+        assert_eq!(
+            program_display_name("/opt/homebrew/bin/lazygit").as_deref(),
+            Some("lazygit")
+        );
+        assert_eq!(program_display_name(" "), None);
+    }
     use std::ffi::OsStr;
 
     #[tokio::test]
