@@ -27,8 +27,8 @@ pub(crate) fn render_tab_bar(
             let summary =
                 tab_groups::children_summary(&tab_groups::child_tabs(snapshot, &tab.tab_id));
             let label = match tab_state_icon(tab, config) {
-                Some(icon) => format!("{icon} {}", tab_label(tab)),
-                None => tab_label(tab),
+                Some(icon) => format!("{icon} {}", tab_label(tab, snapshot, config)),
+                None => tab_label(tab, snapshot, config),
             };
             if summary.is_empty() {
                 label
@@ -290,8 +290,8 @@ pub(crate) fn render_child_tab_bar(
                 return format!("◆ {}", tab_groups::parent_entry_label(snapshot, tab));
             }
             match tab_groups::status_icon(tab.status) {
-                Some(icon) => format!("{icon} {}", tab_label(tab)),
-                None => tab_label(tab),
+                Some(icon) => format!("{icon} {}", tab_label(tab, snapshot, config)),
+                None => tab_label(tab, snapshot, config),
             }
         })
         .collect::<Vec<_>>();
@@ -555,12 +555,55 @@ fn tab_state_icon(tab: &ClientShellTab, config: &ClientShellConfig) -> Option<&'
         .then(|| status_icon(tab.agent_status, config.status_indicators))
 }
 
-fn tab_label(tab: &ClientShellTab) -> String {
+/// Task titles are model-written sentences; a fixed width keeps the tab bar
+/// from shifting every time an agent retitles itself.
+const TAB_TITLE_WIDTH: usize = 16;
+
+fn tab_label(
+    tab: &ClientShellTab,
+    snapshot: &ClientShellSnapshot,
+    config: &ClientShellConfig,
+) -> String {
+    let label = match agent_task_title(tab, snapshot, config) {
+        Some(title) => {
+            let title = crate::ui::truncate_end(title, TAB_TITLE_WIDTH);
+            let pad = TAB_TITLE_WIDTH.saturating_sub(display_width(&title) as usize);
+            format!("{title}{:pad$}", "")
+        }
+        None => tab.label.clone(),
+    };
     if tab.zoomed {
-        format!("{} Z", tab.label)
+        format!("{label} Z")
     } else {
-        tab.label.clone()
+        label
     }
+}
+
+/// With `ui.tab_label = "title"`, an unnamed tab shows the terminal title of
+/// its focused agent (else its first one); names given by the user win.
+fn agent_task_title<'a>(
+    tab: &ClientShellTab,
+    snapshot: &'a ClientShellSnapshot,
+    config: &ClientShellConfig,
+) -> Option<&'a str> {
+    if config.tab_label != crate::config::TabLabelConfig::Title || tab.custom_label {
+        return None;
+    }
+    let mut agents = snapshot
+        .agents
+        .iter()
+        .filter(|agent| agent.tab_id == tab.tab_id);
+    let first = agents.next()?;
+    let agent = if first.focused {
+        first
+    } else {
+        agents.find(|agent| agent.focused).unwrap_or(first)
+    };
+    agent
+        .terminal_title_stripped
+        .as_deref()
+        .map(str::trim)
+        .filter(|title| !title.is_empty())
 }
 
 #[cfg(test)]
