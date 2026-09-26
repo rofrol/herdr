@@ -294,6 +294,10 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     `QueryAccountBalance` with signed AccessKey requests, out of scope.
   - Order: Kimi balance, then OpenAI spend (admin key), then GLM Coding Plan.
   - Only Kimi is next; OpenAI spend and GLM wait until there is a real need.
+  - Kimi done 2026-09-26: `usage.kimi` (row `KM`, hidden without a key in
+    `MOONSHOT_API_KEY` or `kimi` in the auth file) and `usage.kimi_host`
+    (`api.moonshot.cn` bills in CNY). Endpoint checked (401 without a key);
+    not tried with a real key, since there is none on this Mac.
 - [ ] Agent status shows a green/teal circle while the agent waits on its
   herdr-job: its turn ended, so herdr detects it as idle/done, and it reads
   as "agent finished". Use a different symbol for "waiting on a running job".

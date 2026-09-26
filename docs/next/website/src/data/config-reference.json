@@ -522,6 +522,18 @@
           "type": "boolean",
           "default": "true",
           "description": "Show the OpenRouter credit balance and API key spend. Hidden unless a key is found in OPENROUTER_API_KEY or usage.auth_file. When the credits endpoint refuses the key, its remaining limit stands in for the account balance."
+        },
+        {
+          "key": "usage.kimi",
+          "type": "boolean",
+          "default": "true",
+          "description": "Show the Kimi (Moonshot) prepaid balance. Hidden unless a key is found in MOONSHOT_API_KEY or under \"kimi\" in usage.auth_file."
+        },
+        {
+          "key": "usage.kimi_host",
+          "type": "string",
+          "default": "\"api.moonshot.ai\"",
+          "description": "Moonshot API host for the Kimi balance: api.moonshot.ai (USD) or api.moonshot.cn (CNY). The two platforms are separate accounts."
         }
       ]
     },
