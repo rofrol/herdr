@@ -8,7 +8,8 @@ usage() {
 usage: herdr_live.sh test|keep|back
 
   test  hand the session off to this checkout's target/release/herdr and
-        record its hash; attach with that binary afterwards
+        record its hash; outside Herdr this terminal then attaches with it,
+        inside Herdr it lists clients still on the old binary
   keep  install the tested build over the installed binary (refuses if the
         build changed since `test`) and hand the session off to it
   back  hand the session back to the installed binary
@@ -22,9 +23,37 @@ candidate="$repo/target/release/herdr"
 installed="${HERDR_INSTALLED:-$HOME/.cargo/bin/herdr}"
 tested="$HOME/.cache/herdr/tested"
 
+# Clients (not servers) whose executable is not $1. The client draws the tab
+# bar and the rest of the UI, so a client left on another binary shows the old
+# UI even when the server runs the new one.
+stale_clients() {
+  local pid args exe
+  while read -r pid args; do
+    [[ "$args" == *" server"* ]] && continue
+    exe="$(lsof -a -p "$pid" -d txt -Fn 2>/dev/null | sed -n 's/^n//p' | head -n 1)"
+    if [[ -n "$exe" && "$exe" != "$1" ]]; then
+      echo "  pid $pid $exe"
+    fi
+  done < <(ps -axo pid=,comm=,args= | awk '$2 ~ /(^|\/)herdr$/ { $2 = ""; print }')
+}
+
 handoff() {
   "$installed" server live-handoff --import-exe "$1"
-  echo "attach with: $2"
+  local stale
+  stale="$(stale_clients "$1")"
+  if [[ -z "${HERDR_PANE_ID:-}" && -t 0 && -t 1 ]]; then
+    # Outside Herdr: this terminal becomes a client of the new binary.
+    echo "attaching with $2"
+    exec "$2"
+  fi
+  echo
+  echo "The server now runs $1."
+  if [[ -n "$stale" ]]; then
+    echo "These clients still run another binary and show the old UI:"
+    echo "$stale"
+  fi
+  echo "Detach (ctrl+b q) and attach with:"
+  echo "  $2"
 }
 
 fingerprint() {
