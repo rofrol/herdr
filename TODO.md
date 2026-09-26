@@ -57,7 +57,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Done 2026-09-26: the client remembers each group's last focused tab per
     endpoint; a main-row click, the tab number keys and the main-row wheel
     return there. The parent's entry in the second row selects the parent.
-- [ ] The consult stats should show the coordinator's actual model and
+- [x] The consult stats should show the coordinator's actual model and
   reasoning effort (now Opus 5.5 at `medium`; self entries are logged just as
   `claude`), and add Opus at a lower effort as a participant to compare.
   - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): snapshot
@@ -75,6 +75,11 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     round's roster.
   - Record the metadata now; the paired effort experiment is deferred (its
     own research project, and it uses the subscription quota).
+  - Done 2026-09-26 (metadata only): `consult.py self` records the model id
+    (`--model`, else `unknown`), the effort (`--effort`, else
+    `$CLAUDE_EFFORT`, else `unknown`) with its source, and the Claude Code
+    version; the coordinator table groups by `model@effort`. The effort
+    experiment moved to Deferred.
 - [ ] Remove the agents panel; fold agents into spaces. The sort toggle moves
   to the right of the "spaces" header (like the agents panel's
   grouped/priority). Grouped: `<space> <git branch> <git status>`, then per
@@ -308,6 +313,11 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
 
 ## Deferred
 
+- [ ] Consult stats: pair the coordinator with Opus at a lower effort
+  (`claude -p --model <same id> --effort low`, fresh context without project
+  instructions or tools) to measure what effort buys; see the done
+  coordinator item above for the method (pilot 10 rounds, conclude after
+  20-30, blind ratings where practical, log failures).
 - [ ] herdr > menu > settings > usage: checkboxes choosing which providers the
   usage footer shows. Also token-based usage?
   - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): the
