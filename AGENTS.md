@@ -343,6 +343,10 @@ git push --force-with-lease origin master
 Do not create merge commits from `upstream/master`. Keep the fork's own commits
 linear on top of upstream.
 
+Everything scripts, tools and plugins print (errors, warnings, usage, stderr
+notices) is in English, even when the conversation with the user is in another
+language.
+
 To re-record the fork demo video and upload it for the README, follow
 `scripts/fork_demo/README.md`; uploading needs the Claude in Chrome tools
 (see "Uploading as an agent" there).

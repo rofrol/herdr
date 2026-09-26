@@ -88,7 +88,7 @@ def cmd_new_round(a):
 def check_counts(a, keys):
     vals = {k: getattr(a, k) for k in keys}
     if any(v is not None and v < 0 for v in vals.values()):
-        sys.exit("Liczby nie mogą być ujemne")
+        sys.exit("Counts must not be negative")
     f, acc, u = vals.get("findings"), vals.get("accepted"), vals.get("unique")
     if f is not None and acc is not None and acc > f:
         sys.exit(f"accepted ({acc}) > findings ({f})")
@@ -99,7 +99,7 @@ def check_counts(a, keys):
 def cmd_rate(a):
     calls, _, _ = load()
     if a.id not in calls:
-        sys.exit(f"Nieznane id: {a.id} (zobacz: oracle.py recent)")
+        sys.exit(f"Unknown id: {a.id} (see: oracle.py recent)")
     check_counts(a, ("findings", "accepted", "unique"))
     append({"type": "rating", "id": a.id, "ts": int(time.time()), "verdict": a.verdict,
             "findings": a.findings, "accepted": a.accepted, "unique": a.unique, "note": a.note})
@@ -110,12 +110,12 @@ def cmd_self(a):
     if a.round:
         ids = sorted(i for i, c in calls.items() if c.get("round") == a.round)
         if not ids:
-            sys.exit(f"Brak wywołań w rundzie {a.round}")
+            sys.exit(f"No calls in round {a.round}")
     else:
         ids = sorted({i.strip() for i in a.calls.split(",") if i.strip()})
         unknown = [i for i in ids if i not in calls]
         if not ids or unknown:
-            sys.exit(f"Nieznane id: {unknown or '(brak)'} (zobacz: oracle.py recent)")
+            sys.exit(f"Unknown id: {unknown or '(none)'} (see: oracle.py recent)")
     check_counts(a, ("findings", "accepted", "unique"))
     rec = {"type": "self", "calls": ",".join(ids), "ts": int(time.time()), "model": a.model,
            "findings": a.findings, "accepted": a.accepted, "refuted": a.refuted,
@@ -150,7 +150,7 @@ def cmd_stats(a):
                 s["accepted"] += r["accepted"]
             s["unique"] += r.get("unique") or 0
     if not rows:
-        print("Brak danych.")
+        print("No data.")
         return
     hdr = (f'{"skill/model":34} {"calls":>5} {"err":>4} {"avg s":>6} {"rated":>5} {"score":>6} {"acc/find":>9} '
            f'{"unique":>6} {"out/call":>8}')

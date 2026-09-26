@@ -14,7 +14,7 @@ shift $((OPTIND-1))
 [ -n "$model" ] || model=flash
 case $model in
   flash) model="gemini-3.8-flash-$effort";;
-  pro|gemini-*-pro-*) echo "Gemini Pro jest wyłączony — użyj Flash" >&2; exit 2;;
+  pro|gemini-*-pro-*) echo "Gemini Pro is disabled; use Flash" >&2; exit 2;;
 esac
 # Exhausted weekly quota: refuse up front (exit 3), without a request or a herdr tab. The reset time is remembered,
 # so until then not even `agy -p /quota` (~3 s) runs. ISO UTC timestamps compare as strings.
@@ -31,7 +31,7 @@ if [ -z "${ORACLE_IN_JOB:-}" ]; then
     fi
   fi
   if [ -n "$reset" ]; then
-    echo "Limit Gemini wyczerpany do $reset (UTC) — nie odpytuj Gemini do tego czasu" >&2; exit 3
+    echo "Gemini quota exhausted until $reset (UTC); do not call Gemini until then" >&2; exit 3
   fi
 fi
 if [ -z "${ORACLE_IN_JOB:-}" ] &&[ -n "${HERDR_SOCKET_PATH:-}" ] && command -v herdr-job >/dev/null; then
@@ -46,7 +46,7 @@ for f in ${files[@]+"${files[@]}"}; do
   prompt="$prompt"$'\n\n'"--- $label ---"$'\n'"$(cat "$f")"
 done
 # Regex match instead of ${prompt//[[:space:]]/}: the substitution is quadratic in bash and hangs on long prompts.
-[[ $prompt =~ [^[:space:]] ]] || { echo "Pusty prompt" >&2; exit 1; }
+[[ $prompt =~ [^[:space:]] ]] || { echo "Empty prompt" >&2; exit 1; }
 
 start=$SECONDS; answer_chars=""
 # Log every call for oracle-stats; logging must not change the exit code or fail the call.
@@ -67,8 +67,8 @@ mkdir "$tmp/cwd"; cwd="$tmp/cwd"
 if [ -n "$repo" ]; then
   # The dotfiles env (GIT_DIR/GIT_WORK_TREE) would point git, and agy's git commands, at the home repo.
   unset GIT_DIR GIT_WORK_TREE
-  cwd=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "-r: $PWD nie jest w repozytorium git" >&2; exit 1; }
-  [ "$cwd" != "$HOME" ] || { echo "-r: odmawiam uruchomienia w \$HOME (agy widziałby cały katalog domowy)" >&2; exit 1; }
+  cwd=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "-r: $PWD is not in a git repository" >&2; exit 1; }
+  [ "$cwd" != "$HOME" ] || { echo "-r: refusing to run in \$HOME (agy would see the whole home directory)" >&2; exit 1; }
   note="You are working in a git repository (the current directory). Use only read-only file tools (viewing, listing and searching files). Never use run_command or any shell command (not even ls or git): it is denied and aborts your answer. Do not use subagents or web access. Do not modify any files."
 else
   # Tool calls outside a trusted workspace are auto-denied and end the run with an empty answer.
@@ -83,11 +83,11 @@ jq -nc --arg p "$prompt" '{event:"user",message:{role:"user",content:$p}}' |
 result=$(jq -c 'select(.event=="result") | .result' "$tmp/out" | tail -1)
 [ -n "$result" ] || { cat "$tmp/err" "$tmp/out" >&2; exit 1; }
 if [ "$(jq -r .status <<<"$result")" != SUCCESS ]; then
-  jq -r '.error // "agy: błąd bez opisu"' <<<"$result" >&2; cat "$tmp/err" >&2; exit 1
+  jq -r '.error // "agy: error without a description"' <<<"$result" >&2; cat "$tmp/err" >&2; exit 1
 fi
 denied=$(jq -r '[.denied_actions[]?.action] | unique | join(", ")' <<<"$result")
-[ -z "$denied" ] || echo "Uwaga: agy odmówił narzędzi: $denied" >&2
+[ -z "$denied" ] || echo "Warning: agy denied tools: $denied" >&2
 answer=$(jq -r .response <<<"$result")
-[[ $answer =~ [^[:space:]] ]] || { echo "Pusta odpowiedź (prawdopodobnie model próbował użyć zablokowanego narzędzia)" >&2; cat "$tmp/err" >&2; exit 1; }
+[[ $answer =~ [^[:space:]] ]] || { echo "Empty answer (the model probably tried to use a blocked tool)" >&2; cat "$tmp/err" >&2; exit 1; }
 answer_chars=${#answer}
 printf '%s\n' "$answer"

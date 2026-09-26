@@ -19,7 +19,7 @@ def get_key():
     try:
         return json.loads(AUTH_FILE.read_text())["deepseek"]["key"]
     except (OSError, ValueError, KeyError) as e:
-        sys.exit(f"Brak klucza deepseek w {AUTH_FILE}: {e!r}")
+        sys.exit(f"No deepseek key in {AUTH_FILE}: {e!r}")
 
 def log_call(model, status, seconds, prompt_chars, answer_chars, usage=None):
     """Record the call for oracle-stats; never let logging fail the consultation."""
@@ -76,7 +76,7 @@ def main():
             text = sys.stdin.read() if f == "-" else Path(f).read_text(errors="replace")
         prompt += f"\n\n--- {'stdin' if f == '-' else f} ---\n{text}"
     if not prompt.strip():
-        sys.exit("Pusty prompt")
+        sys.exit("Empty prompt")
 
     body = {"model": a.model, "stream": True, "stream_options": {"include_usage": True}, "messages": [
         {"role": "system", "content": a.system},

@@ -25,7 +25,7 @@ for f in ${files[@]+"${files[@]}"}; do
   prompt="$prompt"$'\n\n'"--- $label ---"$'\n'"$(cat "$f")"
 done
 # Regex match instead of ${prompt//[[:space:]]/}: the substitution is quadratic in bash and hangs on long prompts.
-[[ $prompt =~ [^[:space:]] ]] || { echo "Pusty prompt" >&2; exit 1; }
+[[ $prompt =~ [^[:space:]] ]] || { echo "Empty prompt" >&2; exit 1; }
 
 start=$SECONDS; answer_chars=""
 # Log every call for oracle-stats; logging must not change the exit code or fail the call.
@@ -47,16 +47,16 @@ tmp=$(mktemp -d); trap oracle_log EXIT
 # pi refreshes the OAuth token if needed and writes it back to its auth.json; Codex only gets a bearer token,
 # so it never refreshes (rotating) tokens itself. Separate CODEX_HOME: ~/.codex (and its auth.json) is not used.
 export PI_CODEX_TOKEN PI_CODEX_ACCOUNT
-PI_CODEX_TOKEN=$(pi auth print-bearer-token --provider openai-codex --min-expiry 15m) || { echo "Brak tokenu openai-codex w pi — zaloguj się w pi (/login)" >&2; exit 1; }
-PI_CODEX_ACCOUNT=$(jq -er '."openai-codex".accountId' ~/.pi/agent/auth.json) || { echo "Brak accountId openai-codex w ~/.pi/agent/auth.json" >&2; exit 1; }
+PI_CODEX_TOKEN=$(pi auth print-bearer-token --provider openai-codex --min-expiry 15m) || { echo "No openai-codex token in pi; log in to pi (/login)" >&2; exit 1; }
+PI_CODEX_ACCOUNT=$(jq -er '."openai-codex".accountId' ~/.pi/agent/auth.json) || { echo "No openai-codex accountId in ~/.pi/agent/auth.json" >&2; exit 1; }
 
 out="$tmp/answer"; mkdir "$tmp/cwd" "$tmp/home"
 cwd="$tmp/cwd"
 if [ -n "$repo" ]; then
   # The dotfiles env (GIT_DIR/GIT_WORK_TREE) would point git, and Codex's git commands, at the home repo.
   unset GIT_DIR GIT_WORK_TREE
-  cwd=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "-r: $PWD nie jest w repozytorium git" >&2; exit 1; }
-  [ "$cwd" != "$HOME" ] || { echo "-r: odmawiam uruchomienia w \$HOME (Codex widziałby cały katalog domowy)" >&2; exit 1; }
+  cwd=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "-r: $PWD is not in a git repository" >&2; exit 1; }
+  [ "$cwd" != "$HOME" ] || { echo "-r: refusing to run in \$HOME (Codex would see the whole home directory)" >&2; exit 1; }
 fi
 provider='model_providers.pi={name="pi",base_url="https://chatgpt.com/backend-api/codex",wire_api="responses",env_key="PI_CODEX_TOKEN",env_http_headers={"chatgpt-account-id"="PI_CODEX_ACCOUNT"}}'
 export CODEX_HOME="$tmp/home"

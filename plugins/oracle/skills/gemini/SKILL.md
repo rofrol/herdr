@@ -31,7 +31,7 @@ The weekly quota is consumed by token cost (check with `agy -p /quota`).
 Headless limits (agy 1.2.x):
 - Writes are auto-denied, and so are shell commands except those in `permissions.allow` of
   `~/.gemini/antigravity-cli/settings.json` (e.g. `git status`, `find`, `odin`) — those *can* run in `-r` mode.
-- A denied tool call ends the run with an empty answer; the script then exits 1 with "Pusta odpowiedź".
+- A denied tool call ends the run with an empty answer; the script then exits 1 with "Empty answer".
   No shell means no `git log/diff` in `-r`: pass the diff with `-f -` alongside `-r`.
 - Conversations are saved in agy's history (no ephemeral mode).
 Answers usually take seconds to a couple of minutes — use a Bash timeout of 600000.
