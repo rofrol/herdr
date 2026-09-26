@@ -112,6 +112,7 @@ To check another desktop: in a herdr pane run
 `herdr notification show T --pane "$HERDR_PANE_ID"` after a short `sleep`,
 switch to another herdr workspace, click the notification; then with a closed
 tab (`herdr-job run --notify always --name T -- true`, workspace fallback).
+On a Mac, `scripts/linux_vm/gnome_vm.sh` builds a small GNOME VM for this.
 
 **Later, research: bring the terminal window forward.** Wayland blocks focus
 stealing, so switching herdr's tab may leave the terminal behind another
