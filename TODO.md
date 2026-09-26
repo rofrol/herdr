@@ -1,14 +1,5 @@
 # TODO
 
-- [ ] Do I still need the Agents panel? Maybe an Agents tab next to Spaces,
-  sorted by priority by default, where a click switches to the right tab in
-  Spaces.
-  - Consulted models (DeepSeek, GPT-6 Luna, 2026-09-26): keep Agents as an attention
-    inbox in a `Spaces | Agents` sidebar tab; Spaces keeps its badges.
-    Clicking an agent focuses its pane but the sidebar stays on Agents
-    (otherwise every click loses the queue); "reveal in Spaces" separately.
-    Priority order must not jump while the pointer is over the list.
-    Attention count on the tab label.
 - [ ] Claude reports that a new version is available. A herdr menu item that
   restarts Claude instances when possible? How: send the instances a message
   to restart once they finish their work? Same for pi.
@@ -163,13 +154,73 @@
   - Pilot 10 rounds, conclude after about 20-30 paired rounds. Rate blind
     where practical (same-family bias), and "unique" only relative to that
     round's roster.
-- [ ] Spaces panel redesign: line 1 `<workspace> <git branch> <behind/ahead
-  of the tracked branch>`; then one line per agent: `<agent state dot>
-  <its herdr-job status counts>`.
-  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): agent rows
-    need the agent's name (several bare dots are ambiguous). Cap the rows
-    ("+N more"), maybe expand only the active workspace; truncate the branch
-    before hiding counts. Clear click targets: workspace row, agent row (to
-    its tab). Needs explicit job-to-agent ownership from the server
-    (`owner_pane` is already in job metadata); keep unowned jobs visible and
-    never count a job twice.
+- [ ] Remove the agents panel; fold agents into spaces. The sort toggle moves
+  to the right of the "spaces" header (like the agents panel's
+  grouped/priority). Grouped: `<space> <git branch> <git status>`, then per
+  agent a line with its state dot and what it works on, then a line with its
+  herdr-job statuses.
+  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): yes, but
+    it loses an attention queue visible while browsing spaces, so show the
+    agents waiting for me in the header, with the agent state circles
+    (`◉1 ●1`: one blocked, one done and unseen; `!` stays reserved for
+    failed herdr jobs); clicking it switches to priority.
+  - Agent states are circles that differ by shape, not only colour (now
+    working, blocked and done are all `●`): `◐` working, `◉` blocked (as on
+    mobile already), `●` done and unseen, `○` idle; colours stay.
+    Priority lists agents, not spaces (a space-sorted list buries several
+    urgent agents), with the space on the second line; spaces without
+    agents collapse into "other spaces" at the bottom. Freeze the order
+    while the pointer is over the list and re-sort only on real state
+    transitions (blocked > done-unseen > working > idle, stable ties).
+  - The jobs line only when the agent has jobs; jobs without an owner get
+    their own row in the space, never an arbitrary agent. Ownership comes
+    from the server (`owner_pane` is already in herdr-job metadata); never
+    count a job twice. An agent without
+    a task title shows `claude · no task`. Every agent is listed, no
+    `+N agents` cap: the spaces list scrolls; a chevron collapses a space.
+    When tight, one line per agent with counts appended. Truncate the branch first; keep state and counts.
+  - Clicks: header toggle switches the view; space row opens its last
+    focused pane; chevron collapses; agent row focuses its pane; job counts
+    open that agent's jobs. Remember scroll per view.
+  - The "menu" and "new" buttons move above "spaces", in swapped order:
+    "menu" at the left edge, "new" at the right edge (now "new" is left and
+    "menu" right, below the spaces list).
+  - Mockups (28 columns):
+
+    ```text
+    menu                   new
+    spaces     ◉1 ●1  grouped
+    ▾ herdr  master ↑4 ±7
+      ◐ Name unnamed tabs aft…
+        ⧖ 1  ✓ 2
+      ● TODO consults
+      ○ claude · no task
+    ▾ try-roguix  main ±4
+      ◉ Build Hyprland portal…
+        ! 1  ✓ 3
+      ◐ Publish Roguix packag…
+        ⧖ 2
+      ⚙ jobs  ⧖ 1
+    ▸ job-seeker  main
+    ▸ music-mpd  main
+    ```
+
+    ```text
+    menu                   new
+    spaces    ◉1 ●1  priority
+    ◉ Build Hyprland portal…
+      try-roguix · ! 1  ✓ 3
+    ● TODO consults
+      herdr
+    ◐ Name unnamed tabs aft…
+      herdr · ⧖ 1  ✓ 2
+    ◐ Publish Roguix packag…
+      try-roguix · ⧖ 2
+    ○ claude · no task
+      herdr
+    ▸ other spaces (2)
+    ```
+
+    `◐` working, `◉` blocked, `●` done and unseen, `○` idle; `!` failed
+    job, `⧖` running, `✓` succeeded, `±7` uncommitted changes, `↑4` ahead
+    of upstream.
