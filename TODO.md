@@ -4,7 +4,7 @@
 
 Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
 
-- [ ] Bug: a herdr-job child tab keeps ⧖ running after the job finished. The
+- [x] Bug: a herdr-job child tab keeps ⧖ running after the job finished. The
   try-roguix job "Publish Roguix packages and channel" wrote exit 0 at 18:14,
   but its tab stayed running; the final `herdr tab status ... succeeded` is a
   single call with `check=False`, and the server was being live-handed-off
@@ -15,6 +15,11 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     `wait` or a sweep) re-applies succeeded/failed to tabs still marked
     running whose job has an `exit` file. Never infer success merely from a
     missing process. Key updates by job id so a stale one cannot win.
+  - Done 2026-09-26: `_exec` retries the final status for about a minute
+    (a timeout no longer crashes it), and `run`, `wait`, `list`, `clean` and
+    the `tab.closed` hook reconcile tabs still marked running. Tab ids are
+    reused, so the newest job of a tab decides, and only while the tab keeps
+    its label. No sweep on server start: herdr has no such plugin event.
 - [ ] Confirm before closing a tab or pane with running work. Closing a
   single job child tab (or a pane) now kills its job with no question; only a
   parent tab with children and the last tab of a workspace ask first.
