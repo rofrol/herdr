@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""Claude Code SessionStart/Stop hook: label the herdr tab with the Claude session's peer name.
+
+Other sessions address this one by the name in ~/.claude/sessions/<pid>.json (e.g. `herdr-ef`),
+so the tab shows it too. Only a default numeric label, or the name this hook set before, is
+replaced: tabs you renamed keep their label. Tabs with more than one pane are left alone.
+SessionStart runs before Claude writes the name, so it retries in a detached child; Stop picks
+up a later /rename. Never fails the hook: all errors are swallowed.
+"""
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+SESSIONS = Path.home() / ".claude/sessions"
+STATE = Path.home() / ".local/state/herdr-session-tab"
+RETRY_SECONDS = 15
+HERDR = os.environ.get("HERDR_BIN_PATH", "")
+if not os.access(HERDR, os.X_OK):
+    HERDR = "herdr"
+
+
+def herdr(*args):
+    out = subprocess.run([HERDR, *args], capture_output=True, text=True, timeout=5)
+    return json.loads(out.stdout)["result"] if out.returncode == 0 and out.stdout.strip() else None
+
+
+def session_name(session_id):
+    for f in SESSIONS.glob("*.json"):
+        try:
+            s = json.loads(f.read_text())
+        except (OSError, ValueError):
+            continue
+        if s.get("sessionId") == session_id:
+            return s.get("name")
+    return None
+
+
+def label_tab(session_id):
+    """True when the tab has the name (set now or already), False to retry later."""
+    name = session_name(session_id)
+    if not name:
+        return False
+    pane = herdr("pane", "get", os.environ["HERDR_PANE_ID"])
+    tab_id = pane and pane["pane"].get("tab_id")
+    tab = tab_id and herdr("tab", "get", tab_id)
+    if not tab:
+        return True
+    tab = tab["tab"]
+    label = str(tab.get("label") or "")
+    state = STATE / tab_id.replace(":", "_")
+    ours = state.read_text() if state.exists() else None
+    if tab.get("pane_count", 1) > 1 or label == name or not (label.isdigit() or label == ours):
+        return True
+    herdr("tab", "rename", tab_id, name)
+    STATE.mkdir(parents=True, exist_ok=True)
+    state.write_text(name)
+    return True
+
+
+def main():
+    if len(sys.argv) == 3 and sys.argv[1] == "--retry":
+        deadline = time.time() + RETRY_SECONDS
+        while not label_tab(sys.argv[2]) and time.time() < deadline:
+            time.sleep(0.5)
+        return
+    payload = json.load(sys.stdin)
+    session_id = payload.get("session_id")
+    if (not session_id or payload.get("agent_id") or not os.environ.get("HERDR_PANE_ID")
+            or not os.environ.get("HERDR_SOCKET_PATH")):
+        return
+    if not label_tab(session_id) and payload.get("hook_event_name") == "SessionStart":
+        subprocess.Popen([sys.executable, os.path.realpath(__file__), "--retry", session_id],
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        pass

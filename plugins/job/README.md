@@ -154,12 +154,27 @@ tasks (from the hook payload's `background_tasks`) as a `$bg` token:
 "SubagentStop": [{"hooks": [{"type": "command", "command": "~/.local/bin/herdr-bg-badge", "timeout": 10}]}]
 ```
 
+## Claude session name on the tab: `herdr-session-tab`
+
+A Claude Code `SessionStart`/`Stop` hook that labels the tab with the name
+other Claude sessions use to message this one (`herdr-ef`, from
+`~/.claude/sessions/<pid>.json`), so you can tell which tab a cross-session
+message came from. It only replaces a numeric default label or the name it set
+itself, so renamed tabs keep their label, and it skips tabs with several panes.
+`Stop` picks up a later `/rename`.
+
+```json
+"SessionStart": [{"hooks": [{"type": "command", "command": "~/.local/bin/herdr-session-tab", "timeout": 10}]}],
+"Stop": [{"hooks": [{"type": "command", "command": "~/.local/bin/herdr-session-tab", "timeout": 10}]}]
+```
+
 ## Setup
 
 ```sh
 herdr plugin link ~/personal_projects/herdr/plugins/job   # or: herdr plugin install rofrol/herdr/plugins/job
 ln -s ~/personal_projects/herdr/plugins/job/herdr-job ~/.local/bin/
 ln -s ~/personal_projects/herdr/plugins/job/herdr-bg-badge ~/.local/bin/
+ln -s ~/personal_projects/herdr/plugins/job/herdr-session-tab ~/.local/bin/
 ```
 
 Show the tokens in the sidebar (`~/.config/herdr/config.toml`):
