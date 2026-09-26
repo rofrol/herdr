@@ -227,6 +227,14 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Stages (consulted 2026-09-26): first a manual restart of a selected idle
     agent, after checking that launch flags are recorded and resume works;
     then version detection, the "restart pending" queue and bulk restart.
+  - Stage 1 done 2026-09-26 as the `plugins/restart` plugin (not core):
+    menu actions for the focused pane and for the workspace's idle agents.
+    Launch flags come from the agent process's own argv (old resume
+    arguments and prompts dropped), so nothing has to be recorded; Claude
+    with a draft (non-dim text after `❯`) is skipped; SIGTERM, wait for the
+    shell, then `claude --resume <id>` / `pi --session <path>`. Tested live
+    on a throwaway Claude session. Still to do: version detection, the
+    restart-pending queue, a preview/picker, pi's draft check.
 - [ ] Telegram notifications when I am away from the Mac (agent blocked,
   agent done, herdr-job finished).
   - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Sol, 2026-09-26): Telegram
