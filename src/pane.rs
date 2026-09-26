@@ -312,26 +312,68 @@ fn program_display_name(name: &str) -> Option<String> {
     (!name.is_empty()).then(|| name.to_string())
 }
 
+/// Publishes the name of the program leading a pane's terminal whenever its
+/// foreground process group changes, e.g. from the shell to `lazygit` and back.
 #[cfg(unix)]
-async fn publish_foreground_program_event(
-    state_events: &mpsc::Sender<AppEvent>,
-    pane_id: PaneId,
-    program: Option<String>,
-    observed_at: std::time::Instant,
-) {
-    if let Err(e) = state_events
-        .send(AppEvent::ForegroundProgramChanged {
-            pane_id,
-            program,
-            observed_at,
-        })
-        .await
-    {
-        warn!(
-            pane = pane_id.raw(),
-            err = %e,
-            "failed to deliver ForegroundProgramChanged event"
-        );
+#[derive(Default)]
+struct ForegroundProgramTracker {
+    last_pgid: Option<u32>,
+    last_program: Option<String>,
+}
+
+#[cfg(unix)]
+impl ForegroundProgramTracker {
+    /// Forget the observed group so the next tick looks the program up again.
+    fn reset(&mut self) {
+        self.last_pgid = None;
+    }
+
+    async fn observe(
+        &mut self,
+        state_events: &mpsc::Sender<AppEvent>,
+        pane_id: PaneId,
+        shell_pid: u32,
+        foreground_pgid: Option<u32>,
+        observed_at: std::time::Instant,
+    ) {
+        let Some(program) = self.changed_program(foreground_pgid, |pgid| {
+            foreground_program_name(shell_pid, pgid)
+        }) else {
+            return;
+        };
+        if let Err(e) = state_events
+            .send(AppEvent::ForegroundProgramChanged {
+                pane_id,
+                program: Some(program),
+                observed_at,
+            })
+            .await
+        {
+            warn!(
+                pane = pane_id.raw(),
+                err = %e,
+                "failed to deliver ForegroundProgramChanged event"
+            );
+        }
+    }
+
+    /// The program to publish for this observation, if it names a new one.
+    /// Looks the program up only when the foreground group changed.
+    fn changed_program(
+        &mut self,
+        foreground_pgid: Option<u32>,
+        lookup: impl FnOnce(u32) -> Option<String>,
+    ) -> Option<String> {
+        let pgid = foreground_pgid.filter(|pgid| self.last_pgid != Some(*pgid))?;
+        // A failed lookup (the group is still starting or already gone) is
+        // retried on the next tick instead of being remembered for the group.
+        let program = lookup(pgid)?;
+        self.last_pgid = Some(pgid);
+        if self.last_program.as_ref() == Some(&program) {
+            return None;
+        }
+        self.last_program = Some(program.clone());
+        Some(program)
     }
 }
 
@@ -842,8 +884,7 @@ fn spawn_basic_detection_task(
         let mut agent_startup_grace_until = None;
         let mut pending_idle = PendingIdleConfirmation::default();
         let mut last_codex_prompt_ready = false;
-        let mut last_program_pgid = None;
-        let mut last_program = None;
+        let mut foreground_program = ForegroundProgramTracker::default();
 
         loop {
             let sleep_duration = if pending_idle.active() {
@@ -876,7 +917,7 @@ fn spawn_basic_detection_task(
                     last_screen_scan_detection_content_seq = None;
                     agent_startup_grace_until = None;
                     pending_idle.clear();
-                    last_program_pgid = None;
+                    foreground_program.reset();
                 }
             }
 
@@ -898,14 +939,9 @@ fn spawn_basic_detection_task(
                 .flatten();
             let process_group_changed =
                 foreground_group_changed(foreground_pgid, last_foreground_pgid);
-            if let Some(pgid) = foreground_pgid.filter(|pgid| last_program_pgid != Some(*pgid)) {
-                last_program_pgid = Some(pgid);
-                let program = foreground_program_name(pid, pgid);
-                if program != last_program {
-                    last_program.clone_from(&program);
-                    publish_foreground_program_event(&state_events, pane_id, program, now).await;
-                }
-            }
+            foreground_program
+                .observe(&state_events, pane_id, pid, foreground_pgid, now)
+                .await;
             let should_check_process = pid > 0 && {
                 let process_probe_input = ProcessProbeInput {
                     current_agent: agent,
@@ -2773,6 +2809,8 @@ impl PaneRuntime {
                 let mut agent_startup_grace_until = None;
                 let mut pending_idle = PendingIdleConfirmation::default();
                 let mut last_codex_prompt_ready = false;
+                #[cfg(unix)]
+                let mut foreground_program = ForegroundProgramTracker::default();
 
                 tokio::time::sleep(Duration::from_millis(50)).await;
 
@@ -2815,6 +2853,8 @@ impl PaneRuntime {
                             last_screen_scan_detection_content_seq = None;
                             agent_startup_grace_until = None;
                             pending_idle.clear();
+                            #[cfg(unix)]
+                            foreground_program.reset();
                         }
                     }
 
@@ -2868,6 +2908,10 @@ impl PaneRuntime {
                             last_content_seq.is_some() && last_content_seq != Some(content_seq);
                         last_observation = (now, (!retry).then_some(content_seq));
                     }
+                    #[cfg(unix)]
+                    foreground_program
+                        .observe(&state_events, pane_id, pid, foreground_pgid, now)
+                        .await;
                     let process_group_changed =
                         foreground_group_changed(foreground_pgid, last_foreground_pgid);
                     let should_check_process = pid > 0 && {
@@ -3878,6 +3922,40 @@ impl PaneRuntime {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn foreground_program_tracker_names_each_new_program_once() {
+        let mut tracker = ForegroundProgramTracker::default();
+        let name = |program: &'static str| move |_: u32| Some(program.to_string());
+
+        assert_eq!(tracker.changed_program(None, name("zsh")), None);
+        assert_eq!(
+            tracker.changed_program(Some(10), name("zsh")).as_deref(),
+            Some("zsh")
+        );
+        assert_eq!(
+            tracker.changed_program(Some(10), |_| panic!("same group is not looked up")),
+            None
+        );
+        assert_eq!(
+            tracker
+                .changed_program(Some(20), name("lazygit"))
+                .as_deref(),
+            Some("lazygit")
+        );
+        // A failed lookup leaves the group to be retried on the next tick.
+        assert_eq!(tracker.changed_program(Some(10), |_| None), None);
+        assert_eq!(
+            tracker.changed_program(Some(10), name("zsh")).as_deref(),
+            Some("zsh")
+        );
+
+        // After a reset the group is looked up again, but an unchanged program
+        // is not published twice.
+        tracker.reset();
+        assert_eq!(tracker.changed_program(Some(10), name("zsh")), None);
+    }
 
     #[cfg(unix)]
     #[test]
