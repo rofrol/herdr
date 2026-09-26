@@ -122,7 +122,7 @@ pub(crate) fn render_tab_bar(
         let accent_filled = Some(tab.tab_id.as_str()) == active_tab_id
             && tab_groups::child_tabs(snapshot, &tab.tab_id).is_empty();
         let style = if Some(tab.tab_id.as_str()) != active_tab_id {
-            Style::default().fg(palette.overlay1).bg(palette.surface0)
+            Style::default().fg(palette.overlay1).bg(palette.surface1)
         } else if accent_filled {
             Style::default()
                 .fg(panel_contrast_fg(palette))
@@ -412,7 +412,11 @@ pub(crate) fn render_child_tab_bar(
                 area.y,
                 1,
                 "│",
-                Style::default().fg(palette.surface1).bg(band),
+                // Half the muted text colour: full `overlay0` stands out, a
+                // surface colour can vanish into the tint.
+                Style::default()
+                    .fg(blend(palette.overlay0, band, 1, 2).unwrap_or(palette.overlay0))
+                    .bg(band),
             );
         }
         x = x.saturating_add(1);
@@ -448,19 +452,26 @@ fn tab_status_color(
 /// mixed into the tab bar background, or a surface colour when either is not
 /// an RGB colour.
 fn accent_tint(palette: &Palette) -> ratatui::style::Color {
+    // A sixth of the accent over the background.
+    blend(palette.accent, palette.panel_bg, 1, 6).unwrap_or(palette.surface1)
+}
+
+/// `parts` of `total` of `top` over `base`, when both are RGB colours.
+fn blend(
+    top: ratatui::style::Color,
+    base: ratatui::style::Color,
+    parts: u16,
+    total: u16,
+) -> Option<ratatui::style::Color> {
     use ratatui::style::Color;
-    match (palette.accent, palette.panel_bg) {
-        (Color::Rgb(ar, ag, ab), Color::Rgb(br, bg, bb)) => {
-            let mix = |accent: u8, base: u8| {
-                let accent = u16::from(accent);
-                let base = u16::from(base);
-                // An eighth of the accent over the background.
-                ((accent + base * 7 + 4) / 8) as u8
-            };
-            Color::Rgb(mix(ar, br), mix(ag, bg), mix(ab, bb))
-        }
-        _ => palette.surface1,
-    }
+    let (Color::Rgb(tr, tg, tb), Color::Rgb(br, bg, bb)) = (top, base) else {
+        return None;
+    };
+    let mix = |top: u8, base: u8| {
+        let mixed = u16::from(top) * parts + u16::from(base) * (total - parts) + total / 2;
+        (mixed / total) as u8
+    };
+    Some(Color::Rgb(mix(tr, br), mix(tg, bg), mix(tb, bb)))
 }
 
 pub(crate) fn tab_bar_status_width(snapshot: &ClientShellSnapshot) -> u16 {
