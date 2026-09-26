@@ -77,3 +77,29 @@
     prompts or agent output, which is fine for a private bot chat.
   - Later: inline keyboard buttons (approve / deny) answered through the
     herdr socket, accepting callbacks only from my own user id.
+- [ ] Usage footer: show OpenAI API (platform, pay-as-you-go) credits, and
+  consider Kimi, GLM and other popular providers.
+  - Consulted models (DeepSeek, GPT-6 Luna, 2026-09-26; GPT-6 Astra and Gemini
+    hit usage limits): there is no documented way to read the remaining
+    OpenAI prepaid balance, with a project key or an admin key.
+    `/v1/dashboard/billing/credit_grants` is legacy and undocumented; do not
+    build on it. The Admin API (`GET /v1/organization/costs`, needs an
+    `sk-admin` key) gives spend only, so show month-to-date spend, optionally
+    against a budget set in `[usage]`, labeled "spend", never "credits left".
+    An admin key reads org-wide billing: opt-in, its own env var or
+    `auth.json` entry, never logged.
+  - Kimi (Moonshot): documented `GET https://api.moonshot.ai/v1/users/me/balance`
+    (Bearer key) returns `available_balance`, `voucher_balance`,
+    `cash_balance` (cash can go negative). Same shape as `deepseek.rs`; the
+    easiest one. `api.moonshot.cn` accounts are separate and in CNY: make the
+    host configurable, never mix currencies.
+  - GLM (Z.ai / Zhipu): no documented balance API. The GLM Coding Plan quota
+    (5h window and weekly, plan tier) comes from the undocumented
+    `GET https://api.z.ai/api/monitor/usage/quota/limit` (`open.bigmodel.cn`
+    for CN keys; raw key in `Authorization`, no `Bearer`), used by many
+    third-party trackers. Opt-in, off by default, parse defensively (it
+    already changed once: `CREDIT_LIMIT` rows appeared).
+  - Skip for now: MiniMax, Mistral, xAI, Groq (no balance endpoint anyone
+    could vouch for); Qwen/DashScope only through Alibaba Cloud BSS
+    `QueryAccountBalance` with signed AccessKey requests, out of scope.
+  - Order: Kimi balance, then OpenAI spend (admin key), then GLM Coding Plan.
