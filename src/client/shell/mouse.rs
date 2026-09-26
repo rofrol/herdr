@@ -501,6 +501,15 @@ impl ClientShellState {
         next >= 0 && (next as usize) < tabs.len()
     }
 
+    /// The second-row entry `delta` steps from the focused one; `None` past
+    /// either end, so the wheel stops there instead of leaving the group.
+    fn child_row_step(&self, delta: isize) -> Option<String> {
+        let entries = super::tab_groups::active_row_entries(self.snapshot.as_deref()?);
+        let current = entries.iter().position(|tab| tab.focused)?;
+        let next = current.checked_add_signed(delta)?;
+        entries.get(next).map(|tab| tab.tab_id.clone())
+    }
+
     /// Insert position among the main-row tabs (see `tab_groups::flat_insert_index`).
     fn tab_drop_index_at(&self, point: (u16, u16)) -> Option<usize> {
         let snapshot = self.snapshot.as_deref()?;
@@ -1895,12 +1904,32 @@ impl ClientShellState {
                     outcome.repaint = true;
                 }
             }
+            MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
+                if self
+                    .hits
+                    .child_tabs
+                    .iter()
+                    .any(|(rect, _)| super::contains(*rect, point)) =>
+            {
+                let delta = if matches!(mouse.kind, MouseEventKind::ScrollUp) {
+                    -1
+                } else {
+                    1
+                };
+                if let Some(tab_id) = self.child_row_step(delta) {
+                    self.push_endpoint_method(
+                        crate::api::schema::Method::TabFocus(crate::api::schema::TabTarget {
+                            tab_id,
+                        }),
+                        outcome,
+                    );
+                }
+            }
             MouseEventKind::ScrollUp
                 if self
                     .hits
                     .tabs
                     .iter()
-                    .chain(&self.hits.child_tabs)
                     .any(|(rect, _)| super::contains(*rect, point))
                     || super::contains(self.hits.tab_scroll_left, point)
                     || super::contains(self.hits.tab_scroll_right, point)
@@ -1920,7 +1949,6 @@ impl ClientShellState {
                     .hits
                     .tabs
                     .iter()
-                    .chain(&self.hits.child_tabs)
                     .any(|(rect, _)| super::contains(*rect, point))
                     || super::contains(self.hits.tab_scroll_left, point)
                     || super::contains(self.hits.tab_scroll_right, point)

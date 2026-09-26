@@ -330,6 +330,48 @@ fn the_child_row_stays_while_the_workspace_has_child_tabs() {
 }
 
 #[test]
+fn the_wheel_over_the_child_row_stays_within_the_group() {
+    let mut state = parent_with_jobs_state(true);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    let mut other = projected.tabs[0].clone();
+    other.tab_id = "tab_4".into();
+    projected.tabs.push(other);
+    for tab in &mut projected.tabs {
+        tab.focused = tab.tab_id == "tab_3";
+    }
+    projected.focused_tab_id = Some("tab_3".into());
+    state.set_snapshot(Box::new(projected));
+    state.compose(106, 24).unwrap();
+    let row = state.hits.child_tabs[0].0;
+    let mut wheel = |kind| {
+        let outcome =
+            state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+                kind,
+                column: row.x,
+                row: row.y,
+                modifiers: KeyModifiers::empty(),
+            })]);
+        outcome
+            .actions
+            .iter()
+            .filter_map(|action| match action {
+                ClientShellAction::Endpoint { request, .. } => match &request.method {
+                    Method::TabFocus(target) => Some(target.tab_id.clone()),
+                    _ => None,
+                },
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    };
+
+    assert!(
+        wheel(MouseEventKind::ScrollDown).is_empty(),
+        "the last child does not step on to the next main tab"
+    );
+    assert_eq!(wheel(MouseEventKind::ScrollUp), ["tab_2"]);
+}
+
+#[test]
 fn closing_a_parent_asks_then_closes_its_children_first() {
     let mut state = parent_with_jobs_state(true);
     assert_no_close(&request_close(&mut state, false));
