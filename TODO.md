@@ -246,6 +246,23 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     `QueryAccountBalance` with signed AccessKey requests, out of scope.
   - Order: Kimi balance, then OpenAI spend (admin key), then GLM Coding Plan.
   - Only Kimi is next; OpenAI spend and GLM wait until there is a real need.
+- [ ] Agent status shows a green/teal circle while the agent waits on its
+  herdr-job: its turn ended, so herdr detects it as idle/done, and it reads
+  as "agent finished". Use a different symbol for "waiting on a running job".
+  - Consulted models (GPT-6 Astra, GPT-6 Luna, DeepSeek, 2026-09-26; Gemini
+    hit its weekly quota): all three recommend `◌` (dotted circle), in both
+    the Dots and Symbols styles; Astra and Luna in yellow ("still in
+    progress"), DeepSeek in blue, which no other state uses. `◔` is too close
+    to `◐` (working); `⌛` is double-width in many fonts.
+  - Decided 2026-09-26: a yellow open circle, `◌`. A plain `○` in yellow
+    would differ from idle (green `○`) by color only; fall back to it only if
+    `◌` renders badly in common fonts.
+  - A TUI presentation override, not a new `AgentStatus`: apply it only when
+    the detected status is idle or done and the pane has running jobs; working
+    and blocked still win. A running job does not prove the agent waits on
+    it, so do not add a `Waiting` status to the frozen API enum.
+  - Derive it from a structured server fact (e.g. a running-jobs count in pane
+    metadata), not by parsing the rendered `$jobs` token text.
 
 ## Deferred
 
