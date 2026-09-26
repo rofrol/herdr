@@ -135,6 +135,34 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     circles and job lines; then the attention header and the priority view;
     then clicks and scroll memory. Remove the old panel only after the new
     view works in daily use.
+- [ ] Dragging a space does not show where it will land (screenshot
+  2026-09-26, dragging `herdr`). The dragged space keeps a grey background
+  much like the selected row, so two grey blocks are on screen; the drop
+  marker is a thin accent line in the gap row, which could belong to either
+  neighbour; and no-op slots (right above or below the dragged space) show a
+  marker like real targets. Here it sat under `herdr`, a drop that changes
+  nothing. Do it together with, or right after, the spaces redesign above,
+  whose blocks are taller.
+  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26; Luna
+    preferred a live preview): keep the list geometry fixed while dragging,
+    no live reorder: in a terminal the list would reflow under a still pointer
+    and the target would oscillate. Mark the source with an accent bar and
+    dimmed text instead of the selection grey, draw the insert marker between
+    whole blocks (never inside a worktree family), and add a fixed hint line:
+    `move herdr before try-roguix · Esc cancel`, or `no change` over a no-op
+    slot. Hide the no-op marker, not its hit region, so the nearest other slot
+    is not picked by surprise. Redraw only when the target changes; a little
+    hysteresis at slot boundaries.
+  - Do not collapse spaces while dragging (it moves the target as the user
+    aims). Worktree children move with the parent, labelled
+    `herdr (+2)`. The marker must also work with `row_gap = 0`.
+  - Drag starts only from the space's name line after a small threshold, so
+    clicks, chevrons and agent/job rows keep working; a click is suppressed
+    after a drag. Esc cancels. Time-based auto-scroll near the list edges.
+  - Priority view: no reordering, with a hint to switch to grouped.
+  - Keyboard reorder (move space up/down, whole family); none exists now.
+  - The move is sent by ids (`move X before Y`); if another client changed
+    the order or the anchor vanished, cancel with a notice.
 - [ ] "Restart agents…": restart agent CLIs (Claude, pi) after they update,
   resuming their sessions, e.g. when Claude reports that a new version is
   available. Should herdr tell the instances to restart once they finish
