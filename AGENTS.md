@@ -349,29 +349,27 @@ To re-record the fork demo video and upload it for the README, follow
 
 ### Trying a fix in the running Herdr
 
-A committed fix is not in the user's session until the binary they run is
-replaced. After a user-facing fix, find that binary first; do not assume a
-location. The running server's path is the most reliable, `command -v herdr`
-is the fallback:
+The installed binary on the user's PATH is the last known-good build; the
+repo build is the candidate. After a user-facing fix, build the candidate
+(over a minute, so use `herdr-job`) and do not install it:
 
 ```bash
-ps -axo command | grep '[h]erdr server'
-command -v herdr
+cargo build --release --locked
 ```
 
-Replace that binary with the fix (the build takes over a minute, so use
-`herdr-job`):
+The user tries it with `scripts/herdr_live.sh`:
 
-- `~/.cargo/bin/herdr`: `cargo install --path . --locked`
-- another user-owned path: `cargo build --release --locked`, then copy
-  `target/release/herdr` over it
-- a package-managed path (Homebrew, Nix, system directories): ask the user
-  before touching it
+- `test` records the build's hash and live-hands the session off to
+  `target/release/herdr`; the user attaches with that binary, since the TUI
+  client runs the fix too.
+- `back` hands the session back to the installed binary when the candidate is
+  bad.
+- `keep` installs the tested build: it refuses if `target/release/herdr`
+  changed since `test`, renames a copy over `~/.cargo/bin/herdr`, and hands the
+  session off to it, so the server no longer runs from `target/`.
 
-Then tell the user to move the running session onto the new binary and attach
-again:
-
-```bash
-herdr server live-handoff
-herdr
-```
+When the user says the candidate works, commit the fix; the user then runs
+`scripts/herdr_live.sh keep` or asks you to. Do not rebuild
+between the test and `keep`. If the installed binary is package-managed
+(Homebrew, Nix, system directories; check `ps -axo command | grep '[h]erdr
+server'` and `command -v herdr`), ask before replacing it.
