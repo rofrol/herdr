@@ -16,11 +16,23 @@ const JOBS_TOKEN: &str = "jobs";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum SpaceAgentLine {
     Agent {
+        pane_id: String,
         status: crate::api::schema::AgentStatus,
         text: String,
         focused: bool,
     },
-    Jobs(String),
+    Jobs {
+        pane_id: String,
+        jobs: String,
+    },
+}
+
+impl SpaceAgentLine {
+    fn pane_id(&self) -> &str {
+        match self {
+            Self::Agent { pane_id, .. } | Self::Jobs { pane_id, .. } => pane_id,
+        }
+    }
 }
 
 /// The agent lines shown under `workspace`, or none when the setting is off.
@@ -58,6 +70,7 @@ pub(super) fn space_agent_lines(
             .filter(|title| !title.is_empty())
             .map_or_else(|| format!("{name} · no task"), str::to_owned);
         lines.push(SpaceAgentLine::Agent {
+            pane_id: agent.pane_id.clone(),
             status: agent.agent_status,
             text,
             focused: agent.focused,
@@ -67,30 +80,40 @@ pub(super) fn space_agent_lines(
             .iter()
             .find(|(key, value)| key == JOBS_TOKEN && !value.trim().is_empty())
         {
-            lines.push(SpaceAgentLine::Jobs(jobs.trim().to_owned()));
+            lines.push(SpaceAgentLine::Jobs {
+                pane_id: agent.pane_id.clone(),
+                jobs: jobs.trim().to_owned(),
+            });
         }
     }
     lines
 }
 
-/// Draws `lines` from the top of `area`, below the space's own rows.
+/// Draws `lines` from the top of `area`, below the space's own rows, and
+/// returns each drawn line's rect with its agent's pane, for clicks.
 pub(super) fn render_space_agent_lines(
     buffer: &mut Buffer,
     area: Rect,
     lines: &[SpaceAgentLine],
     config: &ClientShellConfig,
-) {
+) -> Vec<(Rect, String)> {
     let palette = &config.palette;
+    let mut hits = Vec::new();
     for (index, line) in lines.iter().enumerate() {
         let y = area.y.saturating_add(index as u16);
         if y >= area.bottom() {
             break;
         }
+        hits.push((
+            Rect::new(area.x, y, area.width, 1),
+            line.pane_id().to_owned(),
+        ));
         match line {
             SpaceAgentLine::Agent {
                 status,
                 text,
                 focused,
+                ..
             } => {
                 let x = area.x.saturating_add(3);
                 super::render::put_text(
@@ -116,7 +139,7 @@ pub(super) fn render_space_agent_lines(
                     }),
                 );
             }
-            SpaceAgentLine::Jobs(jobs) => {
+            SpaceAgentLine::Jobs { jobs, .. } => {
                 let x = area.x.saturating_add(5);
                 let width = area.right().saturating_sub(x).saturating_sub(1);
                 super::render::put_text(
@@ -130,6 +153,7 @@ pub(super) fn render_space_agent_lines(
             }
         }
     }
+    hits
 }
 
 /// `text` cut to `width` columns, ending in `…` when cut.
@@ -204,12 +228,17 @@ mod tests {
             space_agent_lines(&snapshot, &workspace, &HashSet::new(), &config(true)),
             vec![
                 SpaceAgentLine::Agent {
+                    pane_id: "pane_1".into(),
                     status: AgentStatus::Working,
                     text: "Fix the drop marker".into(),
                     focused: false,
                 },
-                SpaceAgentLine::Jobs("1⧖ 2✓".into()),
+                SpaceAgentLine::Jobs {
+                    pane_id: "pane_1".into(),
+                    jobs: "1⧖ 2✓".into(),
+                },
                 SpaceAgentLine::Agent {
+                    pane_id: "pane_2".into(),
                     status: AgentStatus::Working,
                     text: "claude · no task".into(),
                     focused: false,

@@ -157,9 +157,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Stage 1 in progress (2026-09-26): `ui.sidebar.spaces.agents = true`
     (off by default) lists each space's agents under it, with the state
     icon and task (`claude · no task` without one) and a line with the
-    herdr-job counts from the `$jobs` token. Still to do in stage 1: the
-    new state circle shapes, unowned jobs, the chevron; clicks on agent
-    lines still select the space.
+    herdr-job counts from the `$jobs` token; clicking an agent or job line
+    focuses that agent (local endpoint only). Still to do in stage 1: the
+    new state circle shapes, unowned jobs, the chevron.
 - [ ] Dragging a space does not show where it will land (screenshot
   2026-09-26, dragging `herdr`). The dragged space keeps a grey background
   much like the selected row, so two grey blocks are on screen; the drop

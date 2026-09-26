@@ -512,7 +512,9 @@ pub(super) fn render_expanded(
                     false,
                     palette,
                 );
-                super::space_agents::render_space_agent_lines(
+                // Clicking another endpoint's agent line selects its space;
+                // focusing a remote pane from here is not wired up yet.
+                let _ = super::space_agents::render_space_agent_lines(
                     buffer,
                     Rect::new(
                         nested.x,

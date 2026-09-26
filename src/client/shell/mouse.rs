@@ -2132,6 +2132,22 @@ impl ClientShellState {
                     self.persist_chrome_preferences(outcome);
                     return;
                 }
+                // An agent line under a space focuses that agent, not the space.
+                let space_agent = self
+                    .hits
+                    .space_agents
+                    .iter()
+                    .find(|(rect, _)| super::contains(*rect, point))
+                    .map(|(_, pane_id)| pane_id.clone());
+                if let Some(pane_id) = space_agent {
+                    self.push_endpoint_method(
+                        crate::api::schema::Method::PaneFocus(crate::api::schema::PaneTarget {
+                            pane_id,
+                        }),
+                        outcome,
+                    );
+                    return;
+                }
                 let workspace_press = self
                     .hits
                     .workspaces

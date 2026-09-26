@@ -434,17 +434,18 @@ pub(crate) fn render_sidebar(
             dragged,
             palette,
         );
-        super::space_agents::render_space_agent_lines(
-            buffer,
-            Rect::new(
-                rect.x,
-                rect.y.saturating_add(own_rows),
-                rect.width,
-                rect.height.saturating_sub(own_rows),
-            ),
-            &agent_lines,
-            config,
-        );
+        hits.space_agents
+            .extend(super::space_agents::render_space_agent_lines(
+                buffer,
+                Rect::new(
+                    rect.x,
+                    rect.y.saturating_add(own_rows),
+                    rect.width,
+                    rect.height.saturating_sub(own_rows),
+                ),
+                &agent_lines,
+                config,
+            ));
         let group_toggle = render_parent_group_toggle(
             buffer,
             rect,

@@ -67,3 +67,22 @@ fn spaces_keep_their_rows_when_disabled() {
         "{space_rows:?}"
     );
 }
+
+#[test]
+fn clicking_an_agent_line_focuses_its_pane() {
+    let mut state = state_with_agent(true);
+    state.compose(106, 30).unwrap();
+    let (rect, pane_id) = state.hits.space_agents[0].clone();
+    assert_eq!(pane_id, "pane_1");
+    let outcome =
+        state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+            kind: crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left),
+            column: rect.x + 4,
+            row: rect.y,
+            modifiers: KeyModifiers::empty(),
+        })]);
+    assert!(outcome.actions.iter().any(|action| matches!(action,
+        ClientShellAction::Endpoint { request, .. }
+            if matches!(&request.method, crate::api::schema::Method::PaneFocus(target)
+                if target.pane_id == "pane_1"))));
+}
