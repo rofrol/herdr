@@ -267,6 +267,35 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     it, so do not add a `Waiting` status to the frozen API enum.
   - Derive it from a structured server fact (e.g. a running-jobs count in pane
     metadata), not by parsing the rendered `$jobs` token text.
+- [ ] Make the consult skills (`plugins/consult`: gpt, gemini, deepseek,
+  consult-stats) work in pi too, not only in Claude Code. pi 0.87.1
+  implements the Agent Skills spec and reads `~/.pi/agent/skills/` (also
+  `~/.agents/skills/`), but every `SKILL.md` hardcodes
+  `~/.claude/skills/...` paths, and `consult.py self` logs the coordinator as
+  `claude` by default. The scripts already find their siblings through
+  `realpath "$0"`, so only the instructions and the logging need changes.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-26; Gemini hit its
+    weekly quota): `install-skills` links into both `~/.claude/skills` and
+    `~/.pi/agent/skills`, not `~/.agents/skills` (not verified that Claude
+    Code reads it). Refuse when the same skill name is already visible to pi
+    from another directory: pi keeps the first one found and only warns, so
+    a stale copy would shadow updates.
+  - `SKILL.md` commands use the skill's own directory (pi tells the model
+    where a skill lives), with quoting; `consult-stats` stays a sibling of
+    the others, as an installer invariant. No `~/.local/bin` wrappers.
+  - Log the coordinator's agent (`claude-code`, `pi`) and its model id
+    separately, `unknown` when not known, never a guessed default. Spike
+    first: does pi expose its model to the bash tool (env, session file)?
+    Otherwise the skill tells the coordinator to pass `--model`. Overlaps
+    the coordinator-metadata item above; do them together.
+  - Descriptions must route: pi's own `oracle` skill (pi-fabric reviewer)
+    also reads as "second opinion"; reword the descriptions so the model can
+    tell them apart, drop "Claude" from them. Keep `oracle` separate for now.
+  - Out of scope: the Claude-only `herdr-bg-badge` hook and
+    `herdr-peer-token` (`~/.claude/sessions`).
+  - Verify in a live pi session: every skill, a round with ratings and
+    `self`, an unrelated cwd, inside and outside herdr; then check Claude
+    Code still works.
 
 ## Deferred
 
