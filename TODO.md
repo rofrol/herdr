@@ -257,6 +257,16 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Start with a spike (consulted 2026-09-26): does herdr-job completion
     reach the event stream, and can "away" be detected without core
     changes? Then the plugin.
+  - Spike done 2026-09-26, no core change needed: agent blocked/done comes
+    as `pane.agent_status_changed`, which runs plugin `[[events]]` hooks (no
+    daemon). herdr-job completion has no event (tab status changes emit
+    none), but herdr-job already runs `notify()` at the end, so it can call
+    the plugin's sender itself. The API knows nothing about attached
+    clients or their idleness; "away from the Mac" is better read from the
+    OS: macOS `ioreg -c IOHIDSystem` `HIDIdleTime` (keyboard/mouse idle),
+    on Linux logind's `IdleHint` or `xprintidle`, plus a manual away/mute
+    action writing a state file. Blocked on: a bot token and `chat_id` from
+    me, to test sending.
 - [ ] Usage footer: show OpenAI API (platform, pay-as-you-go) credits, and
   consider Kimi, GLM and other popular providers.
   - Consulted models (DeepSeek, GPT-6 Luna, 2026-09-26; GPT-6 Astra and Gemini
