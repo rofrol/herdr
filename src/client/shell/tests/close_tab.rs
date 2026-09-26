@@ -330,7 +330,7 @@ fn the_child_row_stays_while_the_workspace_has_child_tabs() {
 }
 
 #[test]
-fn the_wheel_over_the_child_row_stays_within_the_group() {
+fn the_wheel_steps_through_its_own_row_and_stops_at_the_ends() {
     let mut state = parent_with_jobs_state(true);
     let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
     let mut other = projected.tabs[0].clone();
@@ -342,13 +342,14 @@ fn the_wheel_over_the_child_row_stays_within_the_group() {
     projected.focused_tab_id = Some("tab_3".into());
     state.set_snapshot(Box::new(projected));
     state.compose(106, 24).unwrap();
-    let row = state.hits.child_tabs[0].0;
-    let mut wheel = |kind| {
+    let child_row = state.hits.child_tabs[0].0;
+    let main_row = state.hits.tabs[0].0;
+    let mut wheel = |rect: Rect, kind| {
         let outcome =
             state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
                 kind,
-                column: row.x,
-                row: row.y,
+                column: rect.x,
+                row: rect.y,
                 modifiers: KeyModifiers::empty(),
             })]);
         outcome
@@ -365,10 +366,19 @@ fn the_wheel_over_the_child_row_stays_within_the_group() {
     };
 
     assert!(
-        wheel(MouseEventKind::ScrollDown).is_empty(),
+        wheel(child_row, MouseEventKind::ScrollDown).is_empty(),
         "the last child does not step on to the next main tab"
     );
-    assert_eq!(wheel(MouseEventKind::ScrollUp), ["tab_2"]);
+    assert_eq!(wheel(child_row, MouseEventKind::ScrollUp), ["tab_2"]);
+    assert_eq!(
+        wheel(main_row, MouseEventKind::ScrollDown),
+        ["tab_4"],
+        "the main row skips children"
+    );
+    assert!(
+        wheel(main_row, MouseEventKind::ScrollUp).is_empty(),
+        "the parent is the first main tab"
+    );
 }
 
 #[test]
