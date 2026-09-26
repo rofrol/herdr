@@ -710,3 +710,60 @@ fn middle_click_does_not_close_behind_an_overlay() {
         crate::api::schema::Method::WorkspaceClose(_) | crate::api::schema::Method::TabClose(_)
     )));
 }
+
+#[test]
+fn tab_bar_shows_each_tabs_agent_state_like_the_sidebar() {
+    let mut snapshot = snapshot();
+    snapshot
+        .tabs
+        .extend([(2, AgentStatus::Blocked), (3, AgentStatus::Unknown)].map(
+            |(number, agent_status)| ClientShellTab {
+                tab_id: format!("tab_{number}"),
+                workspace_id: "ws_1".into(),
+                number,
+                label: number.to_string(),
+                custom_label: false,
+                zoomed: false,
+                focused: false,
+                agent_status,
+                parent_tab_id: None,
+                status: None,
+            },
+        ));
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
+    state.set_snapshot(Box::new(snapshot));
+    state.set_pane_surface(surface());
+    let frame = state.compose(120, 20).expect("tab bar");
+    let buffer = frame.to_ratatui_buffer().expect("frame should reconstruct");
+    let tab_text = |tab_id: &str| {
+        let (rect, _) = state
+            .hits
+            .tabs
+            .iter()
+            .find(|(_, id)| id == tab_id)
+            .expect("tab hit");
+        (rect.x..rect.right())
+            .map(|x| buffer[(x, rect.y)].symbol().to_string())
+            .collect::<String>()
+    };
+    let blocked = status_icon(AgentStatus::Blocked, state.config.status_indicators);
+    let idle = status_icon(AgentStatus::Idle, state.config.status_indicators);
+
+    assert!(tab_text("tab_1").contains(&format!("{idle} 1")));
+    assert!(tab_text("tab_2").contains(&format!("{blocked} 2")));
+    assert_eq!(tab_text("tab_3").trim(), "3");
+    let (rect, _) = state
+        .hits
+        .tabs
+        .iter()
+        .find(|(_, id)| id == "tab_2")
+        .expect("tab 2");
+    let icon = (rect.x..rect.right())
+        .map(|x| &buffer[(x, rect.y)])
+        .find(|cell| cell.symbol() == blocked)
+        .expect("blocked icon");
+    assert_eq!(
+        icon.fg,
+        status_color(AgentStatus::Blocked, &state.config.palette)
+    );
+}
