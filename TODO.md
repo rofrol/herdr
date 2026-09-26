@@ -254,9 +254,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     the Dots and Symbols styles; Astra and Luna in yellow ("still in
     progress"), DeepSeek in blue, which no other state uses. `◔` is too close
     to `◐` (working); `⌛` is double-width in many fonts.
-  - Decided 2026-09-26: a yellow open circle, `◌`. A plain `○` in yellow
-    would differ from idle (green `○`) by color only; fall back to it only if
-    `◌` renders badly in common fonts.
+  - Decided 2026-09-26, after a second round (GPT-6 Astra, GPT-6 Luna,
+    DeepSeek): a filled `●` in mauve in the Dots style, `◷` in mauve in the
+    Symbols style. A filled dot is easier to spot in a long list than `◌`,
+    and yellow already means working. Not blue (Luna's and DeepSeek's pick):
+    blue is the accent, it means finished in the mobile view and in
+    notifications, and it is close to teal (done). Check mauve's contrast on
+    light themes. Yellow `◌` is the fallback.
   - A TUI presentation override, not a new `AgentStatus`: apply it only when
     the detected status is idle or done and the pane has running jobs; working
     and blocked still win. A running job does not prove the agent waits on
