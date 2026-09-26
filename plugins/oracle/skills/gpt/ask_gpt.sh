@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Ask GPT via Codex CLI, billed to the ChatGPT subscription; credentials come from pi (~/.pi/agent/auth.json).
-# Usage: ask_gpt.sh [-m astra|sol|terra|luna|<id>] [-e low|medium|high|xhigh] [-r] [-f FILE]... "prompt"   (-f - reads stdin)
+# Usage: ask_gpt.sh [-m astra|sol|terra|luna|<id>] [-e low|medium] [-r] [-f FILE]... "prompt"   (-f - reads stdin)
 # -r: run Codex in the current git repo (read-only), so it can read files and git history itself.
 set -euo pipefail
 oracle_dir="$(dirname "$(realpath "$0")")/../oracle-stats"  # the skills live side by side, wherever they are linked from
@@ -10,6 +10,8 @@ while getopts "m:e:f:r" o; do
   case $o in m) model=$OPTARG;; e) effort=$OPTARG;; f) files+=("$OPTARG");; r) repo=1;; *) exit 2;; esac
 done
 shift $((OPTIND-1))
+# No high/xhigh: in oracle-stats it took ~3x the time and 4-7x the output tokens without more unique findings.
+case $effort in high|xhigh) echo "Effort $effort is disabled; use the default, low or medium" >&2; exit 2;; esac
 if [ -z "${ORACLE_IN_JOB:-}" ] && [ -n "${HERDR_SOCKET_PATH:-}" ] && command -v herdr-job >/dev/null; then
   exec "$oracle_dir"/in_herdr_job.sh "gpt $model/${effort:-default}" "$0" ${orig[@]+"${orig[@]}"}  # watch it in its own herdr tab
 fi
