@@ -58,3 +58,22 @@
     tasks, non-blind ratings, `unique` depends on who else was asked).
     accepted/findings is an acceptance rate, not recall; check the name.
   - Update manually first (export, review the diff, deploy); launchd later.
+- [ ] Telegram notifications when I am away from the Mac (agent blocked,
+  agent done, herdr-job finished).
+  - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Sol, 2026-09-26): Telegram
+    is a good fit: a bot sends to my private chat (`chat_id`), free, reliable
+    Android push, no Meta-style restrictions (Instagram was rejected: no API
+    for broadcast channels, DMs need app review and a 24h reply window).
+    Bot chats are not end-to-end encrypted. ntfy or Pushover as alternatives.
+  - A plugin subscribing to the socket API events, not core; bot token and
+    `chat_id` in the plugin config, never in payloads. Check whether
+    herdr-job completion reaches that event stream. Transitions only: to
+    blocked, to done, job finished/failed; dedup per pane and approval
+    request, coalesce bursts, drop an alert that is stale (agent resumed).
+  - Send only when away: no attached client or all clients idle for N
+    minutes, plus an explicit away/mute toggle.
+  - Content: the same text as the toast (`claude finished` plus
+    `workspace · 1 · tab`, see `notification_context`); it has no paths,
+    prompts or agent output, which is fine for a private bot chat.
+  - Later: inline keyboard buttons (approve / deny) answered through the
+    herdr socket, accepting callbacks only from my own user id.
