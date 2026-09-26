@@ -275,16 +275,12 @@ fn tab_closes(outcome: &ClientShellInput) -> Vec<String> {
 fn child_tabs_get_their_own_row_and_a_summary_on_the_parent() {
     let mut state = parent_with_jobs_state(true);
     let frame = state.compose(106, 24).unwrap();
-    // `⏳` is two cells wide; `frame_rows` shows its second cell as a space.
-    let rows = frame_rows(&frame)
-        .into_iter()
-        .map(|row| row.replace("⏳ ", "⏳"))
-        .collect::<Vec<_>>();
+    let rows = frame_rows(&frame);
 
     assert_eq!(state.hits.tabs.len(), 1, "children leave the main row");
-    assert!(rows[0].contains("1 ⏳1 !1"), "{}", rows[0]);
+    assert!(rows[0].contains("1 ⧖1 !1"), "{}", rows[0]);
     assert!(
-        rows[1].contains("! build") && rows[1].contains("⏳ tests"),
+        rows[1].contains("! build") && rows[1].contains("⧖ tests"),
         "{}",
         rows[1]
     );
@@ -338,9 +334,9 @@ fn closing_a_parent_asks_then_closes_its_children_first() {
     let mut state = parent_with_jobs_state(true);
     assert_no_close(&request_close(&mut state, false));
     let frame = state.compose(106, 24).unwrap();
-    let text = frame_rows(&frame).join("\n").replace("⏳ ", "⏳");
+    let text = frame_rows(&frame).join("\n");
     assert!(text.contains("Close tab and its child tabs?"), "{text}");
-    assert!(text.contains("2 child tabs: ⏳1 !1"), "{text}");
+    assert!(text.contains("2 child tabs: ⧖1 !1"), "{text}");
 
     let accepted = state.handle_input_bytes(b"\r");
 

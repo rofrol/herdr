@@ -82,7 +82,7 @@ pub(super) fn parent_entry_label(
 
 pub(super) fn status_icon(status: Option<TabStatus>) -> Option<&'static str> {
     match status? {
-        TabStatus::Running => Some("⏳"),
+        TabStatus::Running => Some("⧖"),
         TabStatus::Succeeded => Some("✓"),
         // Not `✗`: next to a tab label it reads as a close button.
         TabStatus::Failed => Some("!"),
@@ -90,7 +90,7 @@ pub(super) fn status_icon(status: Option<TabStatus>) -> Option<&'static str> {
     }
 }
 
-/// Counts of the children's statuses, e.g. `⏳1 !2 ✓3`; empty without children.
+/// Counts of the children's statuses, e.g. `⧖1 !2 ✓3`; empty without children.
 /// Children without a status are counted as `•N`.
 pub(super) fn children_summary(children: &[&ClientShellTab]) -> String {
     let count = |wanted: Option<TabStatus>| {
@@ -100,7 +100,7 @@ pub(super) fn children_summary(children: &[&ClientShellTab]) -> String {
             .count()
     };
     [
-        ("⏳", count(Some(TabStatus::Running))),
+        ("⧖", count(Some(TabStatus::Running))),
         ("!", count(Some(TabStatus::Failed))),
         ("✓", count(Some(TabStatus::Succeeded))),
         ("•", count(None)),
