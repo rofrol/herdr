@@ -67,6 +67,8 @@ prompt_new_tab_name = false
 delivery = "off"
 [usage]
 enabled = true
+# Use the copied cache instead of refetching (see above).
+refresh_interval_secs = 86400
 EOF
 echo "PROMPT='%F{blue}%~%f \$ '" >"$work/zsh/.zshrc"
 

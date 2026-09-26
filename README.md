@@ -118,7 +118,7 @@ herdr
 
 ---
 
-https://github.com/user-attachments/assets/2eabe9c9-02c3-41e4-ab0f-d0fb06e87ac9
+https://github.com/user-attachments/assets/ac3b1146-2a78-43b2-9e53-b5b9434e4940
 
 **the runtime your coding agents live on.**
 

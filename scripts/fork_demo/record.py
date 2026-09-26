@@ -433,7 +433,8 @@ def scenes(rec, args):
         rec.cli("tab", "status", tab_id, status)
         time.sleep(2.2)
     jy, jx = rec.find(lambda y, line: (y, line.index("⧖")) if "herdr" in line[:24] and "⧖" in line[:24] else None)
-    rec.move_to(jy, jx + 1)
+    # Point at the counter from below: the arrow would cover it otherwise.
+    rec.move_to(jy + 1, jx)
     time.sleep(2.8)
 
     rec.caption("The herdr menu opens oracle stats: which second-opinion models helped")

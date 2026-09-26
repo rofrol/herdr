@@ -40,8 +40,11 @@ The script:
 - builds the debug binary and starts it as a throwaway server with its own
   socket, config, and state under `/tmp/herdr-demo.*`, so your running herdr
   sessions are untouched and nothing is restored from earlier runs;
-- copies your usage cache into it, so the demo does not refetch every
-  provider at once when it starts (Claude's usage endpoint rate-limits that);
+- copies your usage cache into it and sets a day-long refresh interval, so
+  the footer shows your cached numbers instead of refetching every provider
+  (Claude's usage endpoint rate-limits that). Opening the usage popup still
+  refreshes; if your own session is rate-limited, wait until its footer loses
+  the `!` before recording;
 - uses the `one-light` theme and a plain zsh prompt, and turns notifications
   off (see below);
 - creates the `herdr` space (tabs `code`, `agent`, `logs`), `website`, and
