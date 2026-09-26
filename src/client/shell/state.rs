@@ -42,6 +42,7 @@ pub(crate) struct ClientShellConfig {
     pub(super) prompt_new_tab_name: bool,
     pub(super) prompt_new_workspace_name: bool,
     pub(super) confirm_close: bool,
+    pub(super) confirm_close_running: bool,
     pub(super) mouse_capture: bool,
     pub(super) mouse_scroll_lines: usize,
     pub(super) right_click_passthrough_modifiers: Option<crossterm::event::KeyModifiers>,
@@ -583,8 +584,12 @@ pub(super) struct ClientTabCloseConfirmation {
 pub(super) struct ClientConfirmCloseOverlay {
     pub(super) workspace_id: String,
     pub(super) tab_target: Option<ClientTabCloseConfirmation>,
+    /// A single pane to close instead of the tab or workspace.
+    pub(super) pane_target: Option<String>,
     pub(super) title: String,
     pub(super) detail: String,
+    /// The running work the close would stop, e.g. `build marked running`.
+    pub(super) running: Option<String>,
 }
 
 #[derive(Debug)]

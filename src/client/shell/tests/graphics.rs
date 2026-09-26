@@ -259,8 +259,10 @@ fn every_dialog_and_menu_occludes_its_panel_not_the_whole_screen() {
         ClientShellOverlay::ConfirmClose(ClientConfirmCloseOverlay {
             workspace_id: "ws_1".into(),
             tab_target: None,
+            pane_target: None,
             title: "close".into(),
             detail: "confirm".into(),
+            running: None,
         }),
         ClientShellOverlay::Help(ClientHelpOverlay {
             query: TextEditor::default(),

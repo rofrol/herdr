@@ -1588,6 +1588,7 @@ impl AppState {
             AppEvent::ForegroundProgramChanged {
                 pane_id,
                 program,
+                shell,
                 observed_at,
             } => {
                 let Some(terminal_id) = self.workspaces.iter().find_map(|ws| {
@@ -1597,7 +1598,7 @@ impl AppState {
                     return Vec::new();
                 };
                 if let Some(terminal) = self.terminals.get_mut(&terminal_id) {
-                    terminal.set_foreground_program(program, observed_at);
+                    terminal.set_foreground_program(program, shell, observed_at);
                 }
                 Vec::new()
             }

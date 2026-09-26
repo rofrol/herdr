@@ -20,7 +20,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     the `tab.closed` hook reconcile tabs still marked running. Tab ids are
     reused, so the newest job of a tab decides, and only while the tab keeps
     its label. No sweep on server start: herdr has no such plugin event.
-- [ ] Confirm before closing a tab or pane with running work. Closing a
+- [x] Confirm before closing a tab or pane with running work. Closing a
   single job child tab (or a pane) now kills its job with no question; only a
   parent tab with children and the last tab of a workspace ask first.
   - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): ask when
@@ -41,6 +41,12 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Its own setting beside `confirm_close`, so turning off the other
     confirmations keeps this one. Undo or "keep the job running" only once
     jobs outlive their tab; a delayed kill is not a real undo.
+  - Done 2026-09-26, client-side for now: `ui.confirm_close_running` asks
+    before a close that stops a tab marked running, a working or blocked
+    agent, or a program the shell started (like Ghostty; idle agents and
+    finished job tabs close at once). The server sends each pane's
+    `running_program`. Still open: the API `force` guard and computing the
+    impact on the server.
 - [ ] Clicking a top-level tab that has child tabs should open the most
   recently active tab of that group, not the first one.
   - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): remember

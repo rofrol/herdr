@@ -280,6 +280,11 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
 # Ask for confirmation before closing a workspace
 # confirm_close = true
 
+# Ask before closing a tab, pane or workspace with running work: a tab marked
+# running (e.g. a herdr-job), a working or blocked agent, or a program the
+# shell started, e.g. lazygit. Independent of confirm_close.
+# confirm_close_running = true
+
 # Ask for a tab name before creating a new tab.
 # Set false to create tabs immediately with generated names.
 # prompt_new_tab_name = true
