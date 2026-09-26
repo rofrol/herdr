@@ -269,6 +269,7 @@ pub(super) fn snapshot_with_completions(
         panes,
         agents,
         commands: app.client_shell_command_manifest(),
+        build_commit: crate::build_info::commit_line().map(str::to_owned),
     };
     (shell, completions)
 }

@@ -860,3 +860,73 @@ fn title_tab_label_shows_the_agents_task_title_at_a_fixed_width() {
     );
     assert!(!tab("tab_2").1.contains("lazygit"), "agent titles win");
 }
+
+#[test]
+fn sidebar_keeps_its_last_row_for_the_build_commit() {
+    // Builds outside a git checkout have no commit row to check.
+    let Some(build) = crate::build_info::commit_line() else {
+        return;
+    };
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
+    state.set_snapshot(Box::new(snapshot()));
+    state.set_pane_surface(surface());
+    let frame = state.compose(106, 30).expect("frame");
+    let last_row: String = frame.cells[29 * 106..30 * 106]
+        .iter()
+        .map(|cell| cell.symbol.as_str())
+        .collect();
+    let hash = build.split(' ').next().expect("hash");
+    assert!(last_row.contains(hash), "{last_row:?}");
+    assert!(last_row.contains('«'), "the toggle keeps its place");
+    assert_eq!(state.hits.sidebar_sections.bottom(), 29);
+
+    // Dragging the section divider puts it where the pointer is.
+    let divider = state.hits.sidebar_section_divider;
+    state.handle_raw_events(vec![RawInputEvent::Mouse(crossterm::event::MouseEvent {
+        kind: MouseEventKind::Down(MouseButton::Left),
+        column: divider.x + 2,
+        row: divider.y,
+        modifiers: KeyModifiers::empty(),
+    })]);
+    state.handle_raw_events(vec![RawInputEvent::Mouse(crossterm::event::MouseEvent {
+        kind: MouseEventKind::Drag(MouseButton::Left),
+        column: divider.x + 2,
+        row: 20,
+        modifiers: KeyModifiers::empty(),
+    })]);
+    state.compose(106, 30).expect("dragged frame");
+    assert_eq!(state.hits.sidebar_section_divider.y, 20);
+}
+
+#[test]
+fn build_row_shows_the_endpoint_commit_and_flags_a_different_client() {
+    use super::super::sidebar::build_row;
+    let server = "91a3b6c5 docs: plan";
+    assert_eq!(
+        build_row(Some(server), Some(server)),
+        build_row(Some(server), None)
+    );
+    assert_eq!(
+        build_row(None, Some("44106f0f feat: tabs")),
+        build_row(Some("44106f0f feat: tabs"), None),
+        "older endpoints leave the client's commit"
+    );
+    assert_eq!(build_row(None, None), None);
+
+    let Some(client) = crate::build_info::commit_line() else {
+        return;
+    };
+    let mut snapshot = snapshot();
+    snapshot.build_commit = Some("0badc0de fix: old server".into());
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
+    state.set_snapshot(Box::new(snapshot));
+    state.set_pane_surface(surface());
+    let frame = state.compose(106, 30).expect("frame");
+    let last_row: String = frame.cells[29 * 106..30 * 106]
+        .iter()
+        .map(|cell| cell.symbol.as_str())
+        .collect();
+    let client_hash = client.split(' ').next().expect("hash");
+    assert!(last_row.contains("0badc0de ≠ cli"), "{last_row:?}");
+    assert!(last_row.contains(&client_hash[..4]), "{last_row:?}");
+}
