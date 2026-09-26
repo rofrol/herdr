@@ -87,6 +87,19 @@ def color(value, default):
 
 
 class Screen(pyte.Screen):
+    # pyte ignores SGR 2 (dim), which herdr uses behind modals; carry it in
+    # the unused blink attribute so render() can fade those cells.
+    def select_graphic_rendition(self, *attrs, **kwargs):
+        mapped = []
+        for attr in attrs:
+            if attr == 2:
+                mapped.append(5)
+            elif attr == 22:
+                mapped.extend((22, 25))
+            else:
+                mapped.append(attr)
+        super().select_graphic_rendition(*mapped, **kwargs)
+
     # pyte rejects some private DSR/DA queries; the demo does not need replies.
     def report_device_status(self, *args, **kwargs):
         pass
@@ -107,6 +120,8 @@ def render(screen, caption=""):
             bg = color(ch.bg, DEFAULT_BG)
             if ch.reverse:
                 fg, bg = bg, fg
+            if ch.blink:
+                fg = tuple((a + b * 2) // 3 for a, b in zip(fg, bg))
             px, py = PAD + x * CW, PAD + y * CH
             if bg != DEFAULT_BG:
                 draw.rectangle([px, py, px + CW - 1, py + CH - 1], fill=bg)
@@ -275,7 +290,7 @@ def main():
     rec = Recorder(args.herdr, args.socket, args.out_dir)
     rec.pump(6)
     rec.wait_for_usage(90)
-    rec.shot("herdr fork: usage widget, middle-click close, notifications, job tabs", 2200)
+    rec.shot("herdr fork: usage widget, middle-click close, notifications, job tabs, oracle stats", 2200)
 
     cap = "Click the usage footer to see limits and reset times"
     fy, fx = rec.find(lambda y, line: (y, 1) if line.startswith(" AN ") and "%" in line[:24] else None)
@@ -333,6 +348,22 @@ def main():
         if "herdr" in line[:24] and "⏳" in line[:24] else None
     )
     rec.add(highlight(render(rec.screen, cap), jy, jx, cells), 3000)
+
+    cap = "The herdr menu opens oracle stats: which second-opinion models helped"
+    my, mx = rec.find(lambda y, line: (y, line.index("menu") + 1) if "menu" in line[:26] else None)
+    rec.add(pointer(render(rec.screen, cap), my, mx), 1300)
+    rec.mouse(my, mx, 0)
+    rec.pump(0.8)
+    oy, ox = rec.find(lambda y, line: (y, line.index("oracle stats") + 2) if "oracle stats" in line else None)
+    rec.add(pointer(render(rec.screen, cap), oy, ox), 1400)
+    rec.mouse(oy, ox, 0)
+    rec.pump(2.5)
+    rec.shot(cap, 4200)
+    cap = "The background dims behind the popup; a click outside closes it"
+    rec.add(pointer(render(rec.screen, cap), 1, 2, "click outside"), 1800)
+    rec.mouse(1, 2, 0)
+    rec.pump(1.0)
+    rec.shot(cap, 1500)
     rec.finish()
     print(f"recorded {len(rec.frames)} frames")
 

@@ -41,6 +41,10 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
   Closing a parent tab asks first and closes its jobs too. Child tabs and
   statuses are ordinary API (`herdr tab parent`, `herdr tab status`), usable
   by any script.
+- **Oracle stats in the herdr menu.** The sidebar's `menu` has an
+  **oracle stats** item that opens the [oracle plugin](plugins/oracle/README.md)'s
+  stats popup; a click outside closes it. Plugin popups also dim the
+  background behind them, like herdr's own dialogs.
 - **Middle click closes tabs and workspaces.** Middle-click a tab or a
   workspace in the sidebar to close it, with the same confirmation as the
   context menu's Close. Pane apps with mouse reporting still get middle clicks
@@ -73,6 +77,9 @@ or link it from a checkout with `herdr plugin link plugins/<name>`.
 - [**relaunch**](plugins/relaunch/README.md): reruns the programs panes were
   running (lazygit, editors, ...) after a server restart or reboot; herdr
   itself brings them back as empty shells.
+- [**oracle**](plugins/oracle/README.md): `gpt`, `gemini` and `deepseek`
+  skills that let a coding agent ask another model for a second opinion, and
+  `oracle-stats`, which logs every call and rates which models helped.
 
 The demo video below is recorded with `scripts/fork_demo/record.sh`; see
 [scripts/fork_demo/README.md](scripts/fork_demo/README.md) to re-record it.
@@ -111,7 +118,7 @@ herdr
 
 ---
 
-https://github.com/user-attachments/assets/af7d3889-cb5b-4fbf-986c-e9751884a48c
+https://github.com/user-attachments/assets/2ac8a20d-9b26-4d06-8744-45d20aaf30dc
 
 **the runtime your coding agents live on.**
 

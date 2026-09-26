@@ -11,6 +11,8 @@ shows the fork's features in a real herdr client:
 5. a long job runs in a child tab of the agent's tab (the second tab row), and
    the space's row counts running and failed jobs (`⏳1 !1`) while the agent
    is idle.
+6. the herdr menu's **oracle stats** item opens the oracle plugin's stats
+   popup over a dimmed background, and a click outside closes it.
 
 ## Re-record
 
@@ -35,6 +37,8 @@ The script:
 - creates the `herdr` space (tabs `code`, `agent`, `logs`), `website`, and
   `notes`, and marks the `agent` pane as a working `claude` agent through
   `herdr pane report-agent`; the agent's output is placeholder text;
+- links the [oracle plugin](../../plugins/oracle/README.md), whose stats
+  popup reads the real oracle log in `~/.local/state/oracle/`;
 - `record.py` nests the job tabs itself with `herdr tab parent` and sets
   their `herdr tab status`, as `herdr-job` does; no command runs in them;
 - runs `record.py`, which attaches a real client in a pseudo-terminal, sends

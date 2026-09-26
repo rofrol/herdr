@@ -6,8 +6,8 @@ usage() {
 usage: scripts/fork_demo/record.sh [OUTPUT.mp4]
 
 Records the fork demo video (usage widget, middle-click close, notification
-click, job tabs) from a debug herdr build in a throwaway session. Defaults to
-assets/fork-demo.mp4. See scripts/fork_demo/README.md.
+click, job tabs, oracle stats popup) from a debug herdr build in a throwaway
+session. Defaults to assets/fork-demo.mp4. See scripts/fork_demo/README.md.
 USAGE
 }
 
@@ -86,6 +86,8 @@ h pane run w1:p1 "clear; git log --oneline -8"
 h pane run w1:p2 "clear; printf '\\e]0;Fix the login bug\\a'; printf '\\n  > fix the login bug in src/auth\\n\\n  * Reading src/auth/login.rs\\n  * Updating session check in login()\\n  * Running cargo test auth\\n'"
 h pane run w1:p3 "clear; tail -n 5 /etc/hosts"
 h pane report-agent --source demo --agent claude --state working w1:p2
+# The oracle stats popup reads the real oracle log under $HOME.
+h plugin link "$repo_dir/plugins/oracle"
 sleep 1
 
 uv run --quiet --with pyte --with pillow python "$script_dir/record.py" \
