@@ -8,11 +8,13 @@ usage() {
 usage: herdr_live.sh test|keep|back
 
   test  hand the session off to this checkout's target/release/herdr and
-        record its hash; outside Herdr this terminal then attaches with it,
-        inside Herdr it lists clients still on the old binary
+        record its hash; this terminal then attaches with it
   keep  install the tested build over the installed binary (refuses if the
         build changed since `test`) and hand the session off to it
   back  hand the session back to the installed binary
+
+Run it in a plain terminal, not in a Herdr pane: the handoff closes every
+attached client, including the one showing that pane.
 
 The installed binary is $HERDR_INSTALLED (default ~/.cargo/bin/herdr).
 USAGE
@@ -59,6 +61,14 @@ handoff() {
 fingerprint() {
   printf '%s %s\n' "$(shasum -a 256 "$candidate" | cut -d' ' -f1)" "$candidate"
 }
+
+# The handoff closes every attached client, including the one showing this
+# pane, so a message printed here is never seen. From a plain terminal the
+# script attaches with the new binary itself.
+if [[ -n "${HERDR_PANE_ID:-}" && "${1:-}" =~ ^(test|keep|back)$ ]]; then
+  echo "run this outside Herdr, in a plain terminal: the handoff closes the client showing this pane" >&2
+  exit 1
+fi
 
 case "${1:-}" in
   test)

@@ -364,8 +364,9 @@ cargo build --release --locked
 The user tries it with `scripts/herdr_live.sh`:
 
 - `test` records the build's hash and live-hands the session off to
-  `target/release/herdr`; the user attaches with that binary, since the TUI
-  client runs the fix too.
+  `target/release/herdr`; the user runs it from a plain terminal (it refuses
+  inside a Herdr pane, whose client the handoff closes), which then attaches
+  with that binary, since the TUI client runs the fix too.
 - `back` hands the session back to the installed binary when the candidate is
   bad.
 - `keep` installs the tested build: it refuses if `target/release/herdr`
