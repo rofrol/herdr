@@ -278,7 +278,7 @@ fn child_tabs_get_their_own_row_and_a_summary_on_the_parent() {
     let rows = frame_rows(&frame);
 
     assert_eq!(state.hits.tabs.len(), 1, "children leave the main row");
-    assert!(rows[0].contains("1 ⧖1 !1"), "{}", rows[0]);
+    assert!(rows[0].contains("1 ⧖ 1 !1"), "{}", rows[0]);
     assert!(
         rows[1].contains("! build") && rows[1].contains("⧖ tests"),
         "{}",
@@ -336,7 +336,7 @@ fn closing_a_parent_asks_then_closes_its_children_first() {
     let frame = state.compose(106, 24).unwrap();
     let text = frame_rows(&frame).join("\n");
     assert!(text.contains("Close tab and its child tabs?"), "{text}");
-    assert!(text.contains("2 child tabs: ⧖1 !1"), "{text}");
+    assert!(text.contains("2 child tabs: ⧖ 1 !1"), "{text}");
 
     let accepted = state.handle_input_bytes(b"\r");
 

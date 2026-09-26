@@ -19,7 +19,7 @@ herdr-job clean           # close this pane's finished job tabs (--all: everyone
   has jobs, a second row under the tab bar lists the active tab's own
   content first (named after its agent, e.g. `claude`) and then its jobs,
   e.g. `claude  ⧖ tests  ! build`; the parent tab shows a summary such as
-  `1 ⧖1 !2 ✓3`. herdr draws the icons from the tab's status
+  `1 ⧖ 1 !2 ✓3`. herdr draws the icons from the tab's status
   (`herdr tab status`), set to running, then succeeded or failed; failure
   is `!` because `✗` next to a tab label reads as a close button. After
   success the tab closes itself 10 s later (`--keep` leaves it open); after
@@ -43,7 +43,7 @@ herdr-job clean           # close this pane's finished job tabs (--all: everyone
   list would push other agents out of view. Names and exit codes are in
   `herdr-job list` and the tab labels.
 - The space's row in the sidebar counts its running and failed tabs, e.g.
-  `○ repo ⧖1`: the space's dot is its agents' state, so it stays idle while
+  `○ repo ⧖ 1`: the space's dot is its agents' state, so it stays idle while
   the agent waits for a job (the `tab_jobs` token).
 - `herdr-bg-badge` (a Claude Code Stop hook) puts the number of Claude's own
   background tasks in `$bg` (`2 bg`), skipping `herdr-job wait` tasks, which

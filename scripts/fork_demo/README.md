@@ -10,7 +10,7 @@ by real mouse and key events:
 4. an agent finishes in a background tab, and clicking its notification jumps
    to that tab.
 5. a long job runs in a child tab of the agent's tab (the second tab row), and
-   the space's row counts running and failed jobs (`⧖1 !1`) while the agent
+   the space's row counts running and failed jobs (`⧖ 1 !1`) while the agent
    is idle.
 6. the herdr menu's **oracle stats** item opens the oracle plugin's stats
    popup over a dimmed background, and a click outside closes it.

@@ -90,7 +90,7 @@ pub(super) fn status_icon(status: Option<TabStatus>) -> Option<&'static str> {
     }
 }
 
-/// Counts of the children's statuses, e.g. `⧖1 !2 ✓3`; empty without children.
+/// Counts of the children's statuses, e.g. `⧖ 1 !2 ✓3`; empty without children.
 /// Children without a status are counted as `•N`.
 pub(super) fn children_summary(children: &[&ClientShellTab]) -> String {
     let count = |wanted: Option<TabStatus>| {
@@ -107,7 +107,11 @@ pub(super) fn children_summary(children: &[&ClientShellTab]) -> String {
     ]
     .into_iter()
     .filter(|(_, count)| *count > 0)
-    .map(|(icon, count)| format!("{icon}{count}"))
+    // `⧖` is as tall as a digit and runs into it without a space.
+    .map(|(icon, count)| match icon {
+        "⧖" => format!("{icon} {count}"),
+        _ => format!("{icon}{count}"),
+    })
     .collect::<Vec<_>>()
     .join(" ")
 }

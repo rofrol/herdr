@@ -34,8 +34,8 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
   `herdr-job` job gets a child tab of the tab that started it. While a
   workspace has child tabs, a second row under the tab bar lists the active
   tab's own content and its jobs (`claude  ⧖ tests  ! build`), and the parent
-  tab shows a summary such as `⧖1 !2 ✓3`. The space's sidebar row counts
-  its running and failed tabs (`○ repo ⧖1`, the `tab_jobs` token), so
+  tab shows a summary such as `⧖ 1 !2 ✓3`. The space's sidebar row counts
+  its running and failed tabs (`○ repo ⧖ 1`, the `tab_jobs` token), so
   background work stays visible while the agent is idle, and the agent that
   started the jobs shows their counts (`2⧖ 1✗ 1✓`, the `$jobs` token).
   Closing a parent tab asks first and closes its jobs too. Child tabs and
