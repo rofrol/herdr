@@ -186,6 +186,16 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     when the order or the block's row changes.
   - Do not collapse spaces while dragging (it moves the target as the user
     aims). Worktree children move with the parent, labelled `herdr (+2)`.
+  - Done in part 2026-09-26: the list shows the drop live (the dragged
+    space and its worktrees move to where they would land), the dragged
+    block gets an accent bar instead of the grey, the thin line is gone,
+    the header says `herdr → before try-roguix`, `herdr → end` or
+    `no change · Esc`, and Esc cancels. The target is the landing slot
+    nearest the block's top (grabbed row kept) in the list without the
+    dragged block, so it does not flicker. Still open: the row-by-row
+    slide animation, auto-scroll near the edges, keyboard reorder, the
+    priority-view rule, and the local sidebar only (with remote endpoints
+    the aggregate sidebar keeps the old look).
   - Drag starts only from the space's name line after a small threshold, so
     clicks, chevrons and agent/job rows keep working; a click is suppressed
     after a drag. Esc cancels. Time-based auto-scroll near the list edges.

@@ -554,7 +554,39 @@ impl ClientShellState {
         Some(last_index + 1)
     }
 
-    fn workspace_drop_target_at(&self, point: (u16, u16)) -> Option<(Option<String>, u16)> {
+    /// Top-level blocks of this endpoint's spaces as drawn: (id, top, bottom)
+    /// per space with its indented worktrees.
+    fn workspace_blocks(&self) -> Vec<(String, u16, u16)> {
+        let mut blocks = Vec::<(String, u16, u16)>::new();
+        for hit in self
+            .hits
+            .workspaces
+            .iter()
+            .filter(|hit| hit.endpoint_id == self.active_endpoint_id)
+        {
+            match blocks.last_mut() {
+                Some(block) if hit.indented => block.2 = hit.rect.bottom(),
+                _ => blocks.push((hit.workspace_id.clone(), hit.rect.y, hit.rect.bottom())),
+            }
+        }
+        blocks
+    }
+
+    /// Where the dragged space would land: `Some(before)` (`None` for the
+    /// end), or `None` when the pointer is outside this endpoint's spaces.
+    ///
+    /// Spaces move as whole blocks (a space with its indented worktrees). The
+    /// dragged block's top follows the pointer at the row it was grabbed by,
+    /// and the target is the landing slot nearest to that top in the list
+    /// without the dragged block. That list does not depend on where the live
+    /// preview drew the block, so the target cannot flip back and forth: the
+    /// block passes a neighbour after moving about that neighbour's height.
+    fn workspace_drop_target_at(
+        &self,
+        point: (u16, u16),
+        source_workspace_id: &str,
+        grab_offset: u16,
+    ) -> Option<Option<String>> {
         if self.hits.workspace_body.height == 0
             || point.1 < self.hits.workspace_body.y.saturating_sub(1)
             || point.1 >= self.hits.new_workspace.y
@@ -564,49 +596,43 @@ impl ClientShellState {
         {
             return None;
         }
-        let mut slots = self
-            .hits
-            .workspaces
+        let blocks = self.workspace_blocks();
+        let source = blocks
             .iter()
-            .filter(|hit| hit.endpoint_id == self.active_endpoint_id && !hit.indented)
-            .map(|hit| (Some(hit.workspace_id.clone()), hit.rect.y.saturating_sub(1)))
-            .collect::<Vec<_>>();
-        let snapshot = self.snapshot.as_deref()?;
-        let empty_collapsed_groups = HashSet::new();
-        let collapsed_groups = self
-            .collapsed_groups_for_endpoint(&self.active_endpoint_id)
-            .unwrap_or(&empty_collapsed_groups);
-        let entries = render::workspace_entries(snapshot, collapsed_groups);
-        let last_hit = self
-            .hits
-            .workspaces
-            .iter()
-            .rev()
-            .find(|hit| hit.endpoint_id == self.active_endpoint_id)?;
-        let last_position = entries.iter().position(|entry| {
-            snapshot
-                .workspaces
-                .get(entry.index)
-                .is_some_and(|workspace| workspace.workspace_id == last_hit.workspace_id)
-        })?;
-        let next = entries.get(last_position + 1);
-        if !next.is_some_and(|entry| entry.indented) {
-            let before = next.and_then(|entry| {
-                snapshot
-                    .workspaces
-                    .get(entry.index)
-                    .map(|workspace| workspace.workspace_id.clone())
-            });
-            let row = last_hit.rect.bottom();
-            if row < self.hits.new_workspace.y {
-                slots.push((before, row));
+            .position(|(id, ..)| id == source_workspace_id)?;
+        // Blocks after the dragged one move up into its place, gap included.
+        let shift = blocks
+            .get(source + 1)
+            .map_or(0, |next| next.1.saturating_sub(blocks[source].1));
+        let compact_top = |index: usize, top: u16| {
+            if index > source {
+                top.saturating_sub(shift)
+            } else {
+                top
             }
-        }
+        };
+        let mut slots = blocks
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| *index != source)
+            .map(|(index, (id, top, _))| (Some(id.clone()), compact_top(index, *top)))
+            .collect::<Vec<_>>();
+        let end = blocks
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| *index != source)
+            .map(|(index, (_, top, bottom))| {
+                compact_top(index, *top).saturating_add(bottom.saturating_sub(*top))
+            })
+            .max()
+            .unwrap_or(blocks[source].1);
+        slots.push((None, end));
+        let top = point.1.saturating_sub(grab_offset);
         slots
             .into_iter()
             .enumerate()
-            .min_by_key(|(index, (_, row))| (point.1.abs_diff(*row), *index))
-            .map(|(_, target)| target)
+            .min_by_key(|(index, (_, row))| (top.abs_diff(*row), *index))
+            .map(|(_, (before, _))| before)
     }
 
     fn workspace_move_method(
@@ -1228,8 +1254,13 @@ impl ClientShellState {
                     outcome.repaint = true;
                     return;
                 }
-                Some(ClientChromeDrag::Workspace { .. }) => {
-                    let target = self.workspace_drop_target_at(point);
+                Some(ClientChromeDrag::Workspace {
+                    source_workspace_id,
+                    grab_offset,
+                    ..
+                }) => {
+                    let (source, grab_offset) = (source_workspace_id.clone(), *grab_offset);
+                    let target = self.workspace_drop_target_at(point, &source, grab_offset);
                     if let Some(ClientChromeDrag::Workspace {
                         target: current, ..
                     }) = self.chrome_drag.as_mut()
@@ -1249,11 +1280,19 @@ impl ClientShellState {
                 if delta >= 1 {
                     let source_workspace_id = press.workspace_id.clone();
                     let draggable = self.endpoint_workspace_is_draggable(press);
+                    let grab_offset = self
+                        .workspace_blocks()
+                        .iter()
+                        .find(|(id, ..)| *id == source_workspace_id)
+                        .map_or(0, |(_, top, _)| press.start_row.saturating_sub(*top));
                     if draggable {
-                        if let Some(target) = self.workspace_drop_target_at(point) {
+                        if let Some(target) =
+                            self.workspace_drop_target_at(point, &source_workspace_id, grab_offset)
+                        {
                             self.chrome_drag = Some(ClientChromeDrag::Workspace {
                                 source_workspace_id,
                                 target: Some(target),
+                                grab_offset,
                             });
                             outcome.repaint = true;
                         }
@@ -1322,8 +1361,9 @@ impl ClientShellState {
                     ClientChromeDrag::Workspace {
                         source_workspace_id,
                         target,
+                        ..
                     } => {
-                        if let Some((before_workspace_id, _)) = target {
+                        if let Some(before_workspace_id) = target {
                             if let Some(method) = self.workspace_move_method(
                                 &source_workspace_id,
                                 before_workspace_id.as_deref(),

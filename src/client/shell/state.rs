@@ -228,7 +228,10 @@ pub(super) enum ClientChromeDrag {
     },
     Workspace {
         source_workspace_id: String,
-        target: Option<(Option<String>, u16)>,
+        /// Where the space would land: before this space, or `None` for the end.
+        target: Option<Option<String>>,
+        /// Rows between the dragged block's top and the row it was grabbed at.
+        grab_offset: u16,
     },
     PaneSplit {
         hit: PaneSplitHit,
