@@ -79,74 +79,47 @@ filesystems may not honour.
   tab is closed (herdr's `notification.show_for_pane`; older herdr builds get
   a notification without a click target). A click only moves focus; it never
   runs a command, so a remote server cannot choose what your machine runs.
-  Click actions work on macOS with `terminal-notifier`; Linux (D-Bus) is not
-  done yet.
+  Click actions work on macOS with `terminal-notifier` and on Linux with
+  `notify-send` from libnotify >= 0.7.10 (see below).
 - A job is alive while its executor holds an `flock`, not while its PID
   exists: after a crash or reboot the PID can belong to another process and
   `wait` would hang forever.
 - macOS and Linux only (`flock`, `/bin/sh`, POSIX signals). State files are
   private (0600): commands and logs may contain secrets.
 
-## TODO: clickable notifications on Linux
+## Clickable notifications on Linux
 
-On Linux the completion notification is shown (`notify-send`), but clicking
-it does nothing: `show_desktop_notification_with_details` in
-`src/platform/linux.rs` drops the click action. The client shows
-notifications, so it is on the desktop's session bus even when the server runs
-elsewhere.
+The client shows notifications, so it is on the desktop's session bus even
+when the server runs elsewhere. For a notification with a click target it runs
+`notify-send --action=default=Open --wait` on a background thread; when that
+prints `default`, it runs the same focus commands as macOS (agent → tab →
+workspace), never a command chosen by the server. An older `notify-send` that
+rejects `--action` gets a plain notification instead. At most 16 notifications
+wait for a click at once (GNOME keeps unread ones in its tray); later ones are
+shown without a click target. Only the foreground client gets a notification,
+so several attached clients never act on one click.
 
-**Step 0, feasibility (before any code).** On a Wayland desktop, send one
-notification with a `default` action and click it:
+System notifications need `[ui.toast] delivery = "system"` in herdr's config
+(a debug build reads `~/.config/herdr-dev/`, not `~/.config/herdr/`).
 
-```sh
-gdbus monitor --session --dest org.freedesktop.Notifications &
-notify-send --action=default=Open --wait "herdr test" "click me"
-```
+Checked:
 
-Does clicking print `default` / emit `ActionInvoked`? Does the daemon report
-`actions` in `GetCapabilities` and send `ActivationToken`? If clicks never
-arrive, stop here.
+| Desktop | Daemon | `notify-send` | Click → focus | Date |
+|---|---|---|---|---|
+| Fedora 44 Workstation, aarch64 VM (QEMU) | GNOME Shell 50.0, spec 1.2 | 0.8.8 | yes, switched to the pane's workspace | 2026-09-26 |
 
-Results so far:
-
-| Desktop | Daemon | `actions` | Click → `default` | `ActivationToken` | Date |
-|---|---|---|---|---|---|
-| Fedora 44 Workstation, aarch64 VM (QEMU) | GNOME Shell 50.0, spec 1.2 | yes | yes (`ActionInvoked`) | yes, sent just before `ActionInvoked` | 2026-09-25 |
-
-`notify-send` 0.8.8 prints the action (`default`) but not the token, so
-raising the window would need the D-Bus route.
-
-**v1: switch to the job's tab, nothing more.**
-
-- Simplest: for click-capable notifications run
-  `notify-send --action=default=Open --wait` on a background thread (needs
-  libnotify >= 0.7.10); when it prints `default`, run the same focus commands
-  macOS runs (agent → tab → workspace), never a command chosen by the server.
-  Less Rust in a file the upstream keeps changing than a `zbus` listener.
-- Alternative if that is not enough: D-Bus `Notify` with a `default` action via
-  the existing `zbus` dependency, checking `GetCapabilities`, one listener for
-  `ActionInvoked`/`NotificationClosed` matched by id, reset when the daemon
-  restarts.
-- Decide: with several clients attached, which one acts on the click; and
-  what a click does when the workspace is gone too (nothing, quietly).
+To check another desktop: in a herdr pane run
+`herdr notification show T --pane "$HERDR_PANE_ID"` after a short `sleep`,
+switch to another herdr workspace, click the notification; then with a closed
+tab (`herdr-job run --notify always --name T -- true`, workspace fallback).
 
 **Later, research: bring the terminal window forward.** Wayland blocks focus
 stealing, so switching herdr's tab may leave the terminal behind another
 window or on another desktop workspace (macOS gets this from
-`terminal-notifier -activate`). Every desktop differs (`ActivationToken`
-handling, compositor commands such as `hyprctl`), so it is not part of v1.
-
-**Testing, repeatable without personal VMs:**
-
-1. Rust tests of the click handling (`just test`, Linux CI).
-2. Manual check on a public image, e.g. Fedora Workstation (GNOME) in a VM,
-   and any Hyprland distribution: build the fork, run
-   `herdr-job run --notify always --name T -- 'sleep 20; false'`, switch to
-   another herdr workspace, click; then with `true` (tab closed → workspace).
-   Record daemon, version, `actions` capability, result.
-3. Optional: a scripted container test (headless sway + mako,
-   `makoctl invoke` as the click). Not a gate; it cannot test real clicks or
-   window raising.
+`terminal-notifier -activate`). GNOME sends an `ActivationToken` just before
+`ActionInvoked`, but `notify-send` does not print it, so raising the window
+needs the D-Bus route (the existing `zbus` dependency); every desktop differs
+(`ActivationToken` handling, compositor commands such as `hyprctl`).
 
 ## Skills: a script in its own job tab
 
