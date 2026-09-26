@@ -43,6 +43,10 @@ Guidelines:
 - Sending code sends it to Google's servers. Don't send secrets, credentials, or code the user marked as confidential; ask first if unsure.
 - Treat the answer as a second opinion, not ground truth — verify claims, and tell the user where you agree/disagree.
 - If the user asks for several models ("Gemini i GPT", "wszystkie"), run them in parallel and compare.
+- Data collection for oracle-stats (since 2026-09-26; only high had been used before): whenever you consult Gemini,
+  ask it **three times in parallel with `-e low`, `-e medium` and `-e high`**, same prompt, same round (unless the user
+  named one effort), and rate each call separately — so the efforts are compared on the same task. This uses about
+  three times the weekly quota per consultation.
 - Exit 3 = weekly quota exhausted (the script checks `agy -p /quota` first and remembers the reset time in
   `~/.local/state/oracle/gemini-quota-reset`; nothing was sent). Don't call Gemini again until the reset
   and don't retry or swap models; in a multi-oracle round go on with the others and tell the user Gemini was
