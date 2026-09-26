@@ -412,7 +412,7 @@ pub(crate) fn render_child_tab_bar(
                 area.y,
                 1,
                 "│",
-                Style::default().fg(palette.overlay0).bg(band),
+                Style::default().fg(palette.surface1).bg(band),
             );
         }
         x = x.saturating_add(1);
@@ -454,8 +454,8 @@ fn accent_tint(palette: &Palette) -> ratatui::style::Color {
             let mix = |accent: u8, base: u8| {
                 let accent = u16::from(accent);
                 let base = u16::from(base);
-                // A quarter of the accent over the background.
-                ((accent + base * 3 + 2) / 4) as u8
+                // An eighth of the accent over the background.
+                ((accent + base * 7 + 4) / 8) as u8
             };
             Color::Rgb(mix(ar, br), mix(ag, bg), mix(ab, bb))
         }
