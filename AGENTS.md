@@ -386,3 +386,8 @@ installs exactly the tested binary, so build the candidate from current
 binary. Another session's candidate may be sitting in the main checkout's
 `target/`: ask that session before rebuilding there, and test and keep one
 candidate that contains both fixes.
+
+Never install Herdr any other way: no symlink to `target/release/herdr`, no
+`cargo install`, and no shell aliases for these steps. The installed binary
+must stay the last build the user confirmed, and only `scripts/herdr_live.sh`
+replaces it.
