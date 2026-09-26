@@ -3,14 +3,14 @@
 # Usage: ask_gemini.sh [-m flash|<id>] [-e low|medium|high] [-r] [-f FILE]... "prompt"   (-f - reads stdin)
 # -r: run agy in the current git repo, so it can read files itself (writes are denied in headless mode).
 set -euo pipefail
-oracle_dir="$(dirname "$(realpath "$0")")/../oracle-stats"  # the skills live side by side, wherever they are linked from
+consult_dir="$(dirname "$(realpath "$0")")/../consult-stats"  # the skills live side by side, wherever they are linked from
 orig=("$@")  # for the herdr-job re-run, once the model is known
 model="${GEMINI_MODEL:-}"; effort=high; files=(); repo=""
 while getopts "m:e:f:r" o; do
   case $o in m) model=$OPTARG;; e) effort=$OPTARG;; f) files+=("$OPTARG");; r) repo=1;; *) exit 2;; esac
 done
 shift $((OPTIND-1))
-# Flash only: Pro drained the shared weekly quota, had only view_file in agy, and scored lowest in oracle-stats.
+# Flash only: Pro drained the shared weekly quota, had only view_file in agy, and scored lowest in consult-stats.
 [ -n "$model" ] || model=flash
 case $model in
   flash) model="gemini-3.8-flash-$effort";;
@@ -18,8 +18,8 @@ case $model in
 esac
 # Exhausted weekly quota: refuse up front (exit 3), without a request or a herdr tab. The reset time is remembered,
 # so until then not even `agy -p /quota` (~3 s) runs. ISO UTC timestamps compare as strings.
-if [ -z "${ORACLE_IN_JOB:-}" ]; then
-  quota_file=~/.local/state/oracle/gemini-quota-reset; now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+if [ -z "${CONSULT_IN_JOB:-}" ]; then
+  quota_file=~/.local/state/consult/gemini-quota-reset; now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   reset=$(cat "$quota_file" 2>/dev/null) || reset=""
   if [[ -z $reset || ! $reset > $now ]]; then
     reset=""
@@ -34,35 +34,35 @@ if [ -z "${ORACLE_IN_JOB:-}" ]; then
     echo "Gemini quota exhausted until $reset (UTC); do not call Gemini until then" >&2; exit 3
   fi
 fi
-if [ -z "${ORACLE_IN_JOB:-}" ] &&[ -n "${HERDR_SOCKET_PATH:-}" ] && command -v herdr-job >/dev/null; then
-  exec "$oracle_dir"/in_herdr_job.sh "gemini ${model#gemini-}" "$0" ${orig[@]+"${orig[@]}"}  # watch it in its own herdr tab
+if [ -z "${CONSULT_IN_JOB:-}" ] &&[ -n "${HERDR_SOCKET_PATH:-}" ] && command -v herdr-job >/dev/null; then
+  exec "$consult_dir"/in_herdr_job.sh "gemini ${model#gemini-}" "$0" ${orig[@]+"${orig[@]}"}  # watch it in its own herdr tab
 fi
 
 prompt="$*"
 # stdin only via -f -: a background job can inherit an open stdin that never sends EOF.
 for f in ${files[@]+"${files[@]}"}; do
   [ "$f" = - ] && label=stdin || label=$f
-  if [ "$f" = - ] && [ -n "${ORACLE_STDIN:-}" ]; then f=$ORACLE_STDIN; fi  # saved by in_herdr_job.sh
+  if [ "$f" = - ] && [ -n "${CONSULT_STDIN:-}" ]; then f=$CONSULT_STDIN; fi  # saved by in_herdr_job.sh
   prompt="$prompt"$'\n\n'"--- $label ---"$'\n'"$(cat "$f")"
 done
 # Regex match instead of ${prompt//[[:space:]]/}: the substitution is quadratic in bash and hangs on long prompts.
 [[ $prompt =~ [^[:space:]] ]] || { echo "Empty prompt" >&2; exit 1; }
 
 start=$SECONDS; answer_chars=""
-# Log every call for oracle-stats; logging must not change the exit code or fail the call.
-oracle_log() {
+# Log every call for consult-stats; logging must not change the exit code or fail the call.
+consult_log() {
   local rc=$? usage=""
   # Token usage from agy's result event; read before $tmp goes away. output_tokens includes thinking_tokens.
   usage=$(jq -c 'select(.event=="result") | .result.usage // empty' "$tmp/out" 2>/dev/null | tail -1) || true
   rm -rf "$tmp" 2>/dev/null || true
-  "$oracle_dir"/oracle.py log --skill gemini --model "$model" --mode "${repo:+repo}" \
+  "$consult_dir"/consult.py log --skill gemini --model "$model" --mode "${repo:+repo}" \
     --status "$([ $rc = 0 ] && echo ok || echo error)" --seconds $((SECONDS-start)) \
     --prompt-chars ${#prompt} ${answer_chars:+--answer-chars $answer_chars} \
     ${usage:+--usage-raw "$usage"} ${usage:+--usage "$(jq -c '{input: .input_tokens, cached: .cache_read_tokens,
       output: .output_tokens, reasoning: .thinking_tokens}' <<<"$usage" 2>/dev/null)"} || true
   exit $rc
 }
-tmp=$(mktemp -d); trap oracle_log EXIT
+tmp=$(mktemp -d); trap consult_log EXIT
 mkdir "$tmp/cwd"; cwd="$tmp/cwd"
 if [ -n "$repo" ]; then
   # The dotfiles env (GIT_DIR/GIT_WORK_TREE) would point git, and agy's git commands, at the home repo.

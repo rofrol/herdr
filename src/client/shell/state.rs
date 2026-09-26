@@ -943,7 +943,7 @@ pub(crate) struct ClientShellState {
     pub(super) input_leases: ClientInputLeases,
     pub(super) popup_pending: bool,
     pub(super) popup_pending_deadline: Option<std::time::Instant>,
-    /// The pending popup is oracle stats: a read-only view a click outside may close.
+    /// The pending popup is consult stats: a read-only view a click outside may close.
     pub(super) popup_pending_dismissable: bool,
     /// Terminal id of the open popup when a click outside closes it.
     pub(super) dismissable_popup_id: Option<String>,

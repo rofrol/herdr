@@ -139,8 +139,8 @@ fi
 
 The job runs in another pane, so it cannot read the caller's stdin: save it
 to a file first. Progress meant only for you goes to `$HERDR_JOB_TTY`.
-The oracle skills (`ask_gpt.sh`, `ask_gemini.sh`, `ask_deepseek.py`) do this
-through `~/.claude/skills/oracle-stats/in_herdr_job.sh` (in rofrol/dotfiles).
+The consult skills (`ask_gpt.sh`, `ask_gemini.sh`, `ask_deepseek.py`) do this
+through `~/.claude/skills/consult-stats/in_herdr_job.sh` (in rofrol/dotfiles).
 
 ## Claude background tasks: `herdr-bg-badge`
 

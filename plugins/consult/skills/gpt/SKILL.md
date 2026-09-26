@@ -33,18 +33,18 @@ Guidelines:
 - GPT has no context of this conversation: include the goal, relevant code and constraints in the prompt.
 - Sending code sends it to OpenAI's servers. Don't send secrets, credentials, or code the user marked as confidential; ask first if unsure.
 - Treat the answer as a second opinion, not ground truth — verify claims, and tell the user where you agree/disagree.
-- Data collection for oracle-stats: whenever you consult GPT, ask **astra, sol and terra in parallel** with the same
+- Data collection for consult-stats: whenever you consult GPT, ask **astra, sol and terra in parallel** with the same
   prompt and default effort (unless the user named one model), compare them, and rate each call separately — `--unique` counts
   what the other two (and Claude) missed. Luna only on request.
 - If the user asks for "GPT and DeepSeek", run both in parallel and compare.
-- On a usage-limit error, tell the user (Plus limits) and don't call GPT again in this session (no retries, no other GPT model); in a multi-oracle round go on with the others.
-- After triaging the answer, rate it (id is printed on stderr as `[oracle id: ...]`):
-  `~/.claude/skills/oracle-stats/oracle.py rate <id> useful|partial|useless --findings N --accepted N --unique N --note "..."`
-  — see the oracle-stats skill for what the fields mean. Then score yourself for the round with `oracle.py self`
+- On a usage-limit error, tell the user (Plus limits) and don't call GPT again in this session (no retries, no other GPT model); in a multi-model round go on with the others.
+- After triaging the answer, rate it (id is printed on stderr as `[consult id: ...]`):
+  `~/.claude/skills/consult-stats/consult.py rate <id> useful|partial|useless --findings N --accepted N --unique N --note "..."`
+  — see the consult-stats skill for what the fields mean. Then score yourself for the round with `consult.py self`
   (write your own findings down before reading the answers).
-- Every consultation is a round: start the command with `export ORACLE_ROUND=$(~/.claude/skills/oracle-stats/oracle.py new-round)`
-  and launch all oracles for that question in the same Bash call, so their calls share the round id
-  (paired token comparisons in `oracle.py stats --pairs`; `oracle.py self --round <id>`).
+- Every consultation is a round: start the command with `export CONSULT_ROUND=$(~/.claude/skills/consult-stats/consult.py new-round)`
+  and launch all models for that question in the same Bash call, so their calls share the round id
+  (paired token comparisons in `consult.py stats --pairs`; `consult.py self --round <id>`).
 
 ## Code review
 

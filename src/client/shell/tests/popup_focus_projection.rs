@@ -1256,7 +1256,7 @@ fn retained_surface_patch_rejects_stale_base_without_mutating_surface() {
 }
 
 #[test]
-fn click_outside_closes_only_the_oracle_stats_popup() {
+fn click_outside_closes_only_the_consult_stats_popup() {
     let click = |x: u16, y: u16| {
         vec![RawInputEvent::Mouse(crossterm::event::MouseEvent {
             kind: MouseEventKind::Down(MouseButton::Left),
