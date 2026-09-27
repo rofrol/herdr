@@ -160,13 +160,14 @@ pub(crate) fn render_collapsed_sidebar(
                 palette.overlay0
             }),
         );
+        let waiting = waits_on_job(snapshot, &agent.tab_id, agent.agent_status);
         put_text(
             buffer,
             rect.x.saturating_add(2),
             rect.y,
             rect.width.saturating_sub(2),
-            status_icon(agent.agent_status, config.status_indicators),
-            Style::default().fg(status_color(agent.agent_status, palette)),
+            agent_icon(agent.agent_status, waiting, config.status_indicators),
+            Style::default().fg(agent_color(agent.agent_status, waiting, palette)),
         );
         hits.agents.push((rect, pane_id));
     }

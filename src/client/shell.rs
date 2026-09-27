@@ -200,6 +200,51 @@ fn status_icon(
     }
 }
 
+/// Whether an agent looks finished but waits on its own work: its turn
+/// ended (idle or done) while a job it started still runs. Jobs run in child
+/// tabs of the agent's tab (herdr-job), so a running child tab is that job.
+/// A TUI presentation, not an `AgentStatus`: a running job does not prove
+/// the agent waits on it, and working or blocked still win.
+fn waits_on_job(
+    snapshot: &crate::protocol::ClientShellSnapshot,
+    tab_id: &str,
+    status: crate::api::schema::AgentStatus,
+) -> bool {
+    use crate::api::schema::{AgentStatus, TabStatus};
+    matches!(status, AgentStatus::Idle | AgentStatus::Done)
+        && snapshot.tabs.iter().any(|tab| {
+            tab.parent_tab_id.as_deref() == Some(tab_id) && tab.status == Some(TabStatus::Running)
+        })
+}
+
+/// `status_icon`, or the waiting-on-a-job mark: a filled dot in the Dots
+/// style (easy to spot in a long list), `◷` in the Symbols style.
+fn agent_icon(
+    status: crate::api::schema::AgentStatus,
+    waiting: bool,
+    style: crate::config::StatusIndicatorStyle,
+) -> &'static str {
+    match (waiting, style) {
+        (true, crate::config::StatusIndicatorStyle::Dots) => "●",
+        (true, crate::config::StatusIndicatorStyle::Symbols) => "◷",
+        (false, style) => status_icon(status, style),
+    }
+}
+
+/// `status_color`, or mauve while waiting on a job: yellow already means
+/// working, and blue is the accent and means finished elsewhere.
+fn agent_color(
+    status: crate::api::schema::AgentStatus,
+    waiting: bool,
+    palette: &Palette,
+) -> ratatui::style::Color {
+    if waiting {
+        palette.mauve
+    } else {
+        status_color(status, palette)
+    }
+}
+
 fn status_dot(status: crate::api::schema::AgentStatus) -> &'static str {
     status_icon(status, crate::config::StatusIndicatorStyle::Dots)
 }

@@ -298,7 +298,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     `MOONSHOT_API_KEY` or `kimi` in the auth file) and `usage.kimi_host`
     (`api.moonshot.cn` bills in CNY). Endpoint checked (401 without a key);
     not tried with a real key, since there is none on this Mac.
-- [ ] Agent status shows a green/teal circle while the agent waits on its
+- [x] Agent status shows a green/teal circle while the agent waits on its
   herdr-job: its turn ended, so herdr detects it as idle/done, and it reads
   as "agent finished". Use a different symbol for "waiting on a running job".
   - Consulted models (GPT-6 Astra, GPT-6 Luna, DeepSeek, 2026-09-26; Gemini
@@ -319,6 +319,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     it, so do not add a `Waiting` status to the frozen API enum.
   - Derive it from a structured server fact (e.g. a running-jobs count in pane
     metadata), not by parsing the rendered `$jobs` token text.
+  - Done 2026-09-27 (herdr-ef): an idle or done agent whose tab has a running
+    child tab (a herdr-job) gets a mauve `●` (Dots) or `◷` (Symbols) and the
+    state text "waiting on job", in the agents panel, the collapsed sidebar,
+    agents under spaces, remote agents and the mobile list. Derived from the
+    tabs' parent and status in the snapshot, so no new metadata. Mauve is
+    dark enough on the light themes; the terminal-colors theme maps mauve to
+    gray, so there it looks gray.
 - [ ] Make the consult skills (`plugins/consult`: gpt, gemini, deepseek,
   consult-stats) work in pi too, not only in Claude Code. pi 0.87.1
   implements the Agent Skills spec and reads `~/.pi/agent/skills/` (also

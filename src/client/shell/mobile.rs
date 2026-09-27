@@ -666,8 +666,11 @@ fn mobile_items(
             if let Some(tab) = tab.filter(|tab| tab.custom_label || workspace_tab_count > 1) {
                 detail.push(tab.label.clone());
             }
+            let waiting = waits_on_job(&endpoint.snapshot, &agent.tab_id, agent.agent_status);
             let status_key = status_text(agent.agent_status);
-            detail.push(
+            detail.push(if waiting {
+                "waiting on job".to_owned()
+            } else {
                 agent
                     .state_labels
                     .iter()
@@ -679,8 +682,8 @@ fn mobile_items(
                         } else {
                             status_key.to_owned()
                         }
-                    }),
-            );
+                    })
+            });
             detail.push(agent_label.to_owned());
             if endpoint.stale() {
                 detail.push(mobile_endpoint_state(endpoint.status).to_owned());
@@ -705,12 +708,12 @@ fn mobile_items(
                     Line::from(vec![
                         Span::styled("  ", Style::default().bg(background)),
                         Span::styled(
-                            status_icon(agent.agent_status, config.status_indicators),
+                            agent_icon(agent.agent_status, waiting, config.status_indicators),
                             Style::default()
                                 .fg(if endpoint.stale() {
                                     palette.overlay0
                                 } else {
-                                    status_color(agent.agent_status, palette)
+                                    agent_color(agent.agent_status, waiting, palette)
                                 })
                                 .bg(background)
                                 .add_modifier(dim),

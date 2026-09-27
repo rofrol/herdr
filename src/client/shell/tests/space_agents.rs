@@ -86,3 +86,56 @@ fn clicking_an_agent_line_focuses_its_pane() {
             if matches!(&request.method, crate::api::schema::Method::PaneFocus(target)
                 if target.pane_id == "pane_1"))));
 }
+
+fn with_job(
+    state: &mut ClientShellState,
+    status: AgentStatus,
+    job: Option<crate::api::schema::TabStatus>,
+) {
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    projected.agents[0].agent_status = status;
+    if let Some(job) = job {
+        let mut tab = projected.tabs[0].clone();
+        tab.tab_id = "tab_job".into();
+        tab.label = "build".into();
+        tab.focused = false;
+        tab.parent_tab_id = Some("tab_1".into());
+        tab.status = Some(job);
+        projected.tabs.push(tab);
+    }
+    state.set_snapshot(Box::new(projected));
+}
+
+fn agent_icon_color(state: &mut ClientShellState) -> (String, ratatui::style::Color) {
+    let frame = state.compose(106, 30).unwrap();
+    let buffer = frame.to_ratatui_buffer().expect("buffer");
+    let (rect, _) = state.hits.space_agents[0];
+    let cell = &buffer[(rect.x + 3, rect.y)];
+    (cell.symbol().to_owned(), cell.fg)
+}
+
+#[test]
+fn an_idle_agent_with_a_running_job_shows_the_waiting_mark() {
+    use crate::api::schema::TabStatus;
+    let mut state = state_with_agent(true);
+    with_job(&mut state, AgentStatus::Idle, Some(TabStatus::Running));
+    let mauve = state.config.palette.mauve;
+    assert_eq!(agent_icon_color(&mut state), ("●".to_owned(), mauve));
+
+    // A finished job, or a working agent, keeps the usual status.
+    let mut state = state_with_agent(true);
+    with_job(&mut state, AgentStatus::Idle, Some(TabStatus::Succeeded));
+    assert_ne!(agent_icon_color(&mut state).1, mauve);
+    let mut state = state_with_agent(true);
+    with_job(&mut state, AgentStatus::Working, Some(TabStatus::Running));
+    assert_eq!(agent_icon_color(&mut state).1, state.config.palette.yellow);
+}
+
+#[test]
+fn the_symbols_style_uses_a_clock_for_waiting() {
+    use crate::api::schema::TabStatus;
+    let mut state = state_with_agent(true);
+    state.config.status_indicators = crate::config::StatusIndicatorStyle::Symbols;
+    with_job(&mut state, AgentStatus::Done, Some(TabStatus::Running));
+    assert_eq!(agent_icon_color(&mut state).0, "◷");
+}
