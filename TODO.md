@@ -326,7 +326,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     tabs' parent and status in the snapshot, so no new metadata. Mauve is
     dark enough on the light themes; the terminal-colors theme maps mauve to
     gray, so there it looks gray.
-- [ ] Make the consult skills (`plugins/consult`: gpt, gemini, deepseek,
+- [x] Make the consult skills (`plugins/consult`: gpt, gemini, deepseek,
   consult-stats) work in pi too, not only in Claude Code. pi 0.87.1
   implements the Agent Skills spec and reads `~/.pi/agent/skills/` (also
   `~/.agents/skills/`), but every `SKILL.md` hardcodes
@@ -355,6 +355,16 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Verify in a live pi session: every skill, a round with ratings and
     `self`, an unrelated cwd, inside and outside herdr; then check Claude
     Code still works.
+  - Done 2026-09-27 (herdr-ef): `install-skills` links into both
+    directories and reports a same-named skill in `~/.agents/skills`;
+    `SKILL.md` commands use `$D`, the skill's directory; `consult.py self`
+    logs `agent` (`claude-code`, `pi`) and takes the model and effort from
+    pi's `$PI_MODEL` and `$PI_REASONING_LEVEL` (pi 0.87.1 sets them for its
+    bash tool), each with its source; the gpt description says it is not
+    the `oracle` reviewer. Verified with a live `pi -p` in an unrelated cwd
+    inside herdr: deepseek call, rating and `self` logged with `agent: pi`
+    (test entries removed from the log afterwards). Not verified: gpt and
+    gemini from pi, and pi outside herdr.
 
 ## Deferred
 

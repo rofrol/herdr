@@ -106,25 +106,40 @@ def cmd_rate(a):
 
 
 def coordinator(a):
-    """The coordinator's model id, reasoning effort (and where it came from) and CLI version, as known when the
-    entry is logged. Anything not known is `unknown`, never a guessed default."""
-    if a.effort:
-        effort, source = a.effort, "flag"
-    elif os.environ.get("CLAUDE_EFFORT"):
-        # Claude Code sets it for its Bash tool; a hint of the session's effort, not proof.
-        effort, source = os.environ["CLAUDE_EFFORT"], "CLAUDE_EFFORT"
+    """Which agent coordinates (claude-code, pi), its model id and reasoning effort (each with where it came from)
+    and CLI version, as known when the entry is logged. pi exposes its model and effort to its bash tool; Claude Code
+    only its effort, so there the model comes from --model. Anything not known is `unknown`, never a guessed default."""
+    env = os.environ
+    if env.get("CLAUDECODE"):
+        agent = "claude-code"
+    elif env.get("PI_MODEL") or env.get("PI_SESSION_ID"):
+        agent = "pi"
     else:
-        effort, source = "unknown", "unknown"
-    execpath = os.environ.get("CLAUDE_CODE_EXECPATH")  # e.g. ~/.local/share/claude/versions/2.1.283
-    cli = f"claude-code {Path(execpath).name}" if execpath else "unknown"
-    return {"model": a.model or "unknown", "effort": effort, "effort_source": source, "cli": cli}
+        agent = "unknown"
+
+    def pick(flag, *names):
+        if flag:
+            return flag, "flag"
+        for name in names:
+            if env.get(name):
+                return env[name], name
+        return "unknown", "unknown"
+
+    model, model_source = pick(a.model, "PI_MODEL")
+    effort, effort_source = pick(a.effort, "CLAUDE_EFFORT", "PI_REASONING_LEVEL")
+    execpath = env.get("CLAUDE_CODE_EXECPATH")  # e.g. ~/.local/share/claude/versions/2.1.283
+    cli = f"claude-code {Path(execpath).name}" if execpath else agent
+    return {"agent": agent, "model": model, "model_source": model_source, "effort": effort,
+            "effort_source": effort_source, "cli": cli}
 
 
 def coordinator_label(rd):
-    """model@effort; entries from before 2026-09-26 have only a family name like `claude`."""
+    """agent/model@effort; entries from before 2026-09-27 have no agent, older ones only a family name like `claude`."""
     model = rd.get("model") or "claude"
     effort = rd.get("effort")
-    return f"{model}@{effort}" if effort and effort != "unknown" else model
+    agent = rd.get("agent")
+    label = f"{agent}/{model}" if agent and agent != "unknown" else model
+    return f"{label}@{effort}" if effort and effort != "unknown" else label
 
 
 def cmd_self(a):
@@ -316,8 +331,8 @@ def main():
     c = sub.add_parser("self")
     g = c.add_mutually_exclusive_group(required=True)
     g.add_argument("--calls"); g.add_argument("--round")
-    c.add_argument("--model", help="your exact model id, e.g. claude-opus-5-5 (unknown when left out)")
-    c.add_argument("--effort", help="your reasoning effort (default: $CLAUDE_EFFORT, else unknown)")
+    c.add_argument("--model", help="your exact model id, e.g. claude-opus-5-5 (default: $PI_MODEL, else unknown)")
+    c.add_argument("--effort", help="your reasoning effort (default: $CLAUDE_EFFORT or $PI_REASONING_LEVEL, else unknown)")
     for k in ("--findings", "--accepted", "--refuted", "--unique", "--missed"):
         c.add_argument(k, type=int)
     c.add_argument("--note", default="")
