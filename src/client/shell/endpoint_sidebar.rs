@@ -320,6 +320,12 @@ pub(super) fn render_expanded(
                     .as_deref()
                     .and_then(|snapshot| {
                         let workspace = snapshot.workspaces.get(entry.index)?;
+                        let agents = super::space_agents::space_agent_lines(
+                            snapshot,
+                            workspace,
+                            collapsed_groups,
+                            config,
+                        );
                         let rows = super::sidebar::workspace_rows(
                             workspace,
                             super::sidebar::displayed_workspace_status(
@@ -327,24 +333,18 @@ pub(super) fn render_expanded(
                                 workspace,
                                 collapsed_groups,
                             ),
-                            super::sidebar::displayed_workspace_tab_jobs(
+                            super::space_agents::unlisted_tab_jobs(
                                 snapshot,
                                 workspace,
                                 collapsed_groups,
+                                &agents,
                             ),
                             entry.indented,
                             &config.spaces,
                         )
                         .len()
                         .max(1);
-                        let agents = super::space_agents::space_agent_lines(
-                            snapshot,
-                            workspace,
-                            collapsed_groups,
-                            config,
-                        )
-                        .len();
-                        Some((rows + agents).min(u16::MAX as usize) as u16)
+                        Some((rows + agents.len()).min(u16::MAX as usize) as u16)
                     })
                     .unwrap_or(1)
             }
@@ -463,10 +463,17 @@ pub(super) fn render_expanded(
                     workspace,
                     collapsed_groups,
                 );
-                let tab_jobs = super::sidebar::displayed_workspace_tab_jobs(
+                let agent_lines = super::space_agents::space_agent_lines(
                     snapshot,
                     workspace,
                     collapsed_groups,
+                    config,
+                );
+                let tab_jobs = super::space_agents::unlisted_tab_jobs(
+                    snapshot,
+                    workspace,
+                    collapsed_groups,
+                    &agent_lines,
                 );
                 let tokens = super::sidebar::workspace_rows(
                     workspace,
@@ -476,12 +483,6 @@ pub(super) fn render_expanded(
                     &config.spaces,
                 );
                 let own_rows = tokens.len().max(1).min(u16::MAX as usize) as u16;
-                let agent_lines = super::space_agents::space_agent_lines(
-                    snapshot,
-                    workspace,
-                    collapsed_groups,
-                    config,
-                );
                 let height = own_rows
                     .saturating_add(agent_lines.len().min(u16::MAX as usize) as u16)
                     .min(body.height);

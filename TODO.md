@@ -91,6 +91,16 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     Astra proposed this; DeepSeek proposed keeping the icon on spaces without
     visible agents and reserving the column for the chevron. When the
     chevron lands it takes the name's place in front of it.
+  - 2026-09-28: the job line under an agent counts the tabs nested under its
+    tab by their status (`⧖ 1 !1 ✓2`), not herdr-job's `$jobs` pane token,
+    which expires and goes with its pane; a tab with several agents shows
+    them under the first. The space's `tab_jobs` leaves those tabs out, so
+    each job shows in one place and the space row keeps only jobs without a
+    listed agent (its pane closed, filtered out, a status set by hand).
+    Consulted (GPT-6 Astra, DeepSeek) on dropping `tab_jobs` with agents
+    listed: both said no while the two counts come from different sources
+    (a failed job showed only as the space's `!1`); hide it only for jobs
+    shown under an agent, matched by tab id, never by subtracting counts.
   - 2026-09-28: tasks fall back to the agent's terminal title (was always
     `claude · no task`). Decided by me instead of the header toggle above:
     the "spaces" title is now `cust  name ↑  prio ↓`, sorting the spaces
@@ -180,6 +190,38 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Keyboard reorder (move space up/down, whole family); none exists now.
   - The move is sent by ids (`move X before Y`); if another client changed
     the order or the anchor vanished, cancel with a notice.
+- [ ] The space's name line gives no feedback that it can be dragged
+  (2026-09-28). Now: pressing it changes nothing until the pointer moves;
+  in prio/name sort, on a remote endpoint or on a linked worktree the drag
+  is silently ignored; when the pointer leaves the list (header, "new space"
+  button, another endpoint's rows) the target becomes None and every drag
+  visual disappears although the drag is still active (release there
+  cancels).
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28), in this order:
+  - Keep the drag visible outside the list: separate "drag active" from
+    "valid drop target"; keep the accent bar on the source (the order may
+    snap back) and put `release cancels · Esc` in the header. An active
+    drag that looks idle reads as "the drag died". Astra ranked this first.
+  - Explain refused drags in the header slot instead of doing nothing:
+    `sort by cust to reorder`, `worktree moves with its space`, and a
+    reason for remote spaces. Only after the pointer passes the threshold
+    (DeepSeek wanted it on press; Astra: not on a plain click). Never
+    switch the sort automatically.
+  - Press feedback on a draggable name line only: a subtle pressed look
+    (underline or the dim bar), not the full lifted look, which stays for
+    a real drag past the threshold; releasing in place still selects. Not
+    a raised background alone: invisible in 16-colour and `NO_COLOR`
+    themes; glyph and position, never colour alone.
+  - A grip glyph on the name line in cust sort, right-aligned (column 0
+    belongs to the `▌` bar), a simple tested glyph rather than `⠿`; the
+    name truncates, it never shifts. Hover works here (herdr enables mouse
+    mode 1003), but DeepSeek suggests a persistent dim grip instead of
+    hover-only, since tmux and some terminals drop plain motion. The grip
+    must match the hit test: only the name line starts a drag.
+  - Last, optional: OSC 22 pointer shapes (grab / grabbing /
+    not-allowed) in terminals that support it; it must be reset on every
+    exit path (drop, Esc, release outside, focus loss, quit, panic), and a
+    stuck cursor is worse than none.
 - [ ] "Restart agents…": restart agent CLIs (Claude, pi) after they update,
   resuming their sessions, e.g. when Claude reports that a new version is
   available. Should herdr tell the instances to restart once they finish

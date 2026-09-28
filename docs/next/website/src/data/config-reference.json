@@ -1170,7 +1170,7 @@
           "key": "ui.sidebar.spaces.agents",
           "type": "boolean",
           "default": "false",
-          "description": "Experimental. List each Space's agents under it: a line with the agent's state and task, and a line with its herdr-job counts when it has jobs."
+          "description": "Experimental. List each Space's agents under it: a line with the agent's state and task, and a line with the counts of the job tabs nested under the agent's tab (running, failed, succeeded) when it has any. The Space's tab_jobs then counts only jobs not listed under an agent, such as those whose agent pane closed."
         },
         {
           "key": "ui.sidebar.spaces.rows",

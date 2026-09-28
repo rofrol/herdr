@@ -435,7 +435,7 @@ pub(crate) fn render_child_tab_bar(
 }
 
 /// The sidebar's colors for job statuses: running yellow, failed red.
-fn tab_status_color(
+pub(in crate::client::shell) fn tab_status_color(
     status: Option<crate::api::schema::TabStatus>,
     palette: &Palette,
 ) -> Option<ratatui::style::Color> {

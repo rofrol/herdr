@@ -1,11 +1,11 @@
 use super::*;
+use crate::api::schema::TabStatus;
 
 fn state_with_agent(agents: bool) -> ClientShellState {
     let mut config = ClientShellConfig::from_config(&Config::default());
     config.spaces.agents = agents;
     let mut state = ClientShellState::new(config);
     let mut projected = snapshot();
-    let tokens = vec![("jobs".to_owned(), "⧖ 1 ✓2".to_owned())];
     projected.agents.push(ClientShellAgent {
         pane_id: "pane_1".into(),
         workspace_id: "ws_1".into(),
@@ -19,7 +19,7 @@ fn state_with_agent(agents: bool) -> ClientShellState {
         agent_status: AgentStatus::Working,
         state_change_seq: 0,
         state_labels: Vec::new(),
-        tokens,
+        tokens: Vec::new(),
         focused: true,
     });
     state.set_snapshot(Box::new(projected));
@@ -30,6 +30,21 @@ fn state_with_agent(agents: bool) -> ClientShellState {
 #[test]
 fn spaces_list_their_agents_and_jobs_under_them_when_enabled() {
     let mut state = state_with_agent(true);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    // herdr-job nests its job tabs under the agent's tab.
+    for (tab_id, status) in [
+        ("job_1", TabStatus::Running),
+        ("job_2", TabStatus::Succeeded),
+        ("job_3", TabStatus::Succeeded),
+    ] {
+        let mut job = projected.tabs[0].clone();
+        job.tab_id = tab_id.into();
+        job.focused = false;
+        job.parent_tab_id = Some("tab_1".into());
+        job.status = Some(status);
+        projected.tabs.push(job);
+    }
+    state.set_snapshot(Box::new(projected));
     let frame = state.compose(106, 30).unwrap();
     let rows = frame_rows(&frame);
     let task = rows
@@ -86,11 +101,7 @@ fn clicking_an_agent_line_focuses_its_pane() {
                 if target.pane_id == "pane_1"))));
 }
 
-fn with_job(
-    state: &mut ClientShellState,
-    status: AgentStatus,
-    job: Option<crate::api::schema::TabStatus>,
-) {
+fn with_job(state: &mut ClientShellState, status: AgentStatus, job: Option<TabStatus>) {
     let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
     projected.agents[0].agent_status = status;
     if let Some(job) = job {
@@ -115,7 +126,6 @@ fn agent_icon_color(state: &mut ClientShellState) -> (String, ratatui::style::Co
 
 #[test]
 fn an_idle_agent_with_a_running_job_shows_the_waiting_mark() {
-    use crate::api::schema::TabStatus;
     let mut state = state_with_agent(true);
     with_job(&mut state, AgentStatus::Idle, Some(TabStatus::Running));
     let mauve = state.config.palette.mauve;
@@ -132,7 +142,6 @@ fn an_idle_agent_with_a_running_job_shows_the_waiting_mark() {
 
 #[test]
 fn the_symbols_style_uses_a_clock_for_waiting() {
-    use crate::api::schema::TabStatus;
     let mut state = state_with_agent(true);
     state.config.status_indicators = crate::config::StatusIndicatorStyle::Symbols;
     with_job(&mut state, AgentStatus::Done, Some(TabStatus::Running));
