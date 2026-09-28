@@ -183,6 +183,19 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     parent's two collapses, DeepSeek wanted them separate. Still open:
     hiding the main tab row with the child row taking the top, and a `+`
     as the last thing on the space's name line for a new tab.
+  - Done 2026-09-28: only the tab lines have a background, in the tab
+    bar's colours, from the tab indent to one column before the right
+    edge: inactive `surface0`, the focused space's active tab accent-filled
+    (icon and counts in its text colour), other spaces' active tab the
+    accent tint; the focused space lost its grey block. Tabs without an
+    agent show `❏` (U+274F), job counts are right-aligned. Chosen from
+    mockups and real-terminal demos; tried and rejected gaps between tabs
+    (terminal cells fill the whole row; an underline in the background
+    colour or an empty row were the options). Consulted (GPT-6 Astra,
+    DeepSeek): both chose `surface0` (text contrast 4.66:1), preferred no
+    icon for agentless tabs, then `▣` (Astra) or `❏` (DeepSeek). Open
+    from the consults: white on accent `#4078F2` is 3.9:1; on the accent
+    fill working, done and waiting all show a white `●`.
 - [ ] Dragging a space does not show where it will land (screenshot
   2026-09-26, dragging `herdr`). The dragged space keeps a grey background
   much like the selected row, so two grey blocks are on screen; the drop
