@@ -481,6 +481,14 @@ impl ClientShellState {
             frame.replace_from_ratatui_buffer_preserving_effects(&composed, cursor);
         }
         self.render_link_hover(&mut frame, &mut occlusion);
+        if self.tooltip.as_ref().is_some_and(|tip| tip.shown) {
+            let cursor = frame.cursor.clone();
+            let mut composed = frame.to_ratatui_buffer()?;
+            if let Some(rect) = self.render_tooltip(&mut composed) {
+                occlusion.cover(rect);
+                frame.replace_from_ratatui_buffer_preserving_effects(&composed, cursor);
+            }
+        }
         if self.mode == ClientShellMode::Copy {
             frame.cursor = None;
             if let Some(copy_mode) = self.copy_mode.as_ref() {

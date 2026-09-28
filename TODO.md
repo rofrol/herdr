@@ -671,6 +671,12 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     the only way to see the full text, since tmux and some terminals drop
     plain motion events (mode 1003); the rename dialog already shows it.
     Sanitize control characters in tooltip text.
+  - Done 2026-09-29: the layer (`src/client/shell/tooltip.rs`: 450 ms
+    dwell, drawn last on the target's row and shifted left to stay on
+    screen, no hits, gone on a key, a click, a scroll, a drag, an overlay,
+    when its target is not drawn, and after 10 s), used by the sidebar's
+    vertical tab lines whose label is cut. Still open: the horizontal tab
+    rows (shown only without vertical tabs) and the build line below.
 - [ ] Build line (bottom left of the sidebar): hover shows the full commit
   message, click opens a modal with the full commit info (full hash,
   subject, body, author, date, dirty flag, version and channel), scrollable,

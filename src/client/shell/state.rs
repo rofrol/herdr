@@ -108,6 +108,8 @@ pub(super) struct ShellHitMap {
     /// The `+` at the end of a space's name line, with the space it adds a
     /// tab to.
     pub(super) space_new_tab: Vec<(Rect, String)>,
+    /// Drawn targets whose text is cut, for tooltips.
+    pub(super) tooltips: Vec<super::tooltip::TooltipTarget>,
     /// Disclosure triangles and counts at the end of tab lines, with the
     /// tab whose squares they fold.
     pub(super) space_tab_folds: Vec<(Rect, String)>,
@@ -336,6 +338,13 @@ impl ShellHitMap {
         };
         shift_all(&mut self.space_tabs);
         shift_all(&mut self.space_new_tab);
+        self.tooltips = std::mem::take(&mut self.tooltips)
+            .into_iter()
+            .filter_map(|mut target| {
+                target.rect = shift_rect(target.rect, dy, visible)?;
+                Some(target)
+            })
+            .collect();
         shift_all(&mut self.space_tab_folds);
         shift_all(&mut self.space_tab_squares);
         self.space_tab_gone = std::mem::take(&mut self.space_tab_gone)
@@ -356,6 +365,7 @@ impl ShellHitMap {
         self.workspaces.extend(block.workspaces);
         self.space_tabs.extend(block.space_tabs);
         self.space_new_tab.extend(block.space_new_tab);
+        self.tooltips.extend(block.tooltips);
         self.space_tab_folds.extend(block.space_tab_folds);
         self.space_tab_squares.extend(block.space_tab_squares);
         self.space_tab_gone.extend(block.space_tab_gone);
@@ -1022,6 +1032,7 @@ pub(crate) struct ClientShellState {
     pub(super) hovered_workspace_id: Option<String>,
     /// Nested tab whose square under a tab line is under the pointer.
     pub(super) hovered_square: Option<String>,
+    pub(super) tooltip: Option<super::tooltip::Tooltip>,
     pub(super) tab_press: Option<ClientTabPress>,
     /// Last focused tab of each tab group, by endpoint and the group's
     /// top-level tab. Kept by this client, so one client's navigation never
@@ -1213,6 +1224,7 @@ impl ClientShellState {
             workspace_press: None,
             hovered_workspace_id: None,
             hovered_square: None,
+            tooltip: None,
             tab_press: None,
             last_group_tabs: HashMap::new(),
             collapsed_groups: preferences.collapsed_groups.into_iter().collect(),
@@ -2116,6 +2128,7 @@ impl ClientShellState {
             .into_iter()
             .chain(self.selection_repaint_deadline)
             .chain(self.space_drag_autoscroll.map(|(_, _, deadline)| deadline))
+            .chain(self.tooltip_deadline())
             .min()
             .map(|deadline| deadline.saturating_duration_since(now).min(default))
             .unwrap_or(default)

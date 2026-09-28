@@ -38,6 +38,7 @@ mod state;
 mod surface_patch;
 mod tab_groups;
 mod text_editor;
+mod tooltip;
 mod usage;
 mod word_selection;
 mod worktrees;

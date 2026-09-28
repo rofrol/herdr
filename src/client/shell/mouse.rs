@@ -614,6 +614,7 @@ impl ClientShellState {
     ) -> ClientShellInput {
         let mut outcome = ClientShellInput::default();
         self.tick_space_drag_autoscroll(now, &mut outcome);
+        self.tick_tooltip(now, &mut outcome);
         if self
             .selection_repaint_deadline
             .is_some_and(|deadline| now >= deadline)
@@ -988,6 +989,7 @@ impl ClientShellState {
         }
         self.update_link_hover(mouse, outcome);
         self.update_workspace_hover(mouse, outcome);
+        self.update_tooltip(mouse, outcome);
         let point = (mouse.column, mouse.row);
         if self.mode == ClientShellMode::Navigate
             && self.workspace_preview_action_blocked()

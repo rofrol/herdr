@@ -365,6 +365,8 @@ pub(super) struct SpaceTabHits {
     pub(super) squares: Vec<(Rect, String)>,
     /// Blank slots of closed tabs; a click there does nothing.
     pub(super) gone: Vec<Rect>,
+    /// Lines whose label is cut, with the whole label.
+    pub(super) tooltips: Vec<super::tooltip::TooltipTarget>,
     /// The square order of each unfolded line, to hold while the pointer
     /// stays over the sidebar.
     pub(super) order: HeldSquares,
@@ -477,6 +479,13 @@ pub(super) fn render_space_tab_lines(
             }
             _ => {
                 let label = truncate(&line.label, label_width as usize);
+                if label != line.label {
+                    hits.tooltips.push(super::tooltip::TooltipTarget {
+                        rect: Rect::new(text_x, y, label_width, 1),
+                        id: format!("tab:{}", line.tab_id),
+                        text: line.label.clone(),
+                    });
+                }
                 super::render::put_text(buffer, text_x, y, label_width, &label, text_style);
             }
         }

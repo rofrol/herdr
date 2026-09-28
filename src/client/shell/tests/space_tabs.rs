@@ -755,3 +755,39 @@ fn the_plus_on_a_spaces_name_line_opens_a_tab_there() {
     // Not a press on the space, which would start a drag or select it.
     assert!(state.workspace_press.is_none());
 }
+
+#[test]
+fn resting_on_a_cut_tab_label_shows_it_whole_until_a_key() {
+    let mut state = state_with_tabs(true);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    projected.tabs[0].label = "a tab label much longer than the sidebar".into();
+    projected.tabs[0].custom_label = true;
+    state.set_snapshot(Box::new(projected));
+    state.compose(106, 30).unwrap();
+    let target = state.hits.tooltips[0].clone();
+    assert_eq!(target.text, "a tab label much longer than the sidebar");
+    state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+        kind: crossterm::event::MouseEventKind::Moved,
+        column: target.rect.x + 1,
+        row: target.rect.y,
+        modifiers: KeyModifiers::empty(),
+    })]);
+    let shown = |state: &mut ClientShellState| {
+        let frame = state.compose(106, 30).unwrap();
+        frame_rows(&frame)[target.rect.y as usize].contains("longer than the sidebar")
+    };
+    assert!(!shown(&mut state), "not before the dwell");
+    let now = std::time::Instant::now();
+    assert!(
+        state
+            .tick_selection_autoscroll(now + std::time::Duration::from_millis(500))
+            .repaint
+    );
+    assert!(shown(&mut state));
+
+    // A key hides it.
+    state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Key(
+        crate::input::TerminalKey::new(crossterm::event::KeyCode::Char('x'), KeyModifiers::empty()),
+    )]);
+    assert!(!shown(&mut state));
+}

@@ -170,7 +170,10 @@ impl ClientShellState {
                 push_host_theme_update(&mut outcome.requests, update);
             }
             match event {
-                RawInputEvent::Key(key) => self.handle_key(key, &mut outcome),
+                RawInputEvent::Key(key) => {
+                    outcome.repaint |= self.clear_tooltip();
+                    self.handle_key(key, &mut outcome)
+                }
                 RawInputEvent::Text(text) => {
                     let text = text.into_string();
                     if matches!(

@@ -574,6 +574,7 @@ pub(super) fn render_expanded(
                     hits.space_tab_folds.extend(tab_hits.folds);
                     hits.space_tab_squares.extend(tab_hits.squares);
                     hits.space_tab_gone.extend(tab_hits.gone);
+                    hits.tooltips.extend(tab_hits.tooltips);
                     hits.space_tab_square_order.extend(tab_hits.order);
                 }
                 if endpoint.status != ClientEndpointStatus::Online {
