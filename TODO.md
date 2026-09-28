@@ -825,6 +825,18 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     pane or tab with a working agent or job, with Cancel as the default.
     Reopening can't bring back killed processes, so the confirmation
     matters more than undo.
+- [ ] Open a herdr tab with Cmd+T (macOS), as Cmd+W closes panes.
+  - Set up 2026-09-28: dotfiles Ghostty config has `cmd+t=unbind` and
+    `cmd+ctrl+t=new_tab`; herdr config has
+    `[keys] new_tab = ["prefix+c", "cmd+t"]` (prefix+c kept for SSH and
+    terminals without super key reporting). Consulted GPT-6 Astra and
+    DeepSeek: no objections.
+  - Verify after reloading Ghostty: Cmd+T opens a herdr tab in the current
+    space; Cmd+Ctrl+T opens a Ghostty tab and File > New Tab still works;
+    Cmd+Shift+T is still Ghostty's undo, not a herdr tab.
+  - Linux: Ctrl+T wanted, but it is a shell key (fzf file picker,
+    readline transpose-chars) and herdr has no per-OS keys, so one shared
+    config would also take Ctrl+T on macOS. Undecided.
 
 ## Deferred
 
