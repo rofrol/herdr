@@ -808,7 +808,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     history; if that grows, move them to an orphan `assets` branch.
   - Risk: seven loops at once are distracting and ignore reduced-motion;
     if it looks busy, use a static frame per bullet linking to its clip.
-- [ ] Close herdr panes with Cmd+W, as Ghostty closes splits: the last
+- [x] Close herdr panes with Cmd+W, as Ghostty closes splits: the last
   pane closes its tab, the last tab its space.
   - Conflict: Ghostty binds Cmd+W to `close_surface` and handles its own
     keybinds before the program sees the key, and has no per-foreground
