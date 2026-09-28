@@ -97,6 +97,22 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     attention counts (`◉1 ●1`) have no place in the header now; prio does
     not freeze the order while the pointer is over the list; the
     multi-machine sidebar.
+  - Missing (screenshot 2026-09-28): a sort button for the agents listed
+    under each space, like the one for spaces. Their order still comes from
+    the hidden agents panel's `agent_panel_sort` (config only, no UI).
+    Consulted (GPT-6 Astra, DeepSeek, 2026-09-28): Astra proposed one global
+    second row under the spaces header, `agents  tab  prio`, shown only with
+    `spaces.agents`; DeepSeek proposed no new control, with agents following
+    the space sort key. Decided: the second row (it is what I asked for, and
+    urgent spaces first with agents in tab order is a valid combination).
+    Two modes, no direction toggle: `tab` (tab bar order; never reorders the
+    tabs) and `prio` (blocked > done-unseen > working > idle, ties by tab
+    order, not by the latest state change, which reshuffles on every
+    change). Freeze the order while the pointer is over the list and apply
+    it on leave; take the clicked agent from mouse-down, so a re-sort cannot
+    make the release hit another row; keep the selection by pane id. A
+    client preference like the spaces sort; `agent_panel_sort` only seeds it
+    when no preference is saved.
 - [ ] Dragging a space does not show where it will land (screenshot
   2026-09-26, dragging `herdr`). The dragged space keeps a grey background
   much like the selected row, so two grey blocks are on screen; the drop
