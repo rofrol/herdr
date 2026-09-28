@@ -60,8 +60,9 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
   shows `?` in the sidebar and tab bar, so it stands out from agents that
   simply finished. The agent reports it with `herdr agent awaiting-reply`
   (`pane.report_awaiting_reply`); the Claude integration asks Claude to run
-  it as its last command before a plain-text question, never for
-  `AskUserQuestion`, which already shows as blocked. The mark stays until
+  it as its last command when it ends a turn needing your answer or
+  decision, never for `AskUserQuestion`, which already shows as blocked,
+  and repeats a short reminder with every prompt (`UserPromptSubmit`). The mark stays until
   you type into the pane (keys, text or a paste, or input sent through the
   API); viewing, clicking and scrolling do not clear it. Working hides it
   without clearing it, and a question form or permission prompt after the

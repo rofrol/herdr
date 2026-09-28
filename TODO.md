@@ -662,6 +662,25 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     hook asks for the report only as the last command before a plain-text
     question, never for `AskUserQuestion`. No time windows: the user
     rejected them as race-prone.
+- [x] Claude sometimes forgets `herdr agent awaiting-reply` (2026-09-28):
+  Opus ended a long turn (build, install) with "commit after you check;
+  let me know how it looks" and did not report, so no `?` appeared. The
+  instruction came only from `SessionStart`, far back in the context, and
+  the request had no question mark.
+  - Consulted models (GPT-6 Astra, DeepSeek): first re-inject a short
+    reminder every prompt (`UserPromptSubmit`), and define the case
+    operationally: the agent needs the user's answer or decision to
+    continue the work. A Stop hook that blocks the stop when the last
+    message looks like a question would not have caught this miss (no
+    `?`), and a phrase list broad enough to catch it also fires on
+    courtesy offers, costing a whole extra turn.
+  - Done: the `SessionStart` instruction uses that definition with this
+    case as an example; integration v11 adds a `UserPromptSubmit` hook
+    (`herdr-agent-state.sh reminder`) that prints a short reminder, managed
+    apart from the canonical `SessionStart` hook like the permission rule.
+  - Next, only if misses continue: a narrow Stop-hook backstop (terminal
+    `?` or an imperative aimed at the user, and no mark set; ask herdr for
+    the mark rather than parsing the transcript), one block at most.
 - [ ] Awaiting reply for agents other than Claude, the same way as their
   integrations (user, 2026-09-28): each integration that can add session
   context (a session-start hook, an extension, a plugin) injects the same
