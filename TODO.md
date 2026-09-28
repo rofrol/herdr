@@ -906,7 +906,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     redesign. Astra: together with the consolidation, not waiting for the
     redesign. Astra's, I think: a generated legend follows the redesign
     for free, and it helps now, while the glyphs are most confusing.
-- [ ] Analyse whether all tests are needed.
+- [x] Analyse whether all tests are needed.
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): optimise for
     confidence and upkeep, not the test count. First find the slow, flaky
     and often-rewritten tests and those the rules forbid (freezing CLI
@@ -933,6 +933,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
       tests (`src/integration/tests.rs`) into one table-driven test; the
       same macOS and Linux `scrollback_editor_argv_*` test into one unix
       test.
+  - Status 2026-09-29: the duplicates and the codex rule pin went on
+    2026-09-28 (746cb3f6); the federated test is bounded (15 s waits).
+    Not doing the merges or the manifest reload speed-up: those are
+    upstream's tests and code, so rewriting them here only makes every
+    rebase onto upstream conflict; the platform `scrollback_editor_argv`
+    tests stay in their platform files by the repository's rule. Suggest
+    them upstream instead.
 - [ ] Refresh the README's "Fork changes" so it says how the fork differs
   now, with a small looping animation under each change.
   - Audit first (vertical tabs, the disclosure triangle and
