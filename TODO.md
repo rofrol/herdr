@@ -250,7 +250,8 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     the group by mistake; the chevron's hit cell stays separate, so watch
     for that.
     Then, also at my request: accent blue while pressed and a darker blue
-    (three fifths of the accent over the panel background) while dragged;
+    (three fifths of the accent over black; over the panel background it
+    came out lighter in a light theme) while dragged;
     mauve read as a git branch, and a darker grey on press looked lighter.
 - [ ] "Restart agents…": restart agent CLIs (Claude, pi) after they update,
   resuming their sessions, e.g. when Claude reports that a new version is
@@ -500,6 +501,53 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Alternative to weigh (mine, not consulted): keep a closed tab's
     processes alive for a few seconds with an "undo" toast, which restores
     them exactly.
+- [ ] An agent that finished and waits for me shows a blue dot (`Done`,
+  unseen), but it turns green (`Idle`) as soon as I open its tab, before I
+  answer: `mark_active_tab_seen` sets `pane.seen` when the tab becomes
+  active. Should it stay blue until I reply?
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): "unseen" and
+    "awaiting my reply" are two different facts; keeping blue until typing
+    would silently change what blue means, and a finished agent does not
+    always need an answer. Keep `seen` for toasts and sounds; if a reply
+    marker is wanted, make it a separate per-pane flag (server state, since
+    it is a runtime fact), cleared by a submitted message (Enter on
+    non-empty input), not by any byte reaching the PTY (arrows, `ctrl+c`,
+    scrolling), and dismissable by hand. No "focused for N seconds" timer.
+    Decide whether it survives a restart. Astra: clear "unseen" on the pane
+    being visible, not merely its tab being active.
+- [ ] Consult stats log DeepSeek under the alias it was called with
+  (`deepseek-flash`, now V4.1), so when the alias moves to a new model the
+  stats of both merge and we cannot tell which was which.
+  - The streamed chunks carry `model` and `system_fingerprint`, which
+    `ask_deepseek.py` ignores.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): log the requested
+    alias, the reported model and the fingerprint (additive fields, older
+    entries keep working), and let stats group by either; first check what
+    the API really returns, since the reported name may itself be an alias.
+    Do not backfill old entries as V4.1 by date unless DeepSeek's changelog
+    gives the exact cutover; otherwise mark them `unknown`. Check GPT
+    (Codex) and Gemini separately: what metadata they expose differs.
+- [ ] Audit whether colours and symbols are consistent across the UI
+  (sidebar, mobile layout, tabs, toasts, job statuses `⧖ ✓ !`, state dots).
+  - Plan: an inventory (glyph or colour, meaning, where used), then
+    conflicts (one colour with two meanings, one meaning with two glyphs),
+    then a single mapping in code.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): fold it into the
+    planned state-shape redesign above; one colour meaning different things
+    in different contexts is not automatically a conflict. Check it without
+    colour (colour-blind users, monochrome), in light and dark themes and
+    narrow layouts. Generate the legend from the code, not by hand, or it
+    drifts.
+- [ ] Analyse whether all tests are needed.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): optimise for
+    confidence and upkeep, not the test count. First find the slow, flaky
+    and often-rewritten tests and those the rules forbid (freezing CLI
+    agents' screen detection rules). Tests covering the same lines are not
+    automatically duplicates: compare what they assert, and check suspects
+    with a targeted mutation. Remove a test of implementation details only
+    when a higher-level test is shown to cover it, in small batches, never
+    one bulk prune. Some UI strings are contracts; keep frozen protocol
+    fixtures.
 
 ## Deferred
 

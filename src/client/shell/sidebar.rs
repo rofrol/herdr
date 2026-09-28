@@ -694,10 +694,12 @@ fn entries_with_drag(
     Some(rest)
 }
 
-/// A darker accent for a dragged space: three fifths of the accent over the
-/// panel background, or the accent itself when either is not an RGB colour.
+/// A darker accent for a dragged space: three fifths of the accent over
+/// black, so it is darker in light themes too (the panel background is
+/// light there), or the accent itself when it is not an RGB colour.
 pub(in crate::client::shell) fn dragged_space_color(palette: &Palette) -> ratatui::style::Color {
-    super::tabs::blend(palette.accent, palette.panel_bg, 3, 5).unwrap_or(palette.accent)
+    super::tabs::blend(palette.accent, ratatui::style::Color::Rgb(0, 0, 0), 3, 5)
+        .unwrap_or(palette.accent)
 }
 
 /// Ids of the dragged space and its indented worktrees.
