@@ -283,7 +283,9 @@ fn workspace_click_waits_for_release_and_drag_reorders_by_stable_id() {
     assert_eq!(grip.symbol, "⋮");
     assert_eq!(
         grip.fg,
-        crate::protocol::color_to_u32(state.config.palette.accent)
+        crate::protocol::color_to_u32(super::super::sidebar::dragged_space_color(
+            &state.config.palette
+        ))
     );
 
     let release =
@@ -467,14 +469,14 @@ fn a_space_shows_it_can_be_dragged_on_hover_press_and_outside_the_list() {
     assert_eq!(grip(&mut state, "ws_1"), color(palette.overlay1));
     assert_eq!(grip(&mut state, "ws_2"), None);
 
-    // A press turns the grip darker grey before any move; a release in place
+    // A press turns the grip accent before any move; a release in place
     // still focuses the space.
     state.handle_raw_events(vec![mouse(
         MouseEventKind::Down(MouseButton::Left),
         second.x + 2,
         second.y,
     )]);
-    assert_eq!(grip(&mut state, "ws_2"), color(palette.overlay0));
+    assert_eq!(grip(&mut state, "ws_2"), color(palette.accent));
     assert_eq!(grip(&mut state, "ws_1"), None);
     let click = state.handle_raw_events(vec![mouse(
         MouseEventKind::Up(MouseButton::Left),
@@ -492,7 +494,7 @@ fn a_space_shows_it_can_be_dragged_on_hover_press_and_outside_the_list() {
     ));
     assert_eq!(grip(&mut state, "ws_2"), None);
 
-    // Outside the list the grip stays accent and the header says a release
+    // Outside the list the grip stays the dragged colour and the header says a release
     // cancels.
     state.handle_raw_events(vec![mouse(
         MouseEventKind::Down(MouseButton::Left),
@@ -515,7 +517,10 @@ fn a_space_shows_it_can_be_dragged_on_hover_press_and_outside_the_list() {
         Some(ClientChromeDrag::Workspace { target: None, .. })
     ));
     assert!(row(&mut state, 0).contains("release cancels"));
-    assert_eq!(grip(&mut state, "ws_1"), color(palette.accent));
+    assert_eq!(
+        grip(&mut state, "ws_1"),
+        color(super::super::sidebar::dragged_space_color(&palette))
+    );
     let released = state.handle_raw_events(vec![mouse(
         MouseEventKind::Up(MouseButton::Left),
         footer.x + 1,

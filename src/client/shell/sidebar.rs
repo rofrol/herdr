@@ -476,13 +476,13 @@ pub(crate) fn render_sidebar(
         });
         let dragged = dragged_family.contains(workspace.workspace_id.as_str());
         let pressed = pressed_family.contains(workspace.workspace_id.as_str());
-        // Grey on hover, darker grey while pressed, accent while dragged
+        // Grey on hover, accent while pressed, a darker accent while dragged
         // (mauve would read as a git branch); the name takes the same colour,
         // so the block is found after it jumps.
         let grab_color = if dragged {
-            Some(palette.accent)
+            Some(dragged_space_color(palette))
         } else if pressed {
-            Some(palette.overlay0)
+            Some(palette.accent)
         } else if state.hovered_workspace_id == Some(workspace.workspace_id.as_str()) {
             Some(palette.overlay1)
         } else {
@@ -692,6 +692,12 @@ fn entries_with_drag(
     };
     rest.splice(at..at, family);
     Some(rest)
+}
+
+/// A darker accent for a dragged space: three fifths of the accent over the
+/// panel background, or the accent itself when either is not an RGB colour.
+pub(in crate::client::shell) fn dragged_space_color(palette: &Palette) -> ratatui::style::Color {
+    super::tabs::blend(palette.accent, palette.panel_bg, 3, 5).unwrap_or(palette.accent)
 }
 
 /// Ids of the dragged space and its indented worktrees.

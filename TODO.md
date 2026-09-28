@@ -249,8 +249,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     own those). DeepSeek warned that `⋮▾` side by side invites toggling
     the group by mistake; the chevron's hit cell stays separate, so watch
     for that.
-    Then, also at my request: darker grey (overlay0) while pressed, accent
-    blue while dragged; mauve read as a git branch.
+    Then, also at my request: accent blue while pressed and a darker blue
+    (three fifths of the accent over the panel background) while dragged;
+    mauve read as a git branch, and a darker grey on press looked lighter.
 - [ ] "Restart agents…": restart agent CLIs (Claude, pi) after they update,
   resuming their sessions, e.g. when Claude reports that a new version is
   available. Should herdr tell the instances to restart once they finish
