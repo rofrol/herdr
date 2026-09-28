@@ -384,6 +384,10 @@ Every pane, including yours, keeps running, but attached clients disconnect:
 tell the user to run `herdr` to reattach. If the handoff fails, the script
 restores the previous binary and the server keeps running it.
 
+Backups are named `<install time>_<commit>_<commit subject>` after the build
+they hold (read from the hidden `herdr --build-commit`);
+`scripts/herdr_live.sh list` shows them and the installed build.
+
 When the user says the build is broken, run `scripts/herdr_live.sh rollback`
 first, then fix forward or revert. `rollback` restores the most recent backup
 and removes it, so repeating it goes one build further back. Run both commands
