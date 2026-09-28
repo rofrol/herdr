@@ -676,7 +676,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     screen, no hits, gone on a key, a click, a scroll, a drag, an overlay,
     when its target is not drawn, and after 10 s), used by the sidebar's
     vertical tab lines whose label is cut. Still open: the horizontal tab
-    rows (shown only without vertical tabs) and the build line below.
+    rows (shown only without vertical tabs).
 - [ ] Build line (bottom left of the sidebar): hover shows the full commit
   message, click opens a modal with the full commit info (full hash,
   subject, body, author, date, dirty flag, version and channel), scrollable,
@@ -692,6 +692,10 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     `build_commit` stays as is); an old server shows "details unavailable",
     never the client's data in its place. Astra: the tooltip shows the
     subject only, the body belongs in the modal.
+  - Done 2026-09-29: hovering the build line shows its whole commit line
+    (hash and subject) in a tooltip, and both builds when the client's
+    differs (`server <line> · client <hash>`). Still open: the modal and
+    the build metadata it needs.
 - [ ] Reopen the last closed tab, `prefix+u` ("undo close", configurable).
   - Closing a tab kills its processes, so this recreates the tab rather
     than undoing the close: same place in the space, name, pane layout,

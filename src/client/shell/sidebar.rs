@@ -240,6 +240,28 @@ pub(in crate::client::shell) fn split_build_row(area: Rect, row: Option<BuildRow
 /// sidebar's own divider.
 const BUILD_ROW_RIGHT_RESERVE: u16 = 3;
 
+/// The build row's tooltip: the whole commit line, and the client's build
+/// when it differs from the server's.
+pub(in crate::client::shell) fn build_row_tooltip(
+    area: Rect,
+    row: BuildRow,
+) -> super::tooltip::TooltipTarget {
+    let text = match row.differing_client {
+        Some(client) => format!("server {} · client {client}", row.commit),
+        None => row.commit.to_owned(),
+    };
+    super::tooltip::TooltipTarget {
+        rect: Rect::new(
+            area.x,
+            area.y,
+            area.width.saturating_sub(BUILD_ROW_RIGHT_RESERVE),
+            area.height.min(1),
+        ),
+        id: "build".to_owned(),
+        text,
+    }
+}
+
 pub(in crate::client::shell) fn render_build_row(
     buffer: &mut Buffer,
     area: Rect,
@@ -796,6 +818,7 @@ pub(crate) fn render_sidebar(
 
     if let Some(build) = build {
         render_build_row(buffer, build_area, build, palette);
+        hits.tooltips.push(build_row_tooltip(build_area, build));
     }
     hits.sidebar_toggle = Rect::new(
         area.right().saturating_sub(2),

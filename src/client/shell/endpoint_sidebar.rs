@@ -684,6 +684,8 @@ pub(super) fn render_expanded(
     );
     if let Some(build) = build {
         super::sidebar::render_build_row(buffer, build_area, build, palette);
+        hits.tooltips
+            .push(super::sidebar::build_row_tooltip(build_area, build));
     }
     hits.sidebar_toggle = Rect::new(
         area.right().saturating_sub(2),
