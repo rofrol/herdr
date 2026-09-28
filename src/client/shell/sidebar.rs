@@ -379,7 +379,7 @@ pub(crate) fn render_sidebar(
                 .workspaces
                 .get(entry.index)
                 .map(|workspace| {
-                    let agents = super::space_agents::space_agent_lines(
+                    let tab_lines = super::space_tabs::space_tab_lines(
                         snapshot,
                         workspace,
                         state.collapsed_groups,
@@ -388,18 +388,18 @@ pub(crate) fn render_sidebar(
                     let rows = workspace_rows(
                         workspace,
                         displayed_workspace_status(snapshot, workspace, state.collapsed_groups),
-                        super::space_agents::space_row_tab_jobs(
+                        super::space_tabs::space_row_tab_jobs(
                             snapshot,
                             workspace,
                             state.collapsed_groups,
-                            &agents,
+                            &tab_lines,
                         ),
                         entry.indented,
                         &config.spaces,
                     )
                     .len()
                     .max(1);
-                    (rows + agents.len()).min(u16::MAX as usize) as u16
+                    (rows + tab_lines.len()).min(u16::MAX as usize) as u16
                 })
                 .unwrap_or(1)
         })
@@ -452,22 +452,18 @@ pub(crate) fn render_sidebar(
             continue;
         };
         let status = displayed_workspace_status(snapshot, workspace, state.collapsed_groups);
-        let agent_lines = super::space_agents::space_agent_lines(
+        let tab_lines =
+            super::space_tabs::space_tab_lines(snapshot, workspace, state.collapsed_groups, config);
+        let tab_jobs = super::space_tabs::space_row_tab_jobs(
             snapshot,
             workspace,
             state.collapsed_groups,
-            config,
-        );
-        let tab_jobs = super::space_agents::space_row_tab_jobs(
-            snapshot,
-            workspace,
-            state.collapsed_groups,
-            &agent_lines,
+            &tab_lines,
         );
         let rows = workspace_rows(workspace, status, tab_jobs, entry.indented, &config.spaces);
         let own_rows = rows.len().max(1).min(u16::MAX as usize) as u16;
         let row_height = own_rows
-            .saturating_add(agent_lines.len().min(u16::MAX as usize) as u16)
+            .saturating_add(tab_lines.len().min(u16::MAX as usize) as u16)
             .min(body.height);
         if y.saturating_add(row_height) > body.bottom() {
             break;
@@ -533,8 +529,8 @@ pub(crate) fn render_sidebar(
                 );
             }
         }
-        hits.space_agents
-            .extend(super::space_agents::render_space_agent_lines(
+        hits.space_tabs
+            .extend(super::space_tabs::render_space_tab_lines(
                 buffer,
                 Rect::new(
                     rect.x,
@@ -542,7 +538,7 @@ pub(crate) fn render_sidebar(
                     rect.width,
                     rect.height.saturating_sub(own_rows),
                 ),
-                &agent_lines,
+                &tab_lines,
                 config,
             ));
         let group_toggle = render_parent_group_toggle(
@@ -997,12 +993,12 @@ pub(in crate::client::shell) fn workspace_rows(
             suppress_git_details: indented,
         },
     );
-    if !config.agents {
+    if !config.tabs {
         return rows;
     }
-    // Agents listed under the space show their own states, so the space's
-    // aggregate icon is redundant. Dropped for every space, also those without
-    // agents, so the name does not shift as agents come and go.
+    // Tabs listed under the space show their own states, so the space's
+    // aggregate icon is redundant. Dropped for every space, also a collapsed
+    // group that lists no tabs, so names stay aligned.
     rows.into_iter()
         .map(|row| {
             row.into_iter()

@@ -325,7 +325,7 @@ pub(super) fn render_expanded(
                     .as_deref()
                     .and_then(|snapshot| {
                         let workspace = snapshot.workspaces.get(entry.index)?;
-                        let agents = super::space_agents::space_agent_lines(
+                        let tab_lines = super::space_tabs::space_tab_lines(
                             snapshot,
                             workspace,
                             collapsed_groups,
@@ -338,18 +338,18 @@ pub(super) fn render_expanded(
                                 workspace,
                                 collapsed_groups,
                             ),
-                            super::space_agents::space_row_tab_jobs(
+                            super::space_tabs::space_row_tab_jobs(
                                 snapshot,
                                 workspace,
                                 collapsed_groups,
-                                &agents,
+                                &tab_lines,
                             ),
                             entry.indented,
                             &config.spaces,
                         )
                         .len()
                         .max(1);
-                        Some((rows + agents.len()).min(u16::MAX as usize) as u16)
+                        Some((rows + tab_lines.len()).min(u16::MAX as usize) as u16)
                     })
                     .unwrap_or(1)
             }
@@ -468,17 +468,17 @@ pub(super) fn render_expanded(
                     workspace,
                     collapsed_groups,
                 );
-                let agent_lines = super::space_agents::space_agent_lines(
+                let tab_lines = super::space_tabs::space_tab_lines(
                     snapshot,
                     workspace,
                     collapsed_groups,
                     config,
                 );
-                let tab_jobs = super::space_agents::space_row_tab_jobs(
+                let tab_jobs = super::space_tabs::space_row_tab_jobs(
                     snapshot,
                     workspace,
                     collapsed_groups,
-                    &agent_lines,
+                    &tab_lines,
                 );
                 let tokens = super::sidebar::workspace_rows(
                     workspace,
@@ -489,7 +489,7 @@ pub(super) fn render_expanded(
                 );
                 let own_rows = tokens.len().max(1).min(u16::MAX as usize) as u16;
                 let height = own_rows
-                    .saturating_add(agent_lines.len().min(u16::MAX as usize) as u16)
+                    .saturating_add(tab_lines.len().min(u16::MAX as usize) as u16)
                     .min(body.height);
                 if y.saturating_add(height) > body.bottom() {
                     break;
@@ -524,7 +524,7 @@ pub(super) fn render_expanded(
                 );
                 // Clicking another endpoint's agent line selects its space;
                 // focusing a remote pane from here is not wired up yet.
-                let _ = super::space_agents::render_space_agent_lines(
+                let _ = super::space_tabs::render_space_tab_lines(
                     buffer,
                     Rect::new(
                         nested.x,
@@ -532,7 +532,7 @@ pub(super) fn render_expanded(
                         nested.width,
                         nested.height.saturating_sub(own_rows),
                     ),
-                    &agent_lines,
+                    &tab_lines,
                     config,
                 );
                 if endpoint.status != ClientEndpointStatus::Online {

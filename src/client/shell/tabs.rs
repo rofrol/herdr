@@ -667,6 +667,19 @@ fn tab_label(
     }
 }
 
+/// A tab's label in the sidebar's vertical tabs: the tab bar's label, not
+/// padded or cut to the tab bar's fixed title width.
+pub(in crate::client::shell) fn sidebar_tab_label(
+    tab: &ClientShellTab,
+    snapshot: &ClientShellSnapshot,
+    config: &ClientShellConfig,
+) -> String {
+    agent_task_title(tab, snapshot, config)
+        .or_else(|| running_program(tab, config))
+        .unwrap_or(&tab.label)
+        .to_owned()
+}
+
 /// With `ui.tab_label = "title"`, an unnamed tab shows the terminal title of
 /// its focused agent (else its first one); names given by the user win.
 fn agent_task_title<'a>(
