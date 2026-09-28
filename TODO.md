@@ -236,7 +236,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     rows once for layout and drawing, and again with the scrollbar column
     when the list overflows. Still open: the hover name on the sidebar's
     bottom line, keeping squares in place while the pointer is over the
-    sidebar, no auto-close while a job is open, squares in the
+    sidebar, squares in the
     multi-machine sidebar, scrolling within a block taller than the list.
   - Changed 2026-09-28 (mockup updated, same link): a disclosure triangle
     right before the counts, `► ⧖ 1 !1` (`▼` unfolded, dim grey, inside
@@ -252,6 +252,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     space's triangle), no auto-unfold of failed jobs (it moves rows under
     the pointer). Succeeded-only: Astra the triangle alone (chosen),
     DeepSeek nothing.
+  - Done 2026-09-28: a succeeded job's tab does not close while it is the
+    focused tab (herdr's `focused`, the tab shown); herdr-job checks every
+    2 s and closes it once you leave it.
   - Consulted (GPT-6 Astra, DeepSeek, 2026-09-28): both called the squares
     fine but removing the rows risky (no navigation with the sidebar
     hidden, keyboard). Both wanted a per-tab number in the square (`1⧖`,
