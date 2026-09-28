@@ -492,7 +492,8 @@ pub(crate) fn render_sidebar(
             buffer.set_style(rect, Style::default().bg(bg));
         } else if selected {
             buffer.set_style(rect, Style::default().bg(palette.selection_bg));
-        } else if workspace.focused {
+        } else if workspace.focused && !config.spaces.tabs {
+            // With vertical tabs only the tab lines have a background.
             buffer.set_style(rect, Style::default().bg(palette.active_row_bg));
         }
         let icon = aggregate_icon(snapshot, status, config.status_indicators, |agent| {
@@ -539,6 +540,7 @@ pub(crate) fn render_sidebar(
                     rect.height.saturating_sub(own_rows),
                 ),
                 &tab_lines,
+                workspace.focused,
                 config,
             ));
         let group_toggle = if config.spaces.tabs {
@@ -1041,8 +1043,10 @@ pub(in crate::client::shell) fn render_workspace_rows(
     config: &ClientShellConfig,
 ) {
     let palette = &config.palette;
-    // Leave two columns in front of the name for `render_space_disclosure`.
-    let disclosure = config.spaces.tabs;
+    // With vertical tabs (`spaces.tabs`): leave two columns in front of the
+    // name for `render_space_disclosure`, and give a focused space no
+    // background; only its tab lines have one.
+    let vertical_tabs = config.spaces.tabs;
     for (row_index, row) in rows.iter().enumerate() {
         let y = area.y + row_index as u16;
         if y >= area.bottom() {
@@ -1074,7 +1078,7 @@ pub(in crate::client::shell) fn render_workspace_rows(
         } else {
             x = x.saturating_add(3);
         }
-        if disclosure && row_index == 0 {
+        if vertical_tabs && row_index == 0 {
             x = x.saturating_add(2);
         }
         let highlighted = focused || grabbed.is_some();
@@ -1116,7 +1120,7 @@ pub(in crate::client::shell) fn render_workspace_rows(
         drag_background
     } else if selected {
         Some(workspace_selection_background(palette))
-    } else if focused {
+    } else if focused && !vertical_tabs {
         Some(workspace_active_background(palette, navigating))
     } else {
         None

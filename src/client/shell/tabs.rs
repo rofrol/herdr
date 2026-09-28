@@ -453,7 +453,7 @@ pub(in crate::client::shell) fn tab_status_color(
 /// A pale accent for the active parent tab and its child row: the accent
 /// mixed into the tab bar background, or a surface colour when either is not
 /// an RGB colour.
-fn accent_tint(palette: &Palette) -> ratatui::style::Color {
+pub(in crate::client::shell) fn accent_tint(palette: &Palette) -> ratatui::style::Color {
     // A sixth of the accent over the background.
     blend(palette.accent, palette.panel_bg, 1, 6).unwrap_or(palette.surface1)
 }

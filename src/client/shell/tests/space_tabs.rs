@@ -133,12 +133,64 @@ fn clicking_a_tab_line_enters_its_groups_last_focused_tab() {
     assert!(focuses(&click(&mut state), "job_1"));
 }
 
+/// The state icon of the first tab line and its colour, drawn in a space that
+/// is not focused: in the focused one the active tab's accent fill turns the
+/// icon to the text colour.
 fn tab_icon_color(state: &mut ClientShellState) -> (String, ratatui::style::Color) {
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    projected.workspaces[0].focused = false;
+    state.set_snapshot(Box::new(projected));
+    let (symbol, fg, _) = tab_cell(state, 4);
+    (symbol, fg)
+}
+
+/// The cell `column` columns into the first tab line: its symbol and colours.
+fn tab_cell(
+    state: &mut ClientShellState,
+    column: u16,
+) -> (String, ratatui::style::Color, ratatui::style::Color) {
     let frame = state.compose(106, 30).unwrap();
     let buffer = frame.to_ratatui_buffer().expect("buffer");
     let (rect, _) = state.hits.space_tabs[0];
-    let cell = &buffer[(rect.x + 3, rect.y)];
-    (cell.symbol().to_owned(), cell.fg)
+    let cell = &buffer[(rect.x + column, rect.y)];
+    (cell.symbol().to_owned(), cell.fg, cell.bg)
+}
+
+#[test]
+fn tab_lines_take_the_tab_bars_colours_from_their_indent() {
+    let mut state = state_with_tabs(true);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    let mut other = projected.tabs[0].clone();
+    other.tab_id = "tab_2".into();
+    other.focused = false;
+    other.agent_status = AgentStatus::Unknown;
+    projected.tabs.push(other);
+    state.set_snapshot(Box::new(projected));
+    let palette = state.config.palette.clone();
+    let frame = state.compose(106, 30).unwrap();
+    let buffer = frame.to_ratatui_buffer().expect("buffer");
+    let bg = |line: usize, column: u16| {
+        let (rect, _) = state.hits.space_tabs[line];
+        buffer[(rect.x + column, rect.y)].bg
+    };
+
+    // The active tab of the focused space is accent-filled, the other grey,
+    // and neither fill reaches left of the tab indent.
+    assert_eq!(bg(0, 3), palette.accent);
+    assert_eq!(bg(1, 3), palette.surface0);
+    assert_ne!(bg(0, 2), palette.accent);
+    assert_ne!(bg(1, 2), palette.surface0);
+
+    // A tab without an agent gets the program mark.
+    let (rect, _) = state.hits.space_tabs[1];
+    assert_eq!(buffer[(rect.x + 4, rect.y)].symbol(), "❏");
+
+    // In a space that is not focused the active tab is only tinted.
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    projected.workspaces[0].focused = false;
+    state.set_snapshot(Box::new(projected));
+    let (_, _, bg) = tab_cell(&mut state, 3);
+    assert_eq!(bg, super::super::render::tabs::accent_tint(&palette));
 }
 
 #[test]

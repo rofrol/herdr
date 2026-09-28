@@ -210,16 +210,27 @@ fn top_level_tabs<'a>(
         .filter(|tab| tab.workspace_id == workspace.workspace_id && tab.parent_tab_id.is_none())
 }
 
+/// U+274F: one cell, no emoji form, in the system symbol fonts.
+const PROGRAM_ICON: &str = "❏";
+
 /// Draws `lines` from the top of `area`, below the space's own rows, and
-/// returns each drawn line's rect with the tab a click enters.
+/// returns each drawn line's rect with the tab a click enters. Each line is
+/// a tab in the tab bar's colours, filled from the tab indent: grey, the
+/// active tab accent-filled in the focused space and accent-tinted in the
+/// others, like a tab bar parent whose children are open.
 pub(super) fn render_space_tab_lines(
     buffer: &mut Buffer,
     area: Rect,
     lines: &[SpaceTabLine],
+    focused_space: bool,
     config: &ClientShellConfig,
 ) -> Vec<(Rect, String)> {
     let palette = &config.palette;
-    let right = area.right().saturating_sub(1);
+    let fill_x = area.x.saturating_add(3);
+    let fill_right = area.right().saturating_sub(1);
+    // One column of padding inside the fill on each side.
+    let x = fill_x.saturating_add(1);
+    let right = fill_right.saturating_sub(1);
     let mut hits = Vec::new();
     for (index, line) in lines.iter().enumerate() {
         let y = area.y.saturating_add(index as u16);
@@ -227,17 +238,41 @@ pub(super) fn render_space_tab_lines(
             break;
         }
         hits.push((Rect::new(area.x, y, area.width, 1), line.tab_id.clone()));
-        let x = area.x.saturating_add(3);
-        if let Some((status, mark)) = line.state {
-            super::render::put_text(
-                buffer,
-                x,
-                y,
-                1,
+        let filled = line.active && focused_space;
+        let (bg, text_style) = if filled {
+            (
+                palette.accent,
+                Style::default()
+                    .fg(panel_contrast_fg(palette))
+                    .add_modifier(Modifier::BOLD),
+            )
+        } else if line.active {
+            (
+                super::render::tabs::accent_tint(palette),
+                Style::default()
+                    .fg(palette.accent)
+                    .add_modifier(Modifier::BOLD),
+            )
+        } else {
+            (palette.surface0, Style::default().fg(palette.overlay1))
+        };
+        buffer.set_style(
+            Rect::new(fill_x, y, fill_right.saturating_sub(fill_x), 1),
+            Style::default().bg(bg),
+        );
+        // On the accent fill the state and job colours can vanish, so they
+        // take the text colour, as on the tab bar.
+        let on_accent = filled.then_some(text_style);
+        // A tab without an agent runs a program (a shell, lazygit): a window
+        // mark, a square so it cannot pass for an agent state's circle.
+        let (icon, icon_style) = match line.state {
+            Some((status, mark)) => (
                 agent_icon(status, mark, config.status_indicators),
                 Style::default().fg(agent_color(status, mark, palette)),
-            );
-        }
+            ),
+            None => (PROGRAM_ICON, Style::default().fg(palette.overlay0)),
+        };
+        super::render::put_text(buffer, x, y, 1, icon, on_accent.unwrap_or(icon_style));
         // The counts keep their room; the label is cut first.
         let jobs_width = segments_width(&line.jobs);
         let text_x = x.saturating_add(2);
@@ -249,23 +284,16 @@ pub(super) fn render_space_tab_lines(
         };
         let label_width = available.saturating_sub(if jobs_width > 0 { jobs_width + 1 } else { 0 });
         let label = truncate(&line.label, label_width as usize);
-        let style = if line.active {
-            Style::default()
-                .fg(palette.accent)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(palette.overlay1)
-        };
-        super::render::put_text(buffer, text_x, y, label_width, &label, style);
+        super::render::put_text(buffer, text_x, y, label_width, &label, text_style);
         if jobs_width > 0 {
-            let label_end =
-                text_x.saturating_add(unicode_width::UnicodeWidthStr::width(label.as_str()) as u16);
+            // Right-aligned, so the counts of all lines form a column.
             render_segments(
                 buffer,
-                label_end.saturating_add(1),
+                right.saturating_sub(jobs_width),
                 y,
                 right,
                 &line.jobs,
+                on_accent,
                 palette,
             );
         }
@@ -289,6 +317,8 @@ fn render_segments(
     y: u16,
     right: u16,
     segments: &[(Option<TabStatus>, String)],
+    // Replaces the status colours, e.g. on an accent fill.
+    style: Option<Style>,
     palette: &Palette,
 ) {
     for (index, (status, text)) in segments.iter().enumerate() {
@@ -306,9 +336,10 @@ fn render_segments(
             y,
             width,
             &text,
-            Style::default()
-                .fg(super::render::tabs::tab_status_color(*status, palette)
-                    .unwrap_or(palette.overlay0)),
+            style.unwrap_or_else(|| {
+                Style::default().fg(super::render::tabs::tab_status_color(*status, palette)
+                    .unwrap_or(palette.overlay0))
+            }),
         );
         x = x.saturating_add(unicode_width::UnicodeWidthStr::width(text.as_str()) as u16);
     }

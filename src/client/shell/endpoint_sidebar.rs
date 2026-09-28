@@ -533,6 +533,7 @@ pub(super) fn render_expanded(
                         nested.height.saturating_sub(own_rows),
                     ),
                     &tab_lines,
+                    endpoint_active && workspace.focused,
                     config,
                 );
                 if endpoint.status != ClientEndpointStatus::Online {
