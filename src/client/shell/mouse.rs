@@ -115,6 +115,16 @@ impl ClientShellState {
         false
     }
 
+    /// How far one wheel step moves the spaces list: three rows where it
+    /// scrolls by rows (the local sidebar), else one space.
+    fn workspace_wheel_step(&self) -> usize {
+        if self.hits.workspace_layout.is_empty() {
+            1
+        } else {
+            3
+        }
+    }
+
     /// A closed job's blank slot, held while the pointer is over the list:
     /// clicks there do nothing, not even act on the space around it.
     fn on_gone_square(&self, point: (u16, u16)) -> bool {
@@ -694,19 +704,39 @@ impl ClientShellState {
         Some(last_index + 1)
     }
 
-    /// Top-level blocks of this endpoint's spaces as drawn: (id, top, bottom)
-    /// per space with its indented worktrees.
-    fn workspace_blocks(&self) -> Vec<(String, u16, u16)> {
-        let mut blocks = Vec::<(String, u16, u16)>::new();
-        for hit in self
-            .hits
-            .workspaces
-            .iter()
-            .filter(|hit| hit.endpoint_id == self.active_endpoint_id)
-        {
-            match blocks.last_mut() {
-                Some(block) if hit.indented => block.2 = hit.rect.bottom(),
-                _ => blocks.push((hit.workspace_id.clone(), hit.rect.y, hit.rect.bottom())),
+    /// Top-level blocks of this endpoint's spaces: (id, top, bottom) in
+    /// screen rows per space with its indented worktrees. The local sidebar
+    /// scrolls by rows and gives every space, also those scrolled out of
+    /// view (rows above the screen are negative); the multi-machine sidebar
+    /// gives the drawn ones.
+    fn workspace_blocks(&self) -> Vec<(String, i32, i32)> {
+        let mut blocks = Vec::<(String, i32, i32)>::new();
+        let mut push = |id: &str, indented: bool, top: i32, bottom: i32| match blocks.last_mut() {
+            Some(block) if indented => block.2 = bottom,
+            _ => blocks.push((id.to_owned(), top, bottom)),
+        };
+        if self.hits.workspace_layout.is_empty() {
+            for hit in self
+                .hits
+                .workspaces
+                .iter()
+                .filter(|hit| hit.endpoint_id == self.active_endpoint_id)
+            {
+                push(
+                    &hit.workspace_id,
+                    hit.indented,
+                    i32::from(hit.rect.y),
+                    i32::from(hit.rect.bottom()),
+                );
+            }
+        } else {
+            for layout in &self.hits.workspace_layout {
+                push(
+                    &layout.workspace_id,
+                    layout.indented,
+                    layout.top,
+                    layout.bottom,
+                );
             }
         }
         blocks
@@ -743,10 +773,10 @@ impl ClientShellState {
         // Blocks after the dragged one move up into its place, gap included.
         let shift = blocks
             .get(source + 1)
-            .map_or(0, |next| next.1.saturating_sub(blocks[source].1));
-        let compact_top = |index: usize, top: u16| {
+            .map_or(0, |next| next.1 - blocks[source].1);
+        let compact_top = |index: usize, top: i32| {
             if index > source {
-                top.saturating_sub(shift)
+                top - shift
             } else {
                 top
             }
@@ -761,13 +791,11 @@ impl ClientShellState {
             .iter()
             .enumerate()
             .filter(|(index, _)| *index != source)
-            .map(|(index, (_, top, bottom))| {
-                compact_top(index, *top).saturating_add(bottom.saturating_sub(*top))
-            })
+            .map(|(index, (_, top, bottom))| compact_top(index, *top) + (bottom - top))
             .max()
             .unwrap_or(blocks[source].1);
         slots.push((None, end));
-        let top = point.1.saturating_sub(grab_offset);
+        let top = i32::from(point.1) - i32::from(grab_offset);
         slots
             .into_iter()
             .enumerate()
@@ -1448,7 +1476,9 @@ impl ClientShellState {
                         .workspace_blocks()
                         .iter()
                         .find(|(id, ..)| *id == source_workspace_id)
-                        .map_or(0, |(_, top, _)| start_row.saturating_sub(*top));
+                        .map_or(0, |(_, top, _)| {
+                            (i32::from(start_row) - top).clamp(0, i32::from(u16::MAX)) as u16
+                        });
                     if check.is_ok() {
                         if let Some(target) =
                             self.workspace_drop_target_at(point, &source_workspace_id, grab_offset)
@@ -2153,7 +2183,9 @@ impl ClientShellState {
                 }
             }
             MouseEventKind::ScrollUp if super::contains(self.hits.workspace_body, point) => {
-                let next = self.workspace_scroll.saturating_sub(1);
+                let next = self
+                    .workspace_scroll
+                    .saturating_sub(self.workspace_wheel_step());
                 if next != self.workspace_scroll {
                     self.workspace_scroll = next;
                     outcome.repaint = true;
@@ -2162,7 +2194,7 @@ impl ClientShellState {
             MouseEventKind::ScrollDown if super::contains(self.hits.workspace_body, point) => {
                 let next = self
                     .workspace_scroll
-                    .saturating_add(1)
+                    .saturating_add(self.workspace_wheel_step())
                     .min(self.hits.workspace_max_scroll);
                 if next != self.workspace_scroll {
                     self.workspace_scroll = next;

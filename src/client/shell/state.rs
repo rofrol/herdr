@@ -90,6 +90,9 @@ pub(super) enum ClientMobileTarget {
 pub(super) struct ShellHitMap {
     pub(super) machines: Vec<MachineHit>,
     pub(super) workspaces: Vec<WorkspaceHit>,
+    /// Every space of the local sidebar in screen rows, see
+    /// [`WorkspaceLayout`]; empty for the multi-machine sidebar.
+    pub(super) workspace_layout: Vec<WorkspaceLayout>,
     pub(super) workspace_body: Rect,
     pub(super) workspace_scrollbar: Rect,
     pub(super) workspace_scroll_metrics: Option<crate::pane::ScrollMetrics>,
@@ -295,6 +298,63 @@ pub(super) struct WorkspaceHit {
     pub(super) workspace_id: String,
     pub(super) indented: bool,
     pub(super) group_toggle: Option<(Rect, String)>,
+}
+
+/// Where a space of the local sidebar is, in screen rows, whether it is
+/// drawn or scrolled out of the list: `top` may be above the screen.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct WorkspaceLayout {
+    pub(super) workspace_id: String,
+    pub(super) indented: bool,
+    pub(super) top: i32,
+    pub(super) bottom: i32,
+}
+
+/// Moves a hit rect drawn at row 0 of a space block's scratch buffer to the
+/// screen (`dy` rows down) and clips it to the block's visible part.
+fn shift_rect(rect: Rect, dy: i32, visible: Rect) -> Option<Rect> {
+    let y = i32::from(rect.y) + dy;
+    let top = y.max(i32::from(visible.y));
+    let bottom = (y + i32::from(rect.height)).min(i32::from(visible.bottom()));
+    (bottom > top).then(|| Rect::new(rect.x, top as u16, rect.width, (bottom - top) as u16))
+}
+
+impl ShellHitMap {
+    /// Moves the hits of a space block drawn off screen to where its visible
+    /// rows were copied, dropping those that are not shown.
+    pub(super) fn shift_space_block(&mut self, dy: i32, visible: Rect) {
+        let shift_all = |hits: &mut Vec<(Rect, String)>| {
+            *hits = std::mem::take(hits)
+                .into_iter()
+                .filter_map(|(rect, id)| Some((shift_rect(rect, dy, visible)?, id)))
+                .collect();
+        };
+        shift_all(&mut self.space_tabs);
+        shift_all(&mut self.space_tab_folds);
+        shift_all(&mut self.space_tab_squares);
+        self.space_tab_gone = std::mem::take(&mut self.space_tab_gone)
+            .into_iter()
+            .filter_map(|rect| shift_rect(rect, dy, visible))
+            .collect();
+        for hit in &mut self.workspaces {
+            hit.rect = shift_rect(hit.rect, dy, visible).unwrap_or_default();
+            hit.group_toggle = hit
+                .group_toggle
+                .take()
+                .and_then(|(rect, key)| Some((shift_rect(rect, dy, visible)?, key)));
+        }
+    }
+
+    /// Adds a space block's hits.
+    pub(super) fn merge_space_block(&mut self, block: ShellHitMap) {
+        self.workspaces.extend(block.workspaces);
+        self.space_tabs.extend(block.space_tabs);
+        self.space_tab_folds.extend(block.space_tab_folds);
+        self.space_tab_squares.extend(block.space_tab_squares);
+        self.space_tab_gone.extend(block.space_tab_gone);
+        self.space_tab_square_order
+            .extend(block.space_tab_square_order);
+    }
 }
 
 #[derive(Debug)]
@@ -1321,6 +1381,24 @@ impl ClientShellState {
                 .iter()
                 .position(|entry| snapshot.workspaces[entry.index].workspace_id == workspace_id)
         });
+        // The local sidebar scrolls by rows: bring the space's name row in.
+        if let Some(layout) = self
+            .hits
+            .workspace_layout
+            .iter()
+            .find(|layout| layout.workspace_id == workspace_id)
+        {
+            let body = self.hits.workspace_body;
+            let row = (layout.top - i32::from(body.y) + self.workspace_scroll as i32).max(0);
+            self.workspace_scroll = super::scroll::rows_start_to_reveal(
+                self.workspace_scroll,
+                usize::from(body.height),
+                row as usize,
+                row as usize,
+            )
+            .min(self.hits.workspace_max_scroll);
+            return;
+        }
         if let Some(target) = target {
             self.workspace_scroll = target.min(self.hits.workspace_max_scroll);
         }

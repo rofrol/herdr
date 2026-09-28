@@ -663,3 +663,72 @@ fn a_closed_jobs_square_keeps_its_slot_while_the_pointer_is_over_the_list() {
     assert!(state.hits.space_tab_gone.is_empty());
     assert_eq!(state.hits.space_tab_squares, [(first, "job_2".to_owned())]);
 }
+
+#[test]
+fn the_spaces_list_scrolls_by_rows_to_the_last_square_of_a_tall_space() {
+    let mut state = state_with_tabs(true);
+    for index in 0..60 {
+        with_job(&mut state, &format!("job_{index}"), TabStatus::Running);
+    }
+    click_fold(&mut state);
+    state.compose(106, 30).unwrap();
+    let body = state.hits.workspace_body;
+    let max = state.hits.workspace_max_scroll;
+    assert!(max > 0, "twelve square rows do not fit");
+
+    // Wheel to the bottom: the space's top rows scroll away, its last
+    // squares show and take clicks.
+    for _ in 0..max {
+        state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+            kind: crossterm::event::MouseEventKind::ScrollDown,
+            column: body.x + 2,
+            row: body.y + 1,
+            modifiers: KeyModifiers::empty(),
+        })]);
+    }
+    assert_eq!(state.workspace_scroll, max);
+    let frame = state.compose(106, 30).unwrap();
+    let last = state
+        .hits
+        .space_tab_squares
+        .iter()
+        .find(|(_, tab_id)| tab_id == "job_59")
+        .map(|(rect, _)| *rect)
+        .expect("the last square is drawn");
+    assert!(last.bottom() <= body.bottom());
+    let row = frame_rows(&frame)[last.y as usize]
+        .chars()
+        .collect::<Vec<_>>();
+    assert_eq!(row[last.x as usize + 1], '⧖');
+    assert!(focuses(
+        &left_click(&mut state, (last.x + 1, last.y)),
+        "job_59"
+    ));
+    // The space's name row is above the list, so it has no hit in view,
+    // but the space still knows where it is.
+    let space = state.hits.workspaces[0].rect;
+    assert!(space.y >= body.y, "{space:?}");
+    assert!(state.hits.workspace_layout[0].top < i32::from(body.y));
+}
+
+#[test]
+fn revealing_the_focused_space_brings_its_open_job_square_in() {
+    let mut state = state_with_tabs(true);
+    for index in 0..60 {
+        with_job(&mut state, &format!("job_{index}"), TabStatus::Running);
+    }
+    click_fold(&mut state);
+    focus_tab(&mut state, "job_59");
+    state.workspace_scroll = 0;
+    state.reveal_focused_workspace = true;
+    state.compose(106, 30).unwrap();
+    let body = state.hits.workspace_body;
+    let open = state
+        .hits
+        .space_tab_squares
+        .iter()
+        .find(|(_, tab_id)| tab_id == "job_59")
+        .map(|(rect, _)| *rect)
+        .expect("the open square is revealed");
+    assert!(open.y >= body.y && open.bottom() <= body.bottom());
+}

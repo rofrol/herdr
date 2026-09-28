@@ -63,6 +63,18 @@ impl SpaceTabLine {
     }
 }
 
+impl SpaceTabLine {
+    /// The row, among this line's square rows, of the open job's square.
+    pub(super) fn focused_square_row(&self, width: u16) -> Option<usize> {
+        let index = self
+            .squares
+            .iter()
+            .position(|square| square.focused)
+            .filter(|_| self.unfolded)?;
+        Some(index / squares_per_row(width))
+    }
+}
+
 /// Each unfolded tab line's square order as last drawn, `(tab id, label)`
 /// by line tab id, kept while the pointer is over the sidebar.
 pub(super) type HeldSquares = std::collections::HashMap<String, Vec<(String, String)>>;

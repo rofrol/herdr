@@ -256,7 +256,23 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Done 2026-09-28: hovering a square names its job (glyph and label) in
     place of its tab line's label, the nearest stable row. A cap of three
     square rows with a `+N` slot was tried and removed the same night at
-    my request: every square shows, and the list scrolls to them. Consulted
+    my request: every square shows, and the list scrolls to them.
+  - Done 2026-09-28: the local spaces list scrolls by rows, not whole
+    spaces, so a space taller than the list scrolls through to its last
+    square; the wheel moves three rows. A space cut at the list's top or
+    bottom is drawn off screen and its visible rows copied (only those
+    one or two spaces per frame); its hits are moved and clipped. Every
+    space's row span, drawn or not, goes into the hit map, so space drag
+    and drop and revealing a space work with a space scrolled half out.
+    Revealing the focused space shows its name row and its active tab line
+    (or the open job's square), and only the deeper one when both do not
+    fit. Consulted (GPT-6 Astra, DeepSeek): both wanted row scrolling and
+    a renderer that takes a row offset instead of an off-screen copy;
+    chose the copy for the one or two cut spaces, as the renderers draw
+    into a rect. Still open: the multi-machine sidebar scrolls by whole
+    spaces and shares `workspace_scroll` with the local one (a switch
+    reinterprets the offset, clamped); row offsets jump when squares above
+    fold or close (DeepSeek: anchor on the space and its row). Consulted
     (GPT-6 Astra, DeepSeek): Astra chose the sidebar's footer for the name,
     DeepSeek the tab line (chosen: next to the pointer, no chrome hidden).
     For a space taller than the list, Astra wanted the list to scroll by
@@ -1213,6 +1229,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   does not run on SIGKILL), survives. Fix: tear down the server too (kill
   the process group or read the runtime dir's server pid), and have the next
   test run reap stale `/tmp/herdr-client-test-*` whose owner pid is dead.
+  Also flaky: `federated_client_starts_without_local_and_survives_its_restart`
+  failed once in `just check` on 2026-09-28 ("remote reconnect 2 must
+  restore visible input", 12.8 s) and passed alone and on the rerun.
 - [ ] Explain the consult/ask naming mismatch: the plugin (`plugins/consult`,
   `local.consult`) and the stats skill (`consult-stats`, `consult.py`) say
   "consult", but the scripts inside the skills say "ask" (`ask_gpt.sh`,
