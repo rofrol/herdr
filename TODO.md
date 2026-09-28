@@ -84,6 +84,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     herdr-job counts from the `$jobs` token; clicking an agent or job line
     focuses that agent (local endpoint only). Still to do in stage 1: the
     new state circle shapes, unowned jobs, the chevron.
+  - 2026-09-28: with `spaces.agents` the space row drops its own aggregate
+    state icon (redundant next to the agents' icons), for every space, also
+    those without agents, so the name does not shift as agents come and go;
+    the name starts where the icon was. Consulted (GPT-6 Astra, DeepSeek):
+    Astra proposed this; DeepSeek proposed keeping the icon on spaces without
+    visible agents and reserving the column for the chevron. When the
+    chevron lands it takes the name's place in front of it.
   - 2026-09-28: tasks fall back to the agent's terminal title (was always
     `claude · no task`). Decided by me instead of the header toggle above:
     the "spaces" title is now `cust  name ↑  prio ↓`, sorting the spaces

@@ -283,6 +283,26 @@ mod tests {
     }
 
     #[test]
+    fn listing_agents_drops_the_spaces_own_state_icon() {
+        let workspace = super::super::tests::snapshot().workspaces[0].clone();
+        let has_icon = |agents: bool| {
+            super::super::sidebar::workspace_rows(
+                &workspace,
+                AgentStatus::Working,
+                (0, 0),
+                false,
+                &config(agents).spaces,
+            )
+            .iter()
+            .flatten()
+            .any(|token| matches!(token.kind, crate::ui::ResolvedTokenKind::StateIcon))
+        };
+
+        assert!(has_icon(false));
+        assert!(!has_icon(true));
+    }
+
+    #[test]
     fn truncation_keeps_the_width_and_marks_the_cut() {
         assert_eq!(truncate("Name unnamed tabs after", 10), "Name unna…");
         assert_eq!(truncate("short", 10), "short");

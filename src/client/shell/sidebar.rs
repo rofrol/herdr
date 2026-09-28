@@ -938,7 +938,7 @@ pub(in crate::client::shell) fn workspace_rows(
         &workspace.label
     };
     let token_values = workspace.tokens.iter().cloned().collect::<HashMap<_, _>>();
-    crate::ui::sidebar_space_rows(
+    let rows = crate::ui::sidebar_space_rows(
         config,
         crate::ui::SpaceTokenContext {
             workspace: label,
@@ -949,7 +949,21 @@ pub(in crate::client::shell) fn workspace_rows(
             tokens: &token_values,
             suppress_git_details: indented,
         },
-    )
+    );
+    if !config.agents {
+        return rows;
+    }
+    // Agents listed under the space show their own states, so the space's
+    // aggregate icon is redundant. Dropped for every space, also those without
+    // agents, so the name does not shift as agents come and go.
+    rows.into_iter()
+        .map(|row| {
+            row.into_iter()
+                .filter(|token| !matches!(token.kind, crate::ui::ResolvedTokenKind::StateIcon))
+                .collect::<Vec<_>>()
+        })
+        .filter(|row| !row.is_empty())
+        .collect()
 }
 
 pub(in crate::client::shell) fn render_workspace_rows(
