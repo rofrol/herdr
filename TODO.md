@@ -440,6 +440,51 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Pitfalls: truncate labels before status icons; the whole tab including
     padding is the hit target, gaps are not; red/yellow icons must stay
     readable on `surface1` in both light and dark themes.
+- [ ] Tooltips: hovering a tab shows its full text. There is no tooltip
+  system yet, so build one small client-side layer first (presentation
+  state, no protocol change): target id, anchor rect, lines; ~400-500 ms
+  dwell, not restarted by motion within the same target; drawn last,
+  clamped to the screen, display-width aware, never intercepting clicks;
+  hidden on key, click, scroll, drag, modal, resize, target removal, and
+  after a maximum time (a lost leave event must not leave it stuck).
+  - Tabs, both the main and the child row: only when the label is
+    actually truncated.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): hover must not be
+    the only way to see the full text, since tmux and some terminals drop
+    plain motion events (mode 1003); the rename dialog already shows it.
+    Sanitize control characters in tooltip text.
+- [ ] Build line (bottom left of the sidebar): hover shows the full commit
+  message, click opens a modal with the full commit info (full hash,
+  subject, body, author, date, dirty flag, version and channel), scrollable,
+  Esc closes.
+  - The data does not exist yet: `HERDR_GIT_COMMIT_LINE` holds only
+    `<short hash> <subject>`. Embed structured commit metadata at build
+    time (handle builds without git); never ask the git repo of the
+    current space, which is another project.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): the client and
+    the server builds can differ after a live handoff, so the modal shows
+    both, labelled "server" and "client", and marks a mismatch. Server
+    details come from a new advertised build-info method (the snapshot's
+    `build_commit` stays as is); an old server shows "details unavailable",
+    never the client's data in its place. Astra: the tooltip shows the
+    subject only, the body belongs in the modal.
+- [ ] Reopen the last closed tab, `prefix+u` ("undo close", configurable).
+  - Closing a tab kills its processes, so this recreates the tab rather
+    than undoing the close: same place in the space, name, pane layout,
+    working directories, and agents resumed through the existing session
+    resume (`src/agent_resume.rs`, as after a restart); plain shells start
+    fresh, never replaying their commands.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): a bounded,
+    server-owned history of explicitly closed tabs per space, exposed
+    through a new advertised method, not in routine snapshots; pane closes
+    are left out at first; an entry stays in the history if restoring it
+    fails. Define missing directories, a deleted space, partial failures
+    and two clients reopening at once. Not `ctrl+shift+t`: terminals often
+    take it, and legacy key encoding cannot tell it from `ctrl+t`;
+    `prefix+shift+t` is rename.
+  - Alternative to weigh (mine, not consulted): keep a closed tab's
+    processes alive for a few seconds with an "undo" toast, which restores
+    them exactly.
 
 ## Deferred
 
