@@ -539,7 +539,12 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     scrolling), and dismissable by hand. No "focused for N seconds" timer.
     Decide whether it survives a restart. Astra: clear "unseen" on the pane
     being visible, not merely its tab being active.
-- [ ] Consult stats log DeepSeek under the alias it was called with
+  - Decided (user, 2026-09-28): blue stays until I reply, with no manual
+    dismiss. Implemented in the TUI client: a plain Enter sent to the
+    agent's pane acknowledges the completion (`acknowledge_agent_replies`);
+    showing the pane no longer does. Installed, awaiting trial. The server's
+    `pane.seen` (toasts, sounds, API status) is unchanged.
+- [x] Consult stats log DeepSeek under the alias it was called with
   (`deepseek-flash`, now V4.1), so when the alias moves to a new model the
   stats of both merge and we cannot tell which was which.
   - The streamed chunks carry `model` and `system_fingerprint`, which
@@ -551,6 +556,11 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     Do not backfill old entries as V4.1 by date unless DeepSeek's changelog
     gives the exact cutover; otherwise mark them `unknown`. Check GPT
     (Codex) and Gemini separately: what metadata they expose differs.
+  - Done (2026-09-28): the chunks' `model` only echoes the alias; `/models`
+    names the serving model (`DeepSeek-V4.1-Flash`). `ask_deepseek.py` logs
+    it as `model_version`, with the fingerprint; stats group by it (older
+    calls stay under the alias, version unknown), `stats --by-alias` merges.
+    GPT and Gemini are called with explicit model ids.
 - [ ] Audit whether colours and symbols are consistent across the UI
   (sidebar, mobile layout, tabs, toasts, job statuses `⧖ ✓ !`, state dots).
   - Plan: an inventory (glyph or colour, meaning, where used), then
@@ -562,6 +572,31 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     colour (colour-blind users, monochrome), in light and dark themes and
     narrow layouts. Generate the legend from the code, not by hand, or it
     drifts.
+  - Audit (2026-09-28), conflicts by severity:
+    1. `Done` is teal in `status_color` (`src/client/shell.rs`) but blue in
+       the mobile summary (`mobile.rs`) and finished toasts
+       (`notifications.rs`); in most themes blue equals `accent`.
+    2. The default Dots style draws working, blocked, done and
+       waiting-on-job all as `●`: colour alone tells them apart.
+    3. Blocked has three glyphs: `●` (Dots), `×` (Symbols), `◉` (mobile);
+       other red problems use `!`.
+    4. `◐` is both agent working and endpoint connecting, both yellow.
+    5. Green is both agent idle and job succeeded; `✓` is also agent done
+       (Symbols style, teal).
+    6. Theme collisions: in `Palette::terminal()` mauve equals overlay0
+       (waiting-on-job looks unknown) and peach equals yellow; in Dracula
+       blue equals teal.
+    7. Mauve means waiting-on-job, focused branch, resize mode and help keys.
+    8. Unknown reads "unknown" in `status_text` but "idle" in the agent
+       sidebar and mobile.
+  - Duplicated mappings: status text (`shell.rs`, `agent_sidebar.rs`,
+    `mobile.rs`), glyph and colour overrides in `mobile.rs`, job glyphs and
+    colours in `tab_groups.rs`, `tabs.rs` and `ui/sidebar.rs`, toast colours
+    twice in `notifications.rs`. Model to follow:
+    `endpoint_status_presentation` (`endpoints.rs`) returns glyph, label
+    and colour together. Next: one `status_style` module per domain (agent,
+    job, endpoint, notification) and semantic palette roles, decided
+    together with the state-shape redesign.
 - [ ] Analyse whether all tests are needed.
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): optimise for
     confidence and upkeep, not the test count. First find the slow, flaky
@@ -572,6 +607,23 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     when a higher-level test is shown to cover it, in small batches, never
     one bulk prune. Some UI strings are contracts; keep frozen protocol
     fixtures.
+  - Analysis (2026-09-28): 4070 tests in 283 files; 3741 run on macOS in
+    about 29 s, all pass, no flaky ones seen. Nearly all are needed.
+    - Exact duplicates to delete: `read_message_accepts_exact_payload`
+      (`src/protocol/wire.rs`, same as `framing_small_message_roundtrip`)
+      and `lone_escape_is_buffered_until_timeout_flush`
+      (`src/raw_input.rs`, same as `flushes_lone_escape_after_timeout`).
+    - Breaks the detection rule: `agent_explain_evaluates_with_server_manifest_cache`
+      (`src/app/api.rs`) asserts Codex's bundled rule id
+      `live_strong_blocker`; rewrite it with a synthetic override manifest.
+    - Speed: `client_mode::federated_client_starts_without_local_and_survives_its_restart`
+      alone takes 16.6 s and sets the wall-clock time; the
+      `detect::manifest*` tests take about 1 s each because they reload
+      all bundled manifests 2-4 times per test.
+    - Merge, not delete: the 13 `install_*_errors_when_config_dir_missing`
+      tests (`src/integration/tests.rs`) into one table-driven test; the
+      same macOS and Linux `scrollback_editor_argv_*` test into one unix
+      test.
 
 ## Deferred
 
