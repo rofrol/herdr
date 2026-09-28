@@ -577,11 +577,15 @@ fn closing_a_pane_with_a_waiting_agent_asks_first() {
     assert!(pane_closes(&state.handle_input_bytes(b"\x1b")).is_empty());
     assert!(state.overlay.is_none());
 
-    // An idle agent can be resumed, so it closes at once.
+    // An idle agent asks too: resuming it would lose its draft and background tasks.
     let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
     projected.agents[0].agent_status = AgentStatus::Idle;
     state.set_snapshot(Box::new(projected));
-    assert_eq!(pane_closes(&close_focused_pane(&mut state)), ["pane_1"]);
+    assert!(pane_closes(&close_focused_pane(&mut state)).is_empty());
+    assert!(matches!(state.overlay.as_ref(),
+        Some(ClientShellOverlay::ConfirmClose(confirm))
+            if confirm.running.as_deref() == Some("claude idle in 1")));
+    assert_eq!(pane_closes(&state.handle_input_bytes(b"\r")), ["pane_1"]);
 }
 
 #[test]

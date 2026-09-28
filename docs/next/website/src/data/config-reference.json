@@ -1016,7 +1016,7 @@
           "key": "ui.confirm_close_running",
           "type": "boolean",
           "default": "true",
-          "description": "Ask before closing a tab, pane or workspace with running work: a tab marked running, a working or blocked agent, or a program the shell started. Independent of `ui.confirm_close`."
+          "description": "Ask before closing a tab, pane or workspace with running work: a tab marked running, any running agent (idle included), or a program the shell started. Independent of `ui.confirm_close`."
         },
         {
           "key": "ui.prompt_new_tab_name",
