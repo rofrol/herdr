@@ -840,18 +840,15 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     flags keep Ctrl+Shift+T apart from Ctrl+T. The dotfiles config is
     shared and herdr has no per-OS keys, so herdr takes Ctrl+Shift+T/W on
     macOS too, and Cmd+T/W on Linux. Ghostty: `ctrl+shift+t/w=unbind`,
-    its new tab / close split on `ctrl+alt+shift+t/w`. Consulted GPT-6
+    with no replacement keys (the user's choice). Consulted GPT-6
     Astra and DeepSeek, 2026-09-28: no blockers. Costs: Ghostty loses
     Ctrl+Shift+T/W outside herdr (a plain shell may get them as ^T/^W),
     and programs inside herdr never see them.
   - Checked in Ghostty v1.3.1 `src/config/Config.zig` (non-Darwin
     defaults): `ctrl+shift+t=new_tab`; `ctrl+shift+w` is put twice,
     `close_surface` then `close_tab:this`, and the later put wins, so it
-    closes the tab. The fallback `ctrl+alt+shift+w=close_surface` closes
-    a split instead, like `cmd+ctrl+w` on macOS; `ctrl+alt+shift+t/w`
-    have no Ghostty default.
-  - Verify on Linux: GNOME/KDE don't grab `ctrl+alt+shift+t/w`; plain
-    Ctrl+T/W still reach the shell inside herdr.
+    closes the tab.
+  - Verify on Linux: plain Ctrl+T/W still reach the shell inside herdr.
 
 ## Deferred
 
