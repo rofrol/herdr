@@ -757,6 +757,56 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
       tests (`src/integration/tests.rs`) into one table-driven test; the
       same macOS and Linux `scrollback_editor_argv_*` test into one unix
       test.
+- [ ] Refresh the README's "Fork changes" so it says how the fork differs
+  now, with a small looping animation under each change.
+  - Audit first (vertical tabs, the disclosure triangle and
+    `show_agents_panel` are in the README since 2026-09-28);
+    `scripts/fork_demo/README.md` still
+    says "oracle stats" where the menu item is "consult stats".
+  - Format (consulted GPT-6 Astra and DeepSeek, 2026-09-28): a video can't
+    autoplay or loop on github.com (the sanitizer drops `autoplay`/`loop`,
+    user-attachments videos are click-to-play), so use animated WebP as an
+    `<img>`: far smaller than GIF, loops, Safari 14+. Avoid animated AVIF
+    (patchy support). Pilot one clip in the real rendered README (Chrome,
+    Safari, GitHub mobile app) and compare it with a GIF before making the
+    rest. Keep the long MP4 as the full walkthrough.
+  - Clips: each scene of `record.py` runnable on its own from a fresh
+    state, so one changed feature re-records one clip; crop to the feature
+    with enough context; 3-6 s, 8-12 fps, a hold before and after the
+    action so the loop seam is calm; about 500 KB each, under 4 MB total.
+    No caption bar (the bullet is the caption); alt text on every image.
+    Keep scene, crop and encoder settings in the script, not done by hand.
+  - Text must stay readable at README width, desktop and mobile: don't
+    downscale the 104-column window below 1:1, or record fewer columns or
+    a bigger font instead.
+  - Storage: files under `assets/fork/` with relative links, new file names
+    on re-record (camo caches). Each re-record adds its size to git
+    history; if that grows, move them to an orphan `assets` branch.
+  - Risk: seven loops at once are distracting and ignore reduced-motion;
+    if it looks busy, use a static frame per bullet linking to its clip.
+- [ ] Close herdr tabs with Cmd+W.
+  - Conflict: Ghostty binds Cmd+W to `close_surface` and handles its own
+    keybinds before the program sees the key, so herdr never receives it.
+    Ghostty has no per-foreground-program binding. `unconsumed:` still runs
+    `close_surface` (it only also forwards the key) and `performable:` is
+    always true for `close_surface`, so neither routes Cmd+W to herdr.
+    Today Cmd+W in a herdr window only closes the herdr client (after
+    Ghostty's confirmation); the server and agents keep running.
+  - Plan (consulted GPT-6 Astra and DeepSeek, 2026-09-28): in Ghostty,
+    `keybind = cmd+w=unbind` as already done for Cmd+1..9 (herdr gets
+    `super+w` via the kitty keyboard protocol), move `close_surface` to
+    `cmd+shift+w`, and in herdr bind `close_tab = "cmd+w"`. Cost: Cmd+W no
+    longer closes plain Ghostty tabs/splits. Fallback if that hurts: leave
+    Cmd+W to Ghostty and bind `close_tab = "cmd+shift+w"`. Don't use
+    `cmd+w=csi:...`: plain shells would get the escape sequence as input.
+  - First verify that Ghostty delivers `super+w` to herdr after the unbind
+    (`herdr` parses it, `format_key_combo` shows `cmd+w`).
+  - Safety: tabs hold running agents; `confirm_close_running` already asks
+    before closing a tab with running work; check it covers Cmd+W and that
+    Cancel is the default. Both models suggested Cmd+W close the focused
+    pane (closing the tab with its last pane), as Ghostty does with
+    splits; decide tab vs pane before binding. Reopening a closed tab can't
+    bring back killed processes, so a confirmation matters more than undo.
 
 ## Deferred
 
