@@ -84,6 +84,19 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     herdr-job counts from the `$jobs` token; clicking an agent or job line
     focuses that agent (local endpoint only). Still to do in stage 1: the
     new state circle shapes, unowned jobs, the chevron.
+  - 2026-09-28: tasks fall back to the agent's terminal title (was always
+    `claude · no task`). Decided by me instead of the header toggle above:
+    the "spaces" title is now `cust  name ↑  prio ↓`, sorting the spaces
+    themselves (cust = manual order, the only mode that drags; prio = most
+    urgent agent in the space); clicking the active button flips its
+    direction; a client preference, keyboard navigation follows it; the
+    multi-machine sidebar keeps the manual order. Consulted (GPT-6 Astra,
+    DeepSeek): both preferred keeping "spaces" with a dropdown and an agent
+    list for priority; overruled. `ui.sidebar.hide_agents_panel = true`
+    hides the old panel (kept in code for cheap rebases). Still open: the
+    attention counts (`◉1 ●1`) have no place in the header now; prio does
+    not freeze the order while the pointer is over the list; the
+    multi-machine sidebar.
 - [ ] Dragging a space does not show where it will land (screenshot
   2026-09-26, dragging `herdr`). The dragged space keeps a grey background
   much like the selected row, so two grey blocks are on screen; the drop
