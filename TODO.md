@@ -279,6 +279,35 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     commits). Prototype a plain commit list first: maybe lazygit in a popup
     is already enough.
 
+- [ ] Run the Windows checks for fork commits. Nobody does today: the
+  Windows SDK for `just windows-lint` is not set up on the Mac (no `xwin`),
+  so `just check` fails there and agents run narrower checks, and the fork
+  has never had a GitHub Actions run although `ci.yml` has a
+  `windows-latest` job (`just check` in pwsh plus the ConPTY smoke test).
+  - Local: `cargo install xwin --locked`, then `just setup-windows-cross`
+    (the user accepts Microsoft's SDK license), and prove a full
+    `just check` passes before the fork section of CLAUDE.md requires it.
+    Cross-clippy only catches compile and lint errors in `cfg(windows)`
+    code; it runs no Windows tests.
+  - CI: activate Actions in the fork's Actions tab and verify that a push
+    to `master` really starts a CI run. Native Windows CI is the only
+    runtime check (tests, ConPTY, paths), and shared TUI code can break
+    there without touching `cfg` code.
+  - Before activating, disable the workflows that would fail or misfire on
+    the fork with `gh workflow disable` (UI state, so no rebase conflicts
+    with upstream): `label-next-release-issues.yml` and
+    `website-deploy.yml` have no `github.repository == 'herdrdev/herdr'`
+    gate and need upstream secrets. `preview`, `release` and `pr-gate` are
+    gated; the rest are PR- or path-triggered. After each upstream rebase,
+    check for new workflows.
+  - Ownership: the agent that pushes a commit watches that SHA's run
+    (`herdr-job run -- gh run watch <id> --exit-status`) and fixes a red
+    run before pushing more.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): both say local
+    cross-lint is necessary but not sufficient; Astra added verifying the
+    activation and the per-SHA ownership, DeepSeek the post-rebase workflow
+    check and that a fresh machine without the SDK fails `just check`.
+
 ## Deferred
 
 - [ ] Consult stats: pair the coordinator with Opus at a lower effort
