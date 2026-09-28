@@ -1247,7 +1247,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Deferred: sessions already survive server restarts with 48 snapshots;
     recipes only help on a new machine or a fresh checkout. Build it when I
     notice rebuilding the same layout by hand.
-- [ ] `tests/client_mode.rs` can leak a `herdr server`: on 2026-09-28 a
+- [x] `tests/client_mode.rs` can leak a `herdr server`: on 2026-09-28 a
   server from `/tmp/herdr-client-test-52393-…` (started 15:43) was still
   running at 17:30, orphaned (ppid 1) with its `sh` child, while the test
   process (52393) and the bridge in `bridge-pid` were gone; the test dir was
@@ -1259,6 +1259,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   Also flaky: `federated_client_starts_without_local_and_survives_its_restart`
   failed once in `just check` on 2026-09-28 ("remote reconnect 2 must
   restore visible input", 12.8 s) and passed alone and on the rerun.
+  - Done 2026-09-29: a test process now reaps `/tmp/herdr-client-test-*`
+    bases whose test process (the pid in the name) is gone and that are
+    over a minute old: it asks their servers to stop through their sockets
+    and removes the dirs (157 stale dirs went on the first run). Normal
+    runs already stopped servers through `cleanup_test_base`. The flaky
+    wait for input after a reconnect is 15 s, like the screen wait before
+    it (it failed twice at 8 s under a full parallel run).
 - [ ] Explain the consult/ask naming mismatch: the plugin (`plugins/consult`,
   `local.consult`) and the stats skill (`consult-stats`, `consult.py`) say
   "consult", but the scripts inside the skills say "ask" (`ask_gpt.sh`,
