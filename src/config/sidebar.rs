@@ -489,14 +489,24 @@ impl Default for SpacesSidebarConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(default)]
 pub struct SidebarConfig {
     pub agents: AgentsSidebarConfig,
     pub spaces: SpacesSidebarConfig,
-    /// Hide the agents panel and give its height to the spaces list, for use
-    /// with `spaces.agents`. Default: false.
-    pub hide_agents_panel: bool,
+    /// Show the agents panel; false gives its height to the spaces list, for
+    /// use with `spaces.agents`. Default: true.
+    pub show_agents_panel: bool,
+}
+
+impl Default for SidebarConfig {
+    fn default() -> Self {
+        Self {
+            agents: AgentsSidebarConfig::default(),
+            spaces: SpacesSidebarConfig::default(),
+            show_agents_panel: true,
+        }
+    }
 }
 
 #[cfg(test)]

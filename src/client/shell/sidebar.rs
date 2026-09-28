@@ -294,7 +294,7 @@ pub(crate) fn render_sidebar(
     );
     let (sections, build_area) = split_build_row(area, build);
     hits.sidebar_sections = sections;
-    let agents_panel = !config.hide_agents_panel;
+    let agents_panel = config.show_agents_panel;
     let (workspace_area, detail_area) = if agents_panel {
         hits.sidebar_section_divider =
             crate::ui::sidebar_section_divider_rect(sections, state.sidebar_section_split);

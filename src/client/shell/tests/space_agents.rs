@@ -147,7 +147,7 @@ fn hiding_the_agents_panel_gives_its_height_to_the_spaces() {
     assert!(!shown.hits.agents.is_empty());
 
     let mut hidden = state_with_agent(true);
-    hidden.config.hide_agents_panel = true;
+    hidden.config.show_agents_panel = false;
     let frame = hidden.compose(106, 30).unwrap();
     let rows = frame_rows(&frame);
     assert!(hidden.hits.agents.is_empty());

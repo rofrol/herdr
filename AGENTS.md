@@ -351,6 +351,12 @@ To re-record the fork demo video and upload it for the README, follow
 `scripts/fork_demo/README.md`; uploading needs the Claude in Chrome tools
 (see "Uploading as an agent" there).
 
+### Naming options
+
+Name boolean options positively (`show_agents_panel = false`), not as
+negations (`hide_agents_panel = true`): a double negative is confusing to
+read. Upstream's existing negative names stay as they are.
+
 ### Worktrees in the fork
 
 Work on `master` in the shared checkout by default: commits are small, other

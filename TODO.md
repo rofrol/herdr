@@ -92,7 +92,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     direction; a client preference, keyboard navigation follows it; the
     multi-machine sidebar keeps the manual order. Consulted (GPT-6 Astra,
     DeepSeek): both preferred keeping "spaces" with a dropdown and an agent
-    list for priority; overruled. `ui.sidebar.hide_agents_panel = true`
+    list for priority; overruled. `ui.sidebar.show_agents_panel = false`
     hides the old panel (kept in code for cheap rebases). Still open: the
     attention counts (`◉1 ●1`) have no place in the header now; prio does
     not freeze the order while the pointer is over the list; the
