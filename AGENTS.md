@@ -383,6 +383,11 @@ The user tries it with `scripts/herdr_live.sh`:
   changed since `test`, renames a copy over `~/.cargo/bin/herdr`, and hands the
   session off to it, so the server no longer runs from `target/`.
 
+When telling the user how to try or attach to a candidate, give one command:
+`scripts/herdr_live.sh test` (then `keep` or `back`). Do not suggest running
+`target/release/herdr` directly, even when the server already runs the
+candidate and only the client is stale; repeating `test` is harmless.
+
 When the user says the candidate works, commit the fix; the user then runs
 `scripts/herdr_live.sh keep` or asks you to. Do not rebuild
 between the test and `keep`. If the installed binary is package-managed
