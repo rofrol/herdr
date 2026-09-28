@@ -196,6 +196,72 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     icon for agentless tabs, then `▣` (Astra) or `❏` (DeepSeek). Open
     from the consults: white on accent `#4078F2` is 3.9:1; on the accent
     fill working, done and waiting all show a white `●`.
+  - Decided 2026-09-28 (mockup
+    https://claude.ai/artifact/8Bu831GPSzW7F5kfoQ1U3W): job squares replace
+    the horizontal tab rows. Both rows go (main and child); a tab's job tabs
+    (its child tabs) show as squares on the lines under its vertical tab,
+    in start order, wrapping, 3 columns each (` ⧖ `, glyph in the state
+    colour on `surface0`, bold `!` and `✓`) with a 1-column gap. The open
+    job's square gets the accent tint (the parent tab's tint), glyph keeps
+    its state colour; its parent tab line is tinted too. Click a square to
+    open its job, click the open square again to go back to the parent tab.
+    Middle-click closes; a running job asks first (`Stop and close` /
+    Cancel). The `⧖1 !1` counts stay at the end of the tab line, and on
+    the space row when the space is collapsed. The squares are folded by default: clicking
+    an inactive tab only opens it; clicking the tab you are on unfolds its
+    squares, clicking it again folds them (the counts stay); with a job
+    open, clicking the parent tab goes back to the agent. Hovering a
+    square names it (and a failed job's exit code) on the sidebar's bottom
+    line. A succeeded square closes after 10 s, never while it is open or
+    while the pointer is over the sidebar, so squares never shift under the
+    mouse. No drag and drop. With the sidebar hidden there is no job
+    navigation for now: show the sidebar to switch.
+  - Over the open job one top line: ` ← `, the state glyph, the job name,
+    `--why`, the agent and space that started it and the job id (cut from
+    the right when narrow), and ` × ` at the right end. herdr-job's pinned
+    footer goes (the top line holds all of it).
+  - Done 2026-09-28: the squares (folded by default, client-local, not
+    saved), both tab rows hidden with `spaces.tabs`, square clicks and
+    middle-click close, and the top line. herdr-job draws the top line
+    itself as a pinned first row (a scroll region, as the footer was), and
+    herdr only turns clicks on its first and last three columns into back
+    and close, for a focused tab with a parent and a status. Consulted
+    (GPT-6 Astra, DeepSeek) on where the line lives: Astra wanted a
+    herdr-drawn row reserved while the workspace has nested tabs, with
+    `--why` and the job id sent to clients (a new codec: generation-1
+    codecs are frozen); DeepSeek wanted herdr-job's own row (no resize, no
+    protocol change). Chose DeepSeek's: a pane-owned row can be wiped by a
+    program that clears the screen, as the footer could. Both: unfolded
+    state client-local, not in the saved collapsed set; measure the square
+    rows once for layout and drawing, and again with the scrollbar column
+    when the list overflows. Still open: the hover name on the sidebar's
+    bottom line, keeping squares in place while the pointer is over the
+    sidebar, no auto-close while a job is open, squares in the
+    multi-machine sidebar, scrolling within a block taller than the list.
+  - Changed 2026-09-28 (mockup updated, same link): a disclosure triangle
+    right before the counts, `► ⧖ 1 !1` (`▼` unfolded, dim grey, inside
+    the fill), folds and unfolds the squares; its hit runs from the
+    triangle to the fill's end. The rest of the line always opens the tab
+    itself, also from one of its jobs, never the job its group had open
+    last. A tab with only succeeded jobs shows the triangle alone; the
+    label is cut first, then the counts, the triangle last. Squares start
+    where the fill starts (column 5), not under the state icon. Consulted
+    (GPT-6 Astra, DeepSeek): both preferred this to clicking the active tab
+    (one meaning per target), the triangle on the right inside the fill
+    (the icon column stays the agent's state, and it cannot pass for the
+    space's triangle), no auto-unfold of failed jobs (it moves rows under
+    the pointer). Succeeded-only: Astra the triangle alone (chosen),
+    DeepSeek nothing.
+  - Consulted (GPT-6 Astra, DeepSeek, 2026-09-28): both called the squares
+    fine but removing the rows risky (no navigation with the sidebar
+    hidden, keyboard). Both wanted a per-tab number in the square (`1⧖`,
+    for `Alt-1…9`); I chose the glyph only. Both found "click the open
+    square again goes back" surprising; kept because I asked for it, with
+    `←` in the top line as a visible way back. Both: no drag and drop,
+    keep counts on a collapsed space, never reflow squares under the
+    pointer (a middle-click could stop the wrong job). DeepSeek wanted the
+    footer dropped (chosen); Astra wanted the top line and footer to split
+    the fields.
 - [ ] Dragging a space does not show where it will land (screenshot
   2026-09-26, dragging `herdr`). The dragged space keeps a grey background
   much like the selected row, so two grey blocks are on screen; the drop

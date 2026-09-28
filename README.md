@@ -44,8 +44,13 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
 - **Vertical tabs in the sidebar** (experimental). With
   `spaces.tabs = true`, each space lists its tabs under it, one line per
   top-level tab with its agent state, label and the running and failed
-  counts of its nested job tabs; click a line to open that tab. A
-  disclosure triangle before the space's name collapses its tabs.
+  counts of its nested job tabs; click a line to open that tab. Both tab
+  rows above the panes go. Click `►` before a tab's job counts to unfold
+  its job tabs as small squares under it (`⧖` running, `!` failed, `✓`
+  done), and `▼` to fold them; click a square to open that job, click it
+  again to go back, middle-click to close it. A job's first row is its header, with ` ← ` to
+  go back and ` × ` to close. A disclosure triangle before the space's name
+  collapses its tabs.
   `show_agents_panel = false` hides the agents panel and gives its height
   to the spaces list:
 
