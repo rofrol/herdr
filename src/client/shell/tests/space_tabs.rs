@@ -152,8 +152,9 @@ fn tab_cell(
 }
 
 #[test]
-fn tab_lines_take_the_tab_bars_colours_from_their_label() {
+fn only_the_focused_spaces_active_tab_line_is_blue() {
     let mut state = state_with_tabs(true);
+    with_job(&mut state, "job_1", TabStatus::Running);
     let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
     let mut other = projected.tabs[0].clone();
     other.tab_id = "tab_2".into();
@@ -164,30 +165,37 @@ fn tab_lines_take_the_tab_bars_colours_from_their_label() {
     let palette = state.config.palette.clone();
     let frame = state.compose(106, 30).unwrap();
     let buffer = frame.to_ratatui_buffer().expect("buffer");
-    let bg = |line: usize, column: u16| {
+    let cell = |line: usize, column: u16| {
         let (rect, _) = state.hits.space_tabs[line];
-        buffer[(rect.x + column, rect.y)].bg
+        buffer[(rect.x + column, rect.y)].clone()
     };
-
-    // The active tab of the focused space is accent-filled, the other grey,
-    // and neither fill reaches the state icon, which keeps its colour.
-    assert_eq!(bg(0, 5), palette.accent);
-    assert_eq!(bg(1, 5), palette.surface0);
-    assert_ne!(bg(0, 4), palette.accent);
-    assert_ne!(bg(1, 4), palette.surface0);
     let (rect, _) = state.hits.space_tabs[0];
-    assert_eq!(buffer[(rect.x + 3, rect.y)].fg, palette.yellow);
+    let last = rect.width - 3;
+
+    // The focused space's active tab is accent-tinted, the other tab a
+    // lighter grey, and neither fill reaches the state icon, which keeps
+    // its colour.
+    let tint = cell(0, 5).bg;
+    let inactive = cell(1, 5).bg;
+    assert_ne!(tint, palette.accent);
+    assert_ne!(tint, inactive);
+    assert_ne!(cell(0, 4).bg, tint);
+    assert_ne!(cell(1, 4).bg, inactive);
+    assert_eq!(cell(0, 3).fg, palette.yellow);
+    // On the tint the job count keeps its colour.
+    assert_eq!(cell(0, last).fg, palette.yellow);
+    assert_eq!(cell(0, last).bg, tint);
 
     // A tab without an agent gets the program mark.
-    let (rect, _) = state.hits.space_tabs[1];
-    assert_eq!(buffer[(rect.x + 3, rect.y)].symbol(), "❏");
+    assert_eq!(cell(1, 3).symbol(), "❏");
 
-    // In a space that is not focused the active tab is only tinted.
+    // In a space that is not focused the active tab is grey, not blue.
     let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
     projected.workspaces[0].focused = false;
     state.set_snapshot(Box::new(projected));
-    let (_, _, bg) = tab_cell(&mut state, 5);
-    assert_eq!(bg, super::super::render::tabs::accent_tint(&palette));
+    let (_, _, active_elsewhere) = tab_cell(&mut state, 5);
+    assert_ne!(active_elsewhere, tint);
+    assert_ne!(active_elsewhere, inactive);
 }
 
 #[test]

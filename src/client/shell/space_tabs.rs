@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Modifier, Style},
+    style::{Color, Modifier, Style},
 };
 
 use super::state::WorkspaceEntry;
@@ -213,13 +213,57 @@ fn top_level_tabs<'a>(
 /// U+274F: one cell, no emoji form, in the system symbol fonts.
 const PROGRAM_ICON: &str = "❏";
 
+/// The fills of the tab lines. Only the focused space's active tab is blue,
+/// a light accent tint so its job counts keep their colours; the active
+/// tabs of other spaces are a grey darker than the inactive ones, so they
+/// cannot pass for it.
+struct TabLineFills {
+    /// None when the palette is not RGB: the tab then takes the solid
+    /// accent, and its job counts the text colour.
+    focused_active: Option<Color>,
+    active: Color,
+    inactive: Color,
+}
+
+impl TabLineFills {
+    fn new(palette: &Palette) -> Self {
+        use super::render::tabs::blend;
+        let dark = is_dark(palette.panel_bg);
+        Self {
+            // A dark background needs more accent for the tint to show.
+            focused_active: blend(
+                palette.accent,
+                palette.panel_bg,
+                1,
+                if dark == Some(true) { 3 } else { 6 },
+            ),
+            // On dark themes surface1 is brighter than the tint and would
+            // draw the eye from it.
+            active: match dark {
+                Some(true) => {
+                    blend(palette.surface1, palette.surface0, 1, 2).unwrap_or(palette.surface1)
+                }
+                _ => palette.surface1,
+            },
+            inactive: blend(palette.surface0, palette.panel_bg, 1, 2).unwrap_or(palette.surface0),
+        }
+    }
+}
+
+/// Whether an RGB colour is dark; none for other colours.
+fn is_dark(color: Color) -> Option<bool> {
+    let Color::Rgb(r, g, b) = color else {
+        return None;
+    };
+    let luma = 299 * u32::from(r) + 587 * u32::from(g) + 114 * u32::from(b);
+    Some(luma < 128 * 1000)
+}
+
 /// Draws `lines` from the top of `area`, below the space's own rows, and
 /// returns each drawn line's rect with the tab a click enters. Each line is
-/// a tab in the tab bar's colours, filled from the label: grey, the active
-/// tab accent-filled in the focused space and accent-tinted in the others,
-/// like a tab bar parent whose children are open. The state icon stays left
-/// of the fill, on the panel background, so it keeps its colour on every
-/// line.
+/// a tab filled from the label (see [`TabLineFills`]). The state icon stays
+/// left of the fill, on the panel background, so it keeps its colour on
+/// every line.
 pub(super) fn render_space_tab_lines(
     buffer: &mut Buffer,
     area: Rect,
@@ -228,6 +272,7 @@ pub(super) fn render_space_tab_lines(
     config: &ClientShellConfig,
 ) -> Vec<(Rect, String)> {
     let palette = &config.palette;
+    let fills = TabLineFills::new(palette);
     let x = area.x.saturating_add(3);
     // A column of the panel background between the icon and the fill.
     let fill_x = x.saturating_add(2);
@@ -242,31 +287,28 @@ pub(super) fn render_space_tab_lines(
             break;
         }
         hits.push((Rect::new(area.x, y, area.width, 1), line.tab_id.clone()));
-        let filled = line.active && focused_space;
-        let (bg, text_style) = if filled {
-            (
+        let active_text = Style::default()
+            .fg(palette.text)
+            .add_modifier(Modifier::BOLD);
+        let solid = line.active && focused_space && fills.focused_active.is_none();
+        let (bg, text_style) = match (line.active, focused_space, fills.focused_active) {
+            (true, true, Some(tint)) => (tint, active_text),
+            (true, true, None) => (
                 palette.accent,
                 Style::default()
                     .fg(panel_contrast_fg(palette))
                     .add_modifier(Modifier::BOLD),
-            )
-        } else if line.active {
-            (
-                super::render::tabs::accent_tint(palette),
-                Style::default()
-                    .fg(palette.accent)
-                    .add_modifier(Modifier::BOLD),
-            )
-        } else {
-            (palette.surface0, Style::default().fg(palette.overlay1))
+            ),
+            (true, false, _) => (fills.active, active_text),
+            (false, ..) => (fills.inactive, Style::default().fg(palette.overlay1)),
         };
         buffer.set_style(
             Rect::new(fill_x, y, fill_right.saturating_sub(fill_x), 1),
             Style::default().bg(bg),
         );
-        // On the accent fill the job colours can vanish, so they take the
+        // On the solid accent the job colours can vanish, so they take the
         // text colour, as on the tab bar.
-        let on_accent = filled.then_some(text_style);
+        let on_accent = solid.then_some(text_style);
         // A tab without an agent runs a program (a shell, lazygit): a window
         // mark, a square so it cannot pass for an agent state's circle.
         let (icon, icon_style) = match line.state {
@@ -374,6 +416,24 @@ fn truncate(text: &str, width: usize) -> String {
 mod tests {
     use super::*;
     use crate::api::schema::AgentStatus;
+
+    #[test]
+    fn tab_line_fills_differ_in_every_theme() {
+        for name in crate::config::THEME_NAMES {
+            let palette = Palette::from_name(name).expect("theme");
+            let fills = TabLineFills::new(&palette);
+            let focused_active = fills.focused_active.unwrap_or(palette.accent);
+            assert_ne!(focused_active, fills.active, "{name}");
+            assert_ne!(focused_active, fills.inactive, "{name}");
+            assert_ne!(fills.active, fills.inactive, "{name}");
+        }
+    }
+
+    #[test]
+    fn a_palette_without_rgb_keeps_the_solid_accent() {
+        let fills = TabLineFills::new(&Palette::from_name("terminal").expect("theme"));
+        assert_eq!(fills.focused_active, None);
+    }
 
     fn config(tabs: bool) -> ClientShellConfig {
         let mut config = ClientShellConfig::from_config(&crate::config::Config::default());
