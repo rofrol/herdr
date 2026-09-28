@@ -249,6 +249,12 @@ pub(super) struct ShellRenderState<'a> {
     pub(super) dragged_workspace_id: Option<&'a str>,
     /// While a space is dragged: where it would land, `Some(None)` for the end.
     pub(super) workspace_drop_before: Option<Option<&'a str>>,
+    /// Pressed space that a move would lift, before the drag starts.
+    pub(super) pressed_workspace_id: Option<&'a str>,
+    /// Space under the pointer that can be dragged.
+    pub(super) hovered_workspace_id: Option<&'a str>,
+    /// Why the pressed space cannot be dragged, once the pointer moved.
+    pub(super) workspace_drag_refusal: Option<super::WorkspaceDragRefusal>,
     pub(super) usage: Option<&'a crate::api::schema::UsageReport>,
     pub(super) space_sort: super::space_sort::SpaceSort,
 }

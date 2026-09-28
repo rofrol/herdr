@@ -309,17 +309,23 @@ pub(crate) fn render_sidebar(
         state.space_sort,
     );
     // While a space is dragged the list shows where it would land, and the
-    // header says so in words.
+    // header says so in words. With the pointer outside the list the order
+    // stays, the block stays lifted and the header says a release cancels.
     let drag = state
         .dragged_workspace_id
-        .zip(state.workspace_drop_before)
-        .and_then(|(source, before)| {
-            let preview = entries_with_drag(snapshot, &entries, source, before)?;
-            let hint = drag_hint(snapshot, &entries, &preview, source);
-            Some((preview, hint))
+        .and_then(|source| match state.workspace_drop_before {
+            Some(before) => {
+                let preview = entries_with_drag(snapshot, &entries, source, before)?;
+                let hint = drag_hint(snapshot, &entries, &preview, source);
+                Some((Some(preview), hint))
+            }
+            None => Some((None, "release cancels · Esc".to_owned())),
         });
-    match &drag {
-        Some((_, hint)) => put_text(
+    let header_hint = drag.as_ref().map(|(_, hint)| hint.as_str()).or(state
+        .workspace_drag_refusal
+        .map(super::WorkspaceDragRefusal::hint));
+    match header_hint {
+        Some(hint) => put_text(
             buffer,
             workspace_area.x,
             workspace_area.y,
@@ -344,11 +350,17 @@ pub(crate) fn render_sidebar(
     }
     let mut dragged_family = HashSet::new();
     if let Some((preview, _)) = drag {
-        entries = preview;
+        if let Some(preview) = preview {
+            entries = preview;
+        }
         if let Some(source) = state.dragged_workspace_id {
             dragged_family = family_ids(snapshot, &entries, source);
         }
     }
+    let pressed_family = state
+        .pressed_workspace_id
+        .map(|pressed| family_ids(snapshot, &entries, pressed))
+        .unwrap_or_default();
     let body = Rect::new(
         workspace_area.x,
         workspace_area.y.saturating_add(WORKSPACE_HEADER_ROWS),
@@ -481,19 +493,29 @@ pub(crate) fn render_sidebar(
             dragged,
             palette,
         );
-        if dragged {
-            // An accent bar marks the lifted block; the selection grey stays
-            // for the selection.
+        let pressed = pressed_family.contains(workspace.workspace_id.as_str());
+        if dragged || pressed {
+            // An accent bar marks the lifted block, a dim one the pressed
+            // block a move would lift; the selection grey stays for the
+            // selection.
+            let color = if dragged {
+                palette.accent
+            } else {
+                palette.overlay1
+            };
             for row in rect.y..rect.bottom() {
-                put_text(
-                    buffer,
-                    rect.x,
-                    row,
-                    1,
-                    "▌",
-                    Style::default().fg(palette.accent),
-                );
+                put_text(buffer, rect.x, row, 1, "▌", Style::default().fg(color));
             }
+        } else if state.hovered_workspace_id == Some(workspace.workspace_id.as_str()) {
+            // A grip on the name line says the space can be dragged.
+            put_text(
+                buffer,
+                rect.x,
+                rect.y,
+                1,
+                "⋮",
+                Style::default().fg(palette.overlay1),
+            );
         }
         hits.space_agents
             .extend(super::space_agents::render_space_agent_lines(

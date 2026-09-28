@@ -230,6 +230,15 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     not-allowed) in terminals that support it; it must be reset on every
     exit path (drop, Esc, release outside, focus loss, quit, panic), and a
     stuck cursor is worse than none.
+  - Done 2026-09-28 in the local sidebar: outside the list the block keeps
+    its accent bar and the header says `release cancels · Esc`; a refused
+    drag says `sort by cust to reorder` or `moves with its parent` (the
+    remote reason exists but the multi-endpoint sidebar does not show it
+    yet); a press on a draggable space draws a dim bar before any move; a
+    grip `⋮` shows in the first column of the hovered draggable space.
+    Hover-only after all: a grip on every row is noise, and the first
+    column costs no width. Still open: OSC 22, and all of this in the
+    multi-endpoint sidebar.
 - [ ] "Restart agents…": restart agent CLIs (Claude, pi) after they update,
   resuming their sessions, e.g. when Claude reports that a new version is
   available. Should herdr tell the instances to restart once they finish

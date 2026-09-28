@@ -725,6 +725,7 @@ impl ClientShellState {
 
     pub(super) fn handle_mouse(&mut self, mouse: MouseEvent, outcome: &mut ClientShellInput) {
         self.update_link_hover(mouse, outcome);
+        self.update_workspace_hover(mouse, outcome);
         let point = (mouse.column, mouse.row);
         if self.mode == ClientShellMode::Navigate
             && self.workspace_preview_action_blocked()
@@ -1279,13 +1280,24 @@ impl ClientShellState {
                     .max(mouse.row.abs_diff(press.start_row));
                 if delta >= 1 {
                     let source_workspace_id = press.workspace_id.clone();
-                    let draggable = self.endpoint_workspace_is_draggable(press);
+                    let start_row = press.start_row;
+                    let check =
+                        self.endpoint_workspace_drag_check(&press.endpoint_id, &press.workspace_id);
+                    if let (Err(Some(reason)), Some(press)) = (check, self.workspace_press.as_mut())
+                    {
+                        // Say why instead of ignoring the drag.
+                        if press.refused != Some(reason) {
+                            press.refused = Some(reason);
+                            outcome.repaint = true;
+                        }
+                        return;
+                    }
                     let grab_offset = self
                         .workspace_blocks()
                         .iter()
                         .find(|(id, ..)| *id == source_workspace_id)
-                        .map_or(0, |(_, top, _)| press.start_row.saturating_sub(*top));
-                    if draggable {
+                        .map_or(0, |(_, top, _)| start_row.saturating_sub(*top));
+                    if check.is_ok() {
                         if let Some(target) =
                             self.workspace_drop_target_at(point, &source_workspace_id, grab_offset)
                         {
@@ -2208,6 +2220,7 @@ impl ClientShellState {
                         workspace_id: hit.workspace_id.clone(),
                         start_column: mouse.column,
                         start_row: mouse.row,
+                        refused: None,
                     });
                 if let Some(workspace_press) = workspace_press {
                     self.workspace_press = Some(workspace_press);

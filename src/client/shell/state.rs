@@ -195,6 +195,30 @@ pub(super) struct ClientWorkspacePress {
     pub(super) workspace_id: String,
     pub(super) start_column: u16,
     pub(super) start_row: u16,
+    /// Set once the pointer moved but the space cannot be dragged; the
+    /// sidebar header says why.
+    pub(super) refused: Option<WorkspaceDragRefusal>,
+}
+
+/// Why a space cannot be dragged.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum WorkspaceDragRefusal {
+    /// Only the custom order can be rearranged.
+    Sort,
+    /// A linked worktree moves with its parent space.
+    LinkedWorktree,
+    /// Spaces of another endpoint are not reordered from here.
+    Remote,
+}
+
+impl WorkspaceDragRefusal {
+    pub(super) fn hint(self) -> &'static str {
+        match self {
+            Self::Sort => "sort by cust to reorder",
+            Self::LinkedWorktree => "moves with its parent",
+            Self::Remote => "can't reorder here",
+        }
+    }
 }
 
 pub(super) struct ClientTabPress {
@@ -916,6 +940,9 @@ pub(crate) struct ClientShellState {
     pub(super) last_sidebar_divider_click: Option<std::time::Instant>,
     pub(super) chrome_drag: Option<ClientChromeDrag>,
     pub(super) workspace_press: Option<ClientWorkspacePress>,
+    /// Space of the active endpoint under the pointer that can be dragged,
+    /// so its name line shows a grip.
+    pub(super) hovered_workspace_id: Option<String>,
     pub(super) tab_press: Option<ClientTabPress>,
     /// Last focused tab of each tab group, by endpoint and the group's
     /// top-level tab. Kept by this client, so one client's navigation never
@@ -1091,6 +1118,7 @@ impl ClientShellState {
             last_sidebar_divider_click: None,
             chrome_drag: None,
             workspace_press: None,
+            hovered_workspace_id: None,
             tab_press: None,
             last_group_tabs: HashMap::new(),
             collapsed_groups: preferences.collapsed_groups.into_iter().collect(),
@@ -1303,6 +1331,7 @@ impl ClientShellState {
         self.popup_terminal_id = None;
         self.chrome_drag = None;
         self.workspace_press = None;
+        self.hovered_workspace_id = None;
         self.tab_press = None;
         self.workspace_scroll = 0;
         self.agent_scroll = 0;

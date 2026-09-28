@@ -406,6 +406,128 @@ fn workspace_drag_moves_parent_worktree_as_one_block_and_rejects_child() {
         })]);
     assert!(dragging_child.actions.is_empty());
     assert!(state.chrome_drag.is_none());
+    // The header says why instead of ignoring the drag.
+    assert!(dragging_child.repaint);
+    let frame = state.compose(106, 24).expect("refused child drag");
+    assert!(
+        frame_rows(&frame)[0].contains("moves with its parent"),
+        "{}",
+        frame_rows(&frame)[0]
+    );
+}
+
+#[test]
+fn a_space_shows_it_can_be_dragged_on_hover_press_and_outside_the_list() {
+    let mut projected = snapshot();
+    let mut second = projected.workspaces[0].clone();
+    second.workspace_id = "ws_2".into();
+    second.number = 2;
+    second.label = "workspace-2".into();
+    second.focused = false;
+    projected.workspaces.push(second);
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
+    state.set_snapshot(Box::new(projected));
+    state.set_pane_surface(surface());
+    state.compose(106, 24).expect("two workspaces");
+    let first = state.hits.workspaces[0].rect;
+    let second = state.hits.workspaces[1].rect;
+    let mouse = |kind, column, row| {
+        RawInputEvent::Mouse(crossterm::event::MouseEvent {
+            kind,
+            column,
+            row,
+            modifiers: KeyModifiers::empty(),
+        })
+    };
+    let row = |state: &mut ClientShellState, y: u16| {
+        let frame = state.compose(106, 24).expect("frame");
+        frame_rows(&frame)[y as usize].clone()
+    };
+
+    // Hovering the name line shows a grip in the first column.
+    let hover = state.handle_raw_events(vec![mouse(MouseEventKind::Moved, first.x + 2, first.y)]);
+    assert!(hover.repaint);
+    assert!(row(&mut state, first.y).starts_with('⋮'));
+    assert!(!row(&mut state, second.y).starts_with('⋮'));
+
+    // A press marks the block before any move; a release in place still
+    // focuses the space.
+    state.handle_raw_events(vec![mouse(
+        MouseEventKind::Down(MouseButton::Left),
+        second.x + 2,
+        second.y,
+    )]);
+    assert!(row(&mut state, second.y).starts_with('▌'));
+    assert!(!row(&mut state, first.y).starts_with('⋮'));
+    let click = state.handle_raw_events(vec![mouse(
+        MouseEventKind::Up(MouseButton::Left),
+        second.x + 2,
+        second.y,
+    )]);
+    assert!(matches!(
+        &click.actions[..],
+        [ClientShellAction::Endpoint { request, .. }]
+            if matches!(
+                &request.method,
+                crate::api::schema::Method::WorkspaceFocus(target)
+                    if target.workspace_id == "ws_2"
+            )
+    ));
+    assert!(!row(&mut state, second.y).starts_with('▌'));
+
+    // Outside the list the block stays lifted and the header says a release
+    // cancels.
+    state.handle_raw_events(vec![mouse(
+        MouseEventKind::Down(MouseButton::Left),
+        first.x + 2,
+        first.y,
+    )]);
+    state.handle_raw_events(vec![mouse(
+        MouseEventKind::Drag(MouseButton::Left),
+        first.x + 2,
+        second.y,
+    )]);
+    let footer = state.hits.new_workspace;
+    state.handle_raw_events(vec![mouse(
+        MouseEventKind::Drag(MouseButton::Left),
+        footer.x + 1,
+        footer.y,
+    )]);
+    assert!(matches!(
+        state.chrome_drag,
+        Some(ClientChromeDrag::Workspace { target: None, .. })
+    ));
+    assert!(row(&mut state, 0).contains("release cancels"));
+    assert!(row(&mut state, first.y).starts_with('▌'));
+    let released = state.handle_raw_events(vec![mouse(
+        MouseEventKind::Up(MouseButton::Left),
+        footer.x + 1,
+        footer.y,
+    )]);
+    assert!(released.actions.is_empty());
+
+    // Sorted by name, a drag is refused with a hint and no grip shows.
+    state.space_sort = state
+        .space_sort
+        .clicked(super::super::space_sort::SpaceSortKey::Name);
+    state.compose(106, 24).expect("sorted by name");
+    let first = state.hits.workspaces[0].rect;
+    state.handle_raw_events(vec![mouse(MouseEventKind::Moved, first.x + 2, first.y)]);
+    assert!(!row(&mut state, first.y).starts_with('⋮'));
+    state.handle_raw_events(vec![
+        mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            first.x + 2,
+            first.y,
+        ),
+        mouse(
+            MouseEventKind::Drag(MouseButton::Left),
+            first.x + 2,
+            first.y + 2,
+        ),
+    ]);
+    assert!(state.chrome_drag.is_none());
+    assert!(row(&mut state, 0).contains("sort by cust to reorder"));
 }
 
 #[test]
