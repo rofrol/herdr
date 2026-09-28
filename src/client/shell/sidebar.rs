@@ -512,7 +512,7 @@ pub(crate) fn render_sidebar(
             grab_color
                 .filter(|_| dragged || pressed)
                 .map(|name| (name, drag_bg)),
-            palette,
+            config,
         );
         if let Some(color) = grab_color {
             // A grip at the name line's right edge, left of the group
@@ -541,14 +541,26 @@ pub(crate) fn render_sidebar(
                 &tab_lines,
                 config,
             ));
-        let group_toggle = render_parent_group_toggle(
-            buffer,
-            rect,
-            snapshot,
-            entry.index,
-            state.collapsed_groups,
-            palette,
-        );
+        let group_toggle = if config.spaces.tabs {
+            super::space_tabs::render_space_disclosure(
+                buffer,
+                rect,
+                snapshot,
+                entry,
+                workspace,
+                state.collapsed_groups,
+                config,
+            )
+        } else {
+            render_parent_group_toggle(
+                buffer,
+                rect,
+                snapshot,
+                entry.index,
+                state.collapsed_groups,
+                palette,
+            )
+        };
         hits.workspaces.push(WorkspaceHit {
             rect,
             endpoint_id: ClientEndpointId::Local,
@@ -853,7 +865,10 @@ pub(crate) fn workspace_entries(
     entries
 }
 
-fn parent_group_key(snapshot: &ClientShellSnapshot, index: usize) -> Option<String> {
+pub(in crate::client::shell) fn parent_group_key(
+    snapshot: &ClientShellSnapshot,
+    index: usize,
+) -> Option<String> {
     let workspace = snapshot.workspaces.get(index)?;
     let worktree = workspace.worktree.as_ref()?;
     if worktree.is_linked_worktree {
@@ -1023,8 +1038,11 @@ pub(in crate::client::shell) fn render_workspace_rows(
     // Name colour of a pressed or dragged space and, while dragged, its
     // background, which wins over selected and focused.
     grabbed: Option<(ratatui::style::Color, Option<ratatui::style::Color>)>,
-    palette: &Palette,
+    config: &ClientShellConfig,
 ) {
+    let palette = &config.palette;
+    // Leave two columns in front of the name for `render_space_disclosure`.
+    let disclosure = config.spaces.tabs;
     for (row_index, row) in rows.iter().enumerate() {
         let y = area.y + row_index as u16;
         if y >= area.bottom() {
@@ -1055,6 +1073,9 @@ pub(in crate::client::shell) fn render_workspace_rows(
             x = x.saturating_add(1);
         } else {
             x = x.saturating_add(3);
+        }
+        if disclosure && row_index == 0 {
+            x = x.saturating_add(2);
         }
         let highlighted = focused || grabbed.is_some();
         let grabbed = grabbed.map(|(name, _)| name);

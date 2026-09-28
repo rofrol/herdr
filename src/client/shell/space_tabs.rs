@@ -12,6 +12,7 @@ use ratatui::{
     style::{Modifier, Style},
 };
 
+use super::state::WorkspaceEntry;
 use super::*;
 use crate::api::schema::TabStatus;
 use crate::protocol::{ClientShellSnapshot, ClientShellTab, ClientShellWorkspace};
@@ -38,7 +39,10 @@ pub(super) fn space_tab_lines(
     collapsed_groups: &HashSet<String>,
     config: &ClientShellConfig,
 ) -> Vec<SpaceTabLine> {
-    if !config.spaces.tabs || stands_for_a_group(snapshot, workspace, collapsed_groups) {
+    if !config.spaces.tabs
+        || stands_for_a_group(snapshot, workspace, collapsed_groups)
+        || collapsed_groups.contains(&tabs_collapse_key(&workspace.workspace_id))
+    {
         return Vec::new();
     }
     let active_group = snapshot
@@ -71,6 +75,54 @@ pub(super) fn space_tab_lines(
             }
         })
         .collect()
+}
+
+/// The key that hides a space's tab lines, kept with the collapsed worktree
+/// groups (keyed by repository path, so they cannot clash) and saved with them.
+fn tabs_collapse_key(workspace_id: &str) -> String {
+    format!("tabs:{workspace_id}")
+}
+
+/// A disclosure triangle in front of the space's name, as in tree-style tab
+/// lists: it hides or shows the space's tab lines, and for a worktree parent
+/// its child spaces too (a collapsed group lists no tabs). Returns its hit
+/// rect, with the space after it, and the collapse key for the click. None
+/// for a space with nothing to hide; its column stays reserved so names line
+/// up. `rect` is the space's block, whose name line `render_workspace_rows`
+/// starts past this column.
+pub(super) fn render_space_disclosure(
+    buffer: &mut Buffer,
+    rect: Rect,
+    snapshot: &ClientShellSnapshot,
+    entry: &WorkspaceEntry,
+    workspace: &ClientShellWorkspace,
+    collapsed_groups: &HashSet<String>,
+    config: &ClientShellConfig,
+) -> Option<(Rect, String)> {
+    let key = super::sidebar::parent_group_key(snapshot, entry.index).or_else(|| {
+        top_level_tabs(snapshot, workspace)
+            .next()
+            .is_some()
+            .then(|| tabs_collapse_key(&workspace.workspace_id))
+    })?;
+    // After the tree prefix (`   ├─ `) of a worktree child.
+    let x = rect.x.saturating_add(if entry.indented { 6 } else { 1 });
+    if x.saturating_add(2) > rect.right() {
+        return None;
+    }
+    super::render::put_text(
+        buffer,
+        x,
+        rect.y,
+        1,
+        if collapsed_groups.contains(&key) {
+            "►"
+        } else {
+            "▼"
+        },
+        Style::default().fg(config.palette.overlay1),
+    );
+    Some((Rect::new(x, rect.y, 2, 1), key))
 }
 
 /// The running and failed tab counts for the space row's `tab_jobs`: all of
@@ -392,6 +444,23 @@ mod tests {
         assert_eq!(lines.len(), 1);
         assert_eq!(
             space_row_tab_jobs(&snapshot, &workspace, &HashSet::new(), &lines),
+            (0, 1)
+        );
+    }
+
+    #[test]
+    fn a_collapsed_space_lists_no_tabs_and_keeps_its_jobs_on_its_row() {
+        let snapshot = snapshot_with(vec![
+            tab("tab_1", None, None),
+            tab("job_1", Some("tab_1"), Some(TabStatus::Failed)),
+        ]);
+        let workspace = snapshot.workspaces[0].clone();
+        let collapsed = HashSet::from([tabs_collapse_key(&workspace.workspace_id)]);
+
+        let lines = space_tab_lines(&snapshot, &workspace, &collapsed, &config(true));
+        assert!(lines.is_empty());
+        assert_eq!(
+            space_row_tab_jobs(&snapshot, &workspace, &collapsed, &lines),
             (0, 1)
         );
     }

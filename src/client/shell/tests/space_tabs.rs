@@ -189,3 +189,53 @@ fn the_symbols_style_uses_a_clock_for_waiting() {
     with_job(&mut state, "job_1", TabStatus::Running);
     assert_eq!(tab_icon_color(&mut state).0, "◷");
 }
+
+#[test]
+fn the_spaces_chevron_hides_and_shows_its_tab_lines() {
+    let mut state = state_with_tabs(true);
+    state.compose(106, 30).unwrap();
+    assert_eq!(state.hits.space_tabs.len(), 1);
+    let click_chevron = |state: &mut ClientShellState| {
+        let (rect, _) = state
+            .hits
+            .workspaces
+            .iter()
+            .find(|hit| hit.workspace_id == "ws_1")
+            .and_then(|hit| hit.group_toggle.clone())
+            .expect("chevron");
+        let events = vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+            kind: crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left),
+            column: rect.x,
+            row: rect.y,
+            modifiers: KeyModifiers::empty(),
+        })];
+        state.handle_raw_events(events);
+        state.compose(106, 30).unwrap();
+    };
+
+    // In front of the name, like tree-style tab lists.
+    let frame = state.compose(106, 30).unwrap();
+    let rows = frame_rows(&frame);
+    let space = state
+        .hits
+        .workspaces
+        .iter()
+        .find(|hit| hit.workspace_id == "ws_1")
+        .expect("space hit");
+    let (toggle, _) = space.group_toggle.clone().expect("chevron");
+    let name_line = rows[toggle.y as usize].chars().collect::<Vec<_>>();
+    assert_eq!(name_line[toggle.x as usize], '▼', "{name_line:?}");
+    assert_eq!(toggle.x, space.rect.x + 1);
+
+    click_chevron(&mut state);
+    assert!(state.hits.space_tabs.is_empty());
+    let frame = state.compose(106, 30).unwrap();
+    assert_eq!(
+        frame_rows(&frame)[toggle.y as usize]
+            .chars()
+            .nth(toggle.x as usize),
+        Some('►')
+    );
+    click_chevron(&mut state);
+    assert_eq!(state.hits.space_tabs.len(), 1);
+}

@@ -520,7 +520,7 @@ pub(super) fn render_expanded(
                     selected,
                     state.selected_workspace_id.is_some(),
                     None,
-                    palette,
+                    config,
                 );
                 // Clicking another endpoint's agent line selects its space;
                 // focusing a remote pane from here is not wired up yet.
@@ -543,14 +543,26 @@ pub(super) fn render_expanded(
                             .add_modifier(Modifier::DIM),
                     );
                 }
-                let group_toggle = super::sidebar::render_parent_group_toggle(
-                    buffer,
-                    rect,
-                    snapshot,
-                    entry.index,
-                    collapsed_groups,
-                    palette,
-                );
+                let group_toggle = if config.spaces.tabs {
+                    super::space_tabs::render_space_disclosure(
+                        buffer,
+                        nested,
+                        snapshot,
+                        entry,
+                        workspace,
+                        collapsed_groups,
+                        config,
+                    )
+                } else {
+                    super::sidebar::render_parent_group_toggle(
+                        buffer,
+                        rect,
+                        snapshot,
+                        entry.index,
+                        collapsed_groups,
+                        palette,
+                    )
+                };
                 hits.workspaces.push(WorkspaceHit {
                     rect,
                     endpoint_id: endpoint.endpoint_id.clone(),
