@@ -11,6 +11,12 @@ impl ClientShellState {
         if !self.config.mouse_capture {
             return;
         }
+        // A tab line lies inside its space's block but closes only its tab.
+        if let Some(tab_id) = self.space_tab_at(point) {
+            self.request_tab_close(tab_id, outcome);
+            outcome.repaint = true;
+            return;
+        }
         let workspace_id = (!self.sidebar_collapsed)
             .then(|| self.active_endpoint_workspace_at(point))
             .flatten();
@@ -30,6 +36,19 @@ impl ClientShellState {
             self.request_tab_close(tab_id, outcome);
             outcome.repaint = true;
         }
+    }
+
+    /// The top-level tab whose line under a space is at `point`. The line
+    /// stands for the whole group, so this is never a nested tab.
+    fn space_tab_at(&self, point: (u16, u16)) -> Option<String> {
+        if self.sidebar_collapsed {
+            return None;
+        }
+        self.hits
+            .space_tabs
+            .iter()
+            .find(|(rect, _)| super::contains(*rect, point))
+            .map(|(_, tab_id)| tab_id.clone())
     }
 
     fn set_sidebar_width_from_column(&mut self, column: u16, outcome: &mut ClientShellInput) {
@@ -1917,6 +1936,11 @@ impl ClientShellState {
                     }
                 }
                 if !self.config.mouse_capture {
+                    return;
+                }
+                if let Some(tab_id) = self.space_tab_at(point) {
+                    self.open_tab_context_menu(tab_id, mouse.column, mouse.row);
+                    outcome.repaint = true;
                     return;
                 }
                 let workspace_id = (!self.sidebar_collapsed)

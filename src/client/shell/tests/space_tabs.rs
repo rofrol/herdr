@@ -200,7 +200,6 @@ fn an_idle_tab_with_a_running_job_shows_the_waiting_mark() {
 
     // A finished job, or a working agent, keeps the usual status.
     let mut state = state_with_tabs(true);
-    set_agent_status(&mut state, AgentStatus::Idle, false);
     with_job(&mut state, "job_1", TabStatus::Succeeded);
     assert_ne!(tab_icon_color(&mut state).1, mauve);
     let mut state = state_with_tabs(true);
@@ -287,4 +286,95 @@ fn the_spaces_chevron_hides_and_shows_its_tab_lines() {
     );
     click_chevron(&mut state);
     assert_eq!(state.hits.space_tabs.len(), 1);
+}
+
+#[test]
+fn middle_and_right_click_on_a_tab_line_target_the_tab_not_its_space() {
+    let mut state = state_with_tabs(true);
+    state.config.confirm_close = false;
+    with_job(&mut state, "job_1", TabStatus::Succeeded);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    let mut other = projected.tabs[0].clone();
+    other.tab_id = "tab_2".into();
+    other.focused = false;
+    projected.tabs.push(other);
+    // The job tab had focus last; the line still stands for its group.
+    for tab in &mut projected.tabs {
+        tab.focused = tab.tab_id == "job_1";
+    }
+    projected.focused_tab_id = Some("job_1".into());
+    projected.workspaces[0].active_tab_id = "job_1".into();
+    state.set_snapshot(Box::new(projected));
+    state.compose(106, 30).unwrap();
+    let (line, _) = state.hits.space_tabs[0];
+    let space = state.hits.workspaces[0].rect;
+    assert!(
+        space.y < line.y,
+        "the space's name line sits above its tabs"
+    );
+    let press = |state: &mut ClientShellState, button, (column, row): (u16, u16)| {
+        state.overlay = None;
+        state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+            kind: crossterm::event::MouseEventKind::Down(button),
+            column,
+            row,
+            modifiers: KeyModifiers::empty(),
+        })])
+    };
+    let closes = |outcome: &ClientShellInput| {
+        outcome
+            .actions
+            .iter()
+            .filter_map(|action| match action {
+                ClientShellAction::Endpoint { request, .. } => match &request.method {
+                    crate::api::schema::Method::TabClose(target) => {
+                        Some(format!("tab {}", target.tab_id))
+                    }
+                    crate::api::schema::Method::WorkspaceClose(params) => {
+                        Some(format!("space {}", params.workspace_id))
+                    }
+                    _ => None,
+                },
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    };
+    let middle = crossterm::event::MouseButton::Middle;
+    let right = crossterm::event::MouseButton::Right;
+
+    let outcome = press(&mut state, middle, (line.x + 4, line.y));
+    // The agent makes both closes ask first; the tab line asks for its whole
+    // group, the name line for the space.
+    assert!(closes(&outcome).is_empty());
+    assert!(matches!(
+        state.overlay,
+        Some(ClientShellOverlay::ConfirmClose(ref confirm))
+            if confirm.tab_target.as_ref().is_some_and(|target| {
+                target.tab_id == "tab_1" && target.children == ["job_1"]
+            })
+    ));
+    let outcome = press(&mut state, middle, (space.x + 2, space.y));
+    assert!(closes(&outcome).is_empty());
+    assert!(matches!(
+        state.overlay,
+        Some(ClientShellOverlay::ConfirmClose(ref confirm))
+            if confirm.workspace_id == "ws_1" && confirm.tab_target.is_none()
+    ));
+
+    press(&mut state, right, (line.x + 4, line.y));
+    assert!(matches!(
+        state.overlay,
+        Some(ClientShellOverlay::ContextMenu(ClientContextMenuOverlay {
+            target: ClientContextMenuTarget::Tab { ref tab_id, .. },
+            ..
+        })) if tab_id == "tab_1"
+    ));
+    press(&mut state, right, (space.x + 2, space.y));
+    assert!(matches!(
+        state.overlay,
+        Some(ClientShellOverlay::ContextMenu(ClientContextMenuOverlay {
+            target: ClientContextMenuTarget::Workspace { ref workspace_id, .. },
+            ..
+        })) if workspace_id == "ws_1"
+    ));
 }
