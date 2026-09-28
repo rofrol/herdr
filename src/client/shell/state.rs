@@ -1439,8 +1439,10 @@ impl ClientShellState {
             .min(self.hits.workspace_max_scroll);
             return;
         }
-        if let Some(target) = target {
-            self.workspace_scroll = target.min(self.hits.workspace_max_scroll);
+        // The multi-machine sidebar knows no rows here: it reveals the space
+        // once the focus arrives.
+        if target.is_some() {
+            self.reveal_focused_workspace = true;
         }
     }
 

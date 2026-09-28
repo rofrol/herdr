@@ -394,6 +394,24 @@ pub(super) fn render_expanded(
             _ => 0,
         })
         .collect::<Vec<_>>();
+    // The list scrolls by rows, as the local one: `workspace_scroll` is the
+    // first content row shown, so a space taller than the list scrolls
+    // through.
+    let tops = row_heights
+        .iter()
+        .zip(&gaps)
+        .scan(0usize, |top, (height, gap)| {
+            let this = *top;
+            *top += usize::from(*height) + usize::from(*gap);
+            Some(this)
+        })
+        .collect::<Vec<_>>();
+    let content_rows = tops
+        .last()
+        .zip(row_heights.last())
+        .map_or(0, |(top, height)| top + usize::from(*height));
+    let viewport = usize::from(body.height);
+    let max_scroll = content_rows.saturating_sub(viewport);
     let reveal_navigation = !body.is_empty() && std::mem::take(state.reveal_navigation_workspace);
     let reveal_focus = !body.is_empty() && std::mem::take(state.reveal_focused_workspace);
     if reveal_navigation || reveal_focus {
@@ -421,35 +439,43 @@ pub(super) fn render_expanded(
             Row::Endpoint(_) => false,
         });
         if let Some(selected_row) = selected_row {
-            *state.workspace_scroll = super::scroll::list_scroll_start_to_reveal(
-                &row_heights,
-                &gaps,
-                body.height,
+            let row = tops[selected_row];
+            *state.workspace_scroll = super::scroll::rows_start_to_reveal(
                 *state.workspace_scroll,
-                selected_row,
+                usize::from(body.height),
+                row,
+                row,
             );
         }
     }
-    let metrics = super::scroll::list_scroll_metrics(
-        &row_heights,
-        &gaps,
-        body.height,
-        *state.workspace_scroll,
-    );
-    hits.workspace_max_scroll = metrics.max_offset_from_bottom;
+    *state.workspace_scroll = (*state.workspace_scroll).min(max_scroll);
+    let metrics = crate::pane::ScrollMetrics {
+        offset_from_bottom: max_scroll - *state.workspace_scroll,
+        max_offset_from_bottom: max_scroll,
+        viewport_rows: viewport.min(content_rows),
+    };
+    hits.workspace_max_scroll = max_scroll;
     hits.workspace_scroll_metrics = Some(metrics);
-    *state.workspace_scroll = metrics
-        .max_offset_from_bottom
-        .saturating_sub(metrics.offset_from_bottom);
-    let show_scrollbar = metrics.max_offset_from_bottom > 0 && body.width > 1;
+    let scroll = *state.workspace_scroll;
+    let show_scrollbar = max_scroll > 0 && body.width > 1;
     let content_width = body.width.saturating_sub(u16::from(show_scrollbar));
-    let mut y = body.y;
-    for (row_index, row) in rows.iter().enumerate().skip(*state.workspace_scroll) {
+    let mut scratch = None::<Buffer>;
+    for (row_index, row) in rows.iter().enumerate() {
+        let top = tops[row_index];
+        let row_height = row_heights[row_index];
+        if top + usize::from(row_height) <= scroll || row_height == 0 {
+            continue;
+        }
+        if top >= scroll + viewport {
+            break;
+        }
+        // Rows of the block above the list's top, where it starts, and how
+        // many rows show.
+        let cut = scroll.saturating_sub(top);
+        let y = body.y + (top + cut - scroll) as u16;
+        let shown = (usize::from(row_height) - cut).min(usize::from(body.bottom() - y)) as u16;
         match row {
             Row::Endpoint(index) => {
-                if y >= body.bottom() {
-                    break;
-                }
                 let endpoint = &state.endpoints[*index];
                 let rect = Rect::new(body.x, y, content_width, 1);
                 let collapsed = state.collapsed_endpoints.contains(&endpoint.endpoint_id);
@@ -474,9 +500,6 @@ pub(super) fn render_expanded(
                     ),
                     endpoint_id: endpoint.endpoint_id.clone(),
                 });
-                y = y
-                    .saturating_add(1)
-                    .saturating_add(gaps.get(row_index).copied().unwrap_or(0));
             }
             Row::Workspace { endpoint, entry } => {
                 let endpoint = &state.endpoints[*endpoint];
@@ -516,15 +539,27 @@ pub(super) fn render_expanded(
                     &config.spaces,
                 );
                 let own_rows = tokens.len().max(1).min(u16::MAX as usize) as u16;
-                let height = row_heights
-                    .get(row_index)
-                    .copied()
-                    .unwrap_or(own_rows)
-                    .min(body.height);
-                if y.saturating_add(height) > body.bottom() {
-                    break;
-                }
-                let rect = Rect::new(body.x, y, content_width, height);
+                let height = row_height;
+                let visible = Rect::new(body.x, y, content_width, shown);
+                // A block cut at either edge is drawn whole off screen, then
+                // its visible rows are copied.
+                let partial = cut > 0 || shown < height;
+                let mut block_hits = ShellHitMap::default();
+                let target: &mut Buffer = if partial {
+                    let area = Rect::new(body.x, 0, content_width, height);
+                    let scratch = scratch.get_or_insert_with(|| Buffer::empty(area));
+                    scratch.resize(area);
+                    scratch.reset();
+                    super::render::render_sidebar_background(scratch, area, palette);
+                    scratch
+                } else {
+                    &mut *buffer
+                };
+                let rect = if partial {
+                    Rect::new(body.x, 0, content_width, height)
+                } else {
+                    visible
+                };
                 let nested = Rect::new(
                     rect.x.saturating_add(2),
                     rect.y,
@@ -540,7 +575,7 @@ pub(super) fn render_expanded(
                         .any(|shown| shown.workspace_id == agent.workspace_id)
                 });
                 super::sidebar::render_workspace_rows(
-                    buffer,
+                    target,
                     nested,
                     status,
                     icon,
@@ -554,7 +589,7 @@ pub(super) fn render_expanded(
                 );
                 let online = endpoint.status == ClientEndpointStatus::Online;
                 let tab_hits = super::space_tabs::render_space_tab_lines(
-                    buffer,
+                    target,
                     Rect::new(
                         nested.x,
                         nested.y.saturating_add(own_rows),
@@ -570,15 +605,15 @@ pub(super) fn render_expanded(
                 // Only the active machine's tab lines and squares take clicks:
                 // they act on it; another machine's lines select its space.
                 if endpoint_active && online {
-                    hits.space_tabs.extend(tab_hits.lines);
-                    hits.space_tab_folds.extend(tab_hits.folds);
-                    hits.space_tab_squares.extend(tab_hits.squares);
-                    hits.space_tab_gone.extend(tab_hits.gone);
-                    hits.tooltips.extend(tab_hits.tooltips);
-                    hits.space_tab_square_order.extend(tab_hits.order);
+                    block_hits.space_tabs.extend(tab_hits.lines);
+                    block_hits.space_tab_folds.extend(tab_hits.folds);
+                    block_hits.space_tab_squares.extend(tab_hits.squares);
+                    block_hits.space_tab_gone.extend(tab_hits.gone);
+                    block_hits.tooltips.extend(tab_hits.tooltips);
+                    block_hits.space_tab_square_order.extend(tab_hits.order);
                 }
                 if endpoint.status != ClientEndpointStatus::Online {
-                    buffer.set_style(
+                    target.set_style(
                         rect,
                         Style::default()
                             .fg(palette.overlay0)
@@ -587,7 +622,7 @@ pub(super) fn render_expanded(
                 }
                 let group_toggle = if config.spaces.tabs {
                     super::space_tabs::render_space_disclosure(
-                        buffer,
+                        target,
                         nested,
                         snapshot,
                         entry,
@@ -597,7 +632,7 @@ pub(super) fn render_expanded(
                     )
                 } else {
                     super::sidebar::render_parent_group_toggle(
-                        buffer,
+                        target,
                         rect,
                         snapshot,
                         entry.index,
@@ -605,16 +640,24 @@ pub(super) fn render_expanded(
                         palette,
                     )
                 };
-                hits.workspaces.push(WorkspaceHit {
+                block_hits.workspaces.push(WorkspaceHit {
                     rect,
                     endpoint_id: endpoint.endpoint_id.clone(),
                     workspace_id: workspace.workspace_id.clone(),
                     indented: entry.indented,
                     group_toggle,
                 });
-                y = y
-                    .saturating_add(height)
-                    .saturating_add(gaps.get(row_index).copied().unwrap_or(0));
+                if partial {
+                    if let Some(scratch) = scratch.as_ref() {
+                        for row in 0..shown {
+                            for x in visible.left()..visible.right() {
+                                buffer[(x, y + row)] = scratch[(x, cut as u16 + row)].clone();
+                            }
+                        }
+                    }
+                    block_hits.shift_space_block(i32::from(y) - cut as i32, visible);
+                }
+                hits.merge_space_block(block_hits);
             }
         }
     }

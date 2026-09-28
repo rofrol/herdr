@@ -118,14 +118,9 @@ impl ClientShellState {
         false
     }
 
-    /// How far one wheel step moves the spaces list: three rows where it
-    /// scrolls by rows (the local sidebar), else one space.
+    /// How far one wheel step moves the spaces list, which scrolls by rows.
     fn workspace_wheel_step(&self) -> usize {
-        if self.hits.workspace_layout.is_empty() {
-            1
-        } else {
-            3
-        }
+        3
     }
 
     /// A closed job's blank slot, held while the pointer is over the list:

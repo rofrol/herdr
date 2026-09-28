@@ -2637,3 +2637,45 @@ fn only_the_active_machines_tab_lines_unfold_job_squares() {
     assert!(state.unfolded_squares[&ClientEndpointId::Local].contains("tab_1"));
     assert!(!state.unfolded_squares.contains_key(&endpoint_id));
 }
+
+#[test]
+fn the_multi_machine_sidebar_scrolls_by_rows_to_a_tall_spaces_last_square() {
+    let (mut state, _) = state_with_remote();
+    state.config.spaces.tabs = true;
+    let mut local = snapshot();
+    for index in 0..60 {
+        let mut job = local.tabs[0].clone();
+        job.tab_id = format!("job_{index}");
+        job.focused = false;
+        job.parent_tab_id = Some("tab_1".into());
+        job.status = Some(crate::api::schema::TabStatus::Running);
+        local.tabs.push(job);
+    }
+    state.set_snapshot(Box::new(local));
+    state
+        .unfolded_squares
+        .entry(ClientEndpointId::Local)
+        .or_default()
+        .insert("tab_1".into());
+    state.compose(100, 28).expect("frame");
+    let body = state.hits.workspace_body;
+    let max = state.hits.workspace_max_scroll;
+    assert!(max > 0);
+    for _ in 0..max {
+        state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+            kind: crossterm::event::MouseEventKind::ScrollDown,
+            column: body.x + 2,
+            row: body.y + 1,
+            modifiers: KeyModifiers::empty(),
+        })]);
+    }
+    state.compose(100, 28).expect("frame");
+    let last = state
+        .hits
+        .space_tab_squares
+        .iter()
+        .find(|(_, tab_id)| tab_id == "job_59")
+        .map(|(rect, _)| *rect)
+        .expect("the last square is drawn");
+    assert!(last.y >= body.y && last.bottom() <= body.bottom());
+}
