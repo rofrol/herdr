@@ -583,8 +583,8 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     context, rates itself). Pilot 10 rounds, conclude after 20-30, rate blind
     where practical, "unique" only relative to that round's roster. It uses
     the same subscription, so log failures, never drop them.
-- [ ] herdr > menu > settings > usage: checkboxes choosing which providers the
-  usage footer shows. Also token-based usage?
+- [ ] Usage modal (click the footer) / settings: checkboxes choosing which
+  providers the usage footer shows. Also token-based usage?
   - Consulted models (DeepSeek, GPT-6 Astra, GPT-6 Luna, 2026-09-26): the
     checkboxes, yes. Tokens answer a different question ("what did this
     cost?") than the footer ("can I keep going?"): if ever, a separate usage
@@ -593,6 +593,39 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     need; split input, output and cache, and label estimates.
   - Deferred (consulted 2026-09-26): premature with few providers; built-in
     settings widgets are enough, no plugin settings framework needed.
+  - Revised 2026-09-28: put the checkboxes in the usage modal that opens when
+    I click the footer, not in settings. Also show usage of my other
+    workspaces: I have extra workspaces in OpenAI (platform projects) and
+    Anthropic (Console workspaces). Maybe per API key too.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): three different
+    things, keep them apart: footer visibility, subscription allowance, API
+    spend.
+    - Checkboxes mean "show in footer", not "poll": hiding a row must not
+      stop polling (`[usage].<provider>` stays the poll switch). It is TUI
+      presentation state: persist it on the client side, never in
+      `usage.read`. The modal keeps listing hidden rows so they can be turned
+      back on, and tells apart hidden, polling off, no credentials and
+      refresh failed.
+    - Workspaces only through the admin APIs (`sk-ant-admin…`, `sk-admin…`),
+      and those give spend and tokens, never a remaining balance or budget:
+      Anthropic `GET /v1/organizations/cost_report` (group by `workspace_id`)
+      and `usage_report/messages` (by `workspace_id`, `api_key_id`, `model`);
+      OpenAI `GET /v1/organization/costs` (by `project_id`, `line_item`) and
+      `usage/completions` (by `project_id`, `api_key_id`, `model`). Verify
+      against the docs before building; neither model could fetch them.
+    - Per API key: tokens only; cost per key would be an estimate from
+      prices (cache, batch, price changes). Cut for now.
+    - Workspace spend goes in a separate "API spend" section of the modal
+      (month to date, currency, scope, when observed), never as footer rows:
+      the footer stays a compact allowance strip. Label it "Anthropic API
+      spend", distinct from the Claude subscription row. Cost reports lag by
+      hours: own slow refresh, not the allowance poller.
+    - Admin keys read org-wide billing: opt-in, own env var or auth file
+      entry, server side only, never in API responses, logs or the shared
+      `usage-cache.json`.
+    - Order: footer checkboxes in the modal; then API spend per workspace
+      (ties in with the OpenAI API row above); per-key usage only on real
+      need.
 - [ ] herdr > menu > settings > consults: an "enabled" checkbox column per
   model (which models get consulted), and next to it the consult stats
   columns. Then drop the separate "consult stats" menu item.
