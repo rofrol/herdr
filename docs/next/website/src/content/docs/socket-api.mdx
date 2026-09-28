@@ -695,7 +695,7 @@ Session-only official integrations report native session references with `pane.r
 }
 ```
 
-An agent that ends its turn by asking the user something (a question, a choice, a confirmation) reports it with `pane.report_awaiting_reply` (`{"pane_id": "w1:p1"}`), usually through `herdr agent awaiting-reply`. A report during the turn shows when the turn ends; a report while the agent is idle shows at once. `agent.get` and `agent.list` then return `"awaiting_reply": true` until the agent starts working again, a turn ends without a new report, or the agent exits or changes session. Viewing the pane does not clear it, and the TUI keeps the agent's Done mark until then.
+An agent that ends its turn by asking the user something (a question, a choice, a confirmation) reports it with `pane.report_awaiting_reply` (`{"pane_id": "w1:p1"}`), usually through `herdr agent awaiting-reply`. The report holds until someone types into the pane (a key press, text or a paste from a client, or `pane.send_text`, `pane.send_keys`, `pane.send_input`, `agent.prompt` or `agent.send_keys`), the agent shows a prompt such as a question form or permission request, or the agent exits or changes session. While it holds, `agent.get` and `agent.list` return `"awaiting_reply": true` whenever the agent is idle; working hides it without clearing it, so an agent that goes on working without a reply shows it again when it stops. Viewing the pane, clicking, scrolling and focus changes do not clear it, and the TUI keeps the agent's Done mark until then.
 
 `pane.get`, `pane.list`, `agent.get`, and `agent.list` expose a read-only `agent_session` object when Herdr has a stored native session reference:
 
