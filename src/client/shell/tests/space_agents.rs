@@ -18,6 +18,7 @@ fn state_with_agent(agents: bool) -> ClientShellState {
         terminal_title_stripped: None,
         agent_status: AgentStatus::Working,
         state_change_seq: 0,
+        awaiting_reply: false,
         state_labels: Vec::new(),
         tokens: Vec::new(),
         focused: true,

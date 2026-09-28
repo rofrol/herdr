@@ -830,6 +830,7 @@ fn title_tab_label_shows_the_agents_task_title_at_a_fixed_width() {
         terminal_title_stripped: title.map(str::to_string),
         agent_status: AgentStatus::Idle,
         state_change_seq: 1,
+        awaiting_reply: false,
         state_labels: Vec::new(),
         tokens: Vec::new(),
         focused,

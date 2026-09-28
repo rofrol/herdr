@@ -190,6 +190,7 @@ mod tests {
             terminal_title_stripped: None,
             agent_status: status,
             state_change_seq: 0,
+            awaiting_reply: false,
             state_labels: Vec::new(),
             tokens: Vec::new(),
             focused: false,

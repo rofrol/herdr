@@ -557,6 +557,7 @@ fn busy_agent(pane_id: &str, status: AgentStatus) -> ClientShellAgent {
         terminal_title_stripped: None,
         agent_status: status,
         state_change_seq: 0,
+        awaiting_reply: false,
         state_labels: Vec::new(),
         tokens: Vec::new(),
         focused: true,

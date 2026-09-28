@@ -1105,6 +1105,10 @@ pub struct ClientShellAgent {
     #[serde(deserialize_with = "deserialize_client_shell_agent_status")]
     pub agent_status: crate::api::schema::AgentStatus,
     pub state_change_seq: u64,
+    /// The agent's last turn ended by asking the user something (see `AgentInfo`). Optional:
+    /// older servers do not send it.
+    #[serde(default)]
+    pub awaiting_reply: bool,
     pub state_labels: Vec<(String, String)>,
     pub tokens: Vec<(String, String)>,
     pub focused: bool,
