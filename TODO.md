@@ -1070,6 +1070,15 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Deferred: sessions already survive server restarts with 48 snapshots;
     recipes only help on a new machine or a fresh checkout. Build it when I
     notice rebuilding the same layout by hand.
+- [ ] `tests/client_mode.rs` can leak a `herdr server`: on 2026-09-28 a
+  server from `/tmp/herdr-client-test-52393-…` (started 15:43) was still
+  running at 17:30, orphaned (ppid 1) with its `sh` child, while the test
+  process (52393) and the bridge in `bridge-pid` were gone; the test dir was
+  left in `/tmp` too. `SpawnedHerdr::drop` kills only the client child, so a
+  server the client spawned, or any process after an interrupted run (Drop
+  does not run on SIGKILL), survives. Fix: tear down the server too (kill
+  the process group or read the runtime dir's server pid), and have the next
+  test run reap stale `/tmp/herdr-client-test-*` whose owner pid is dead.
 - [ ] Explain the consult/ask naming mismatch: the plugin (`plugins/consult`,
   `local.consult`) and the stats skill (`consult-stats`, `consult.py`) say
   "consult", but the scripts inside the skills say "ask" (`ask_gpt.sh`,
