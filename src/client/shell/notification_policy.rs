@@ -102,6 +102,9 @@ impl ClientShellState {
         event: SemanticNotification,
         now: std::time::Instant,
     ) -> (Vec<ClientShellNotificationEffect>, bool) {
+        if endpoint_id == &self.active_endpoint_id {
+            self.notification_log_received(event.tab_id.as_deref());
+        }
         let delay = if event.kind == SemanticNotificationKind::Custom {
             0
         } else {

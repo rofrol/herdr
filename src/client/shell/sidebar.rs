@@ -374,6 +374,13 @@ pub(crate) fn render_sidebar(
             if config.mouse_capture {
                 hits.space_sort_buttons = buttons;
             }
+            if let Some(unread) = state
+                .notification_log_button
+                .filter(|_| config.mouse_capture)
+            {
+                hits.notification_log_button =
+                    render_notification_log_button(buffer, workspace_area, unread, palette);
+            }
         }
     }
     let mut dragged_family = HashSet::new();
@@ -1210,6 +1217,42 @@ pub(in crate::client::shell) fn workspace_rows(
         })
         .filter(|row| !row.is_empty())
         .collect()
+}
+
+/// The notification history button at the right end of the spaces header:
+/// `✉` and the unread count, accent while there are unread ones.
+fn render_notification_log_button(
+    buffer: &mut Buffer,
+    area: Rect,
+    unread: usize,
+    palette: &Palette,
+) -> Rect {
+    let label = if unread > 0 {
+        format!("✉{}", unread.min(99))
+    } else {
+        "✉".to_owned()
+    };
+    let width = display_width(&label).saturating_add(1);
+    if area.width < width + 8 || area.height == 0 {
+        return Rect::default();
+    }
+    let rect = Rect::new(area.right().saturating_sub(width + 1), area.y, width + 1, 1);
+    let style = if unread > 0 {
+        Style::default()
+            .fg(palette.accent)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(palette.overlay1)
+    };
+    put_text(
+        buffer,
+        rect.x.saturating_add(1),
+        rect.y,
+        width,
+        &label,
+        style,
+    );
+    rect
 }
 
 /// Columns the name line of a space leaves at its right with vertical tabs:

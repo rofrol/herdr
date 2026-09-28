@@ -603,7 +603,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     cross-lint is necessary but not sufficient; Astra added verifying the
     activation and the per-SHA ownership, DeepSeek the post-rebase workflow
     check and that a fresh machine without the SDK fails `just check`.
-- [ ] Notifications button above "spaces": clicking it opens a dropdown of
+- [x] Notifications button above "spaces": clicking it opens a dropdown of
   past notifications with the time each arrived; clicking an entry
   navigates like clicking the toast. Today there is no history: a toast
   (5-12 s, queue of 8, same-pane replacement) is gone once it expires.
@@ -645,6 +645,21 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     narrow sidebar clips a dropdown, so maybe an overlay; freeze the list
     while the pointer is over it so new entries do not move the click
     target; script bodies stay in history longer than in a toast.
+  - Done 2026-09-29: the server keeps the last 100 notifications sent to
+    client shells (sent or not, so detached ones count; `notification.show`
+    without a shell client is still refused and not kept) and lists them
+    with an advertised `notification.list` (id, `unix_ms`, kind, title,
+    body, agent, workspace, tab, pane). The client fetches it only when the
+    dropdown opens: a background fetch holds the machine's command lane,
+    so a click in that moment was refused as busy (it broke the federated
+    client test). `✉N` at the right end of the spaces header (hidden when
+    the server lacks the method) counts the notifications this client
+    received for tabs it has not shown since; the
+    dropdown lists up to 15, newest first, `HH:MM` (with the date for older
+    days), unread marked `•`; click or Enter opens its pane, else its tab,
+    else its space, else says "target no longer exists"; j/k/arrows, Esc.
+    Still open: a key to open it, the multi-machine sidebar's header, the
+    list's own freeze while the pointer is over it, collapsing repeats.
 - [ ] Child tab row styled like the main row. Now the main row has separate
   tabs (`surface1` background, a 1-column `panel_bg` gap between them),
   while the child row is one continuous accent-tint band with plain text
