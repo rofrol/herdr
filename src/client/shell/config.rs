@@ -59,6 +59,8 @@ impl ClientShellState {
             agent_panel_sort: self
                 .agent_panel_sort_manual
                 .then_some(self.config.agent_panel_sort),
+            space_sort: (self.space_sort != super::space_sort::SpaceSort::default())
+                .then_some(self.space_sort),
             collapsed_groups,
             remote_collapsed_groups,
         };

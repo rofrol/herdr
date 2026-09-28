@@ -250,6 +250,7 @@ pub(super) struct ShellRenderState<'a> {
     /// While a space is dragged: where it would land, `Some(None)` for the end.
     pub(super) workspace_drop_before: Option<Option<&'a str>>,
     pub(super) usage: Option<&'a crate::api::schema::UsageReport>,
+    pub(super) space_sort: super::space_sort::SpaceSort,
 }
 
 pub(super) fn render_shell(

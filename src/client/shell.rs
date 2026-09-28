@@ -33,6 +33,7 @@ mod render;
 mod scroll;
 mod settings;
 mod space_agents;
+mod space_sort;
 mod state;
 mod surface_patch;
 mod tab_groups;

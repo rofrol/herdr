@@ -2097,6 +2097,20 @@ impl ClientShellState {
                     self.open_usage_overlay(outcome);
                     return;
                 }
+                if let Some(key) = self
+                    .hits
+                    .space_sort_buttons
+                    .iter()
+                    .find(|(rect, _)| super::contains(*rect, point))
+                    .map(|(_, key)| *key)
+                {
+                    self.space_sort = self.space_sort.clicked(key);
+                    self.workspace_scroll = 0;
+                    self.reveal_focused_workspace = true;
+                    self.persist_chrome_preferences(outcome);
+                    outcome.repaint = true;
+                    return;
+                }
                 if super::contains(self.hits.agent_sort_toggle, point) {
                     let sort = match self.config.agent_panel_sort {
                         crate::config::AgentPanelSortConfig::Spaces => {

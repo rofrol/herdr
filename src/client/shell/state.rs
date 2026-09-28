@@ -107,6 +107,8 @@ pub(super) struct ShellHitMap {
     pub(super) agent_scroll_metrics: Option<crate::pane::ScrollMetrics>,
     pub(super) agent_max_scroll: usize,
     pub(super) agent_sort_toggle: Rect,
+    /// The `cust`, `name` and `prio` buttons in the spaces header.
+    pub(super) space_sort_buttons: Vec<(Rect, super::space_sort::SpaceSortKey)>,
     pub(super) sidebar_divider: Rect,
     pub(super) sidebar_section_divider: Rect,
     /// Rows the spaces and detail sections split between them; dragging the
@@ -904,6 +906,8 @@ pub(crate) struct ClientShellState {
     pub(super) sidebar_section_split: f32,
     pub(super) sidebar_section_split_manual: bool,
     pub(super) agent_panel_sort_manual: bool,
+    /// How the spaces list is sorted; a client preference.
+    pub(super) space_sort: super::space_sort::SpaceSort,
     pub(super) last_sidebar_divider_click: Option<std::time::Instant>,
     pub(super) chrome_drag: Option<ClientChromeDrag>,
     pub(super) workspace_press: Option<ClientWorkspacePress>,
@@ -1078,6 +1082,7 @@ impl ClientShellState {
             sidebar_section_split,
             sidebar_section_split_manual: preferences.sidebar_section_split.is_some(),
             agent_panel_sort_manual: preferences.agent_panel_sort.is_some(),
+            space_sort: preferences.space_sort.unwrap_or_default(),
             last_sidebar_divider_click: None,
             chrome_drag: None,
             workspace_press: None,
@@ -1220,12 +1225,29 @@ impl ClientShellState {
         if self.mobile_layout_active() {
             render::workspace_entries(snapshot, &empty_collapsed_groups)
         } else {
-            render::workspace_entries(
+            let collapsed_groups = self
+                .collapsed_groups_for_endpoint(&self.active_endpoint_id)
+                .unwrap_or(&empty_collapsed_groups);
+            self.sorted_for_sidebar(
                 snapshot,
-                self.collapsed_groups_for_endpoint(&self.active_endpoint_id)
-                    .unwrap_or(&empty_collapsed_groups),
+                render::workspace_entries(snapshot, collapsed_groups),
+                collapsed_groups,
             )
         }
+    }
+
+    /// `entries` in the order the sidebar shows them: the sort applies to the
+    /// single-machine sidebar; the multi-machine one keeps the manual order.
+    pub(super) fn sorted_for_sidebar(
+        &self,
+        snapshot: &ClientShellSnapshot,
+        entries: Vec<WorkspaceEntry>,
+        collapsed_groups: &HashSet<String>,
+    ) -> Vec<WorkspaceEntry> {
+        if self.endpoints.len() > 1 {
+            return entries;
+        }
+        super::space_sort::sorted_entries(snapshot, entries, collapsed_groups, self.space_sort)
     }
 
     pub(super) fn reveal_workspace(&mut self, workspace_id: &str) {

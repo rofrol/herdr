@@ -298,7 +298,12 @@ pub(crate) fn render_sidebar(
         crate::ui::expanded_sidebar_sections(sections, state.sidebar_section_split);
     hits.sidebar_section_divider =
         crate::ui::sidebar_section_divider_rect(sections, state.sidebar_section_split);
-    let mut entries = workspace_entries(snapshot, state.collapsed_groups);
+    let mut entries = super::space_sort::sorted_entries(
+        snapshot,
+        workspace_entries(snapshot, state.collapsed_groups),
+        state.collapsed_groups,
+        state.space_sort,
+    );
     // While a space is dragged the list shows where it would land, and the
     // header says so in words.
     let drag = state
@@ -309,24 +314,30 @@ pub(crate) fn render_sidebar(
             let hint = drag_hint(snapshot, &entries, &preview, source);
             Some((preview, hint))
         });
-    let header = match &drag {
-        Some((_, hint)) => format!(" {hint}"),
-        None => " spaces".to_owned(),
-    };
-    put_text(
-        buffer,
-        workspace_area.x,
-        workspace_area.y,
-        workspace_area.width,
-        &header,
-        Style::default()
-            .fg(if drag.is_some() {
-                palette.accent
-            } else {
-                palette.overlay0
-            })
-            .add_modifier(Modifier::BOLD),
-    );
+    match &drag {
+        Some((_, hint)) => put_text(
+            buffer,
+            workspace_area.x,
+            workspace_area.y,
+            workspace_area.width,
+            &format!(" {hint}"),
+            Style::default()
+                .fg(palette.accent)
+                .add_modifier(Modifier::BOLD),
+        ),
+        None => {
+            let buttons = super::space_sort::render_sort_header(
+                buffer,
+                Rect::new(workspace_area.x, workspace_area.y, workspace_area.width, 1)
+                    .intersection(workspace_area),
+                state.space_sort,
+                palette,
+            );
+            if config.mouse_capture {
+                hits.space_sort_buttons = buttons;
+            }
+        }
+    }
     let mut dragged_family = HashSet::new();
     if let Some((preview, _)) = drag {
         entries = preview;
