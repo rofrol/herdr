@@ -235,9 +235,8 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     state client-local, not in the saved collapsed set; measure the square
     rows once for layout and drawing, and again with the scrollbar column
     when the list overflows. Still open: the hover name on the sidebar's
-    bottom line, keeping squares in place while the pointer is over the
-    sidebar, squares in the
-    multi-machine sidebar, scrolling within a block taller than the list.
+    keeping squares in place while the pointer is over the sidebar,
+    squares in the multi-machine sidebar.
   - Changed 2026-09-28 (mockup updated, same link): a disclosure triangle
     right before the counts, `► ⧖ 1 !1` (`▼` unfolded, dim grey, inside
     the fill), folds and unfolds the squares; its hit runs from the
@@ -255,6 +254,17 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Done 2026-09-28: a succeeded job's tab does not close while it is the
     focused tab (herdr's `focused`, the tab shown); herdr-job checks every
     2 s and closes it once you leave it.
+  - Done 2026-09-28: hovering a square names its job (glyph and label) in
+    place of its tab line's label, the nearest stable row; and a line shows
+    at most three rows of squares, the last slot `+N` (red when a hidden
+    job failed), which shows them all until the line folds. Consulted
+    (GPT-6 Astra, DeepSeek): Astra chose the sidebar's footer for the name,
+    DeepSeek the tab line (chosen: next to the pointer, no chrome hidden).
+    For a space taller than the list, Astra wanted the list to scroll by
+    rows instead of whole spaces, DeepSeek the cap now and row scrolling
+    later (chosen: row scrolling touches drag and drop, reveal and the
+    scrollbar). Still open: row scrolling for a space that is still taller
+    than the list.
   - Consulted (GPT-6 Astra, DeepSeek, 2026-09-28): both called the squares
     fine but removing the rows risky (no navigation with the sidebar
     hidden, keyboard). Both wanted a per-tab number in the square (`1⧖`,

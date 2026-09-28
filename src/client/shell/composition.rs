@@ -81,6 +81,7 @@ impl ClientShellState {
             workspace_drop_before: None,
             pressed_workspace_id: None,
             hovered_workspace_id: None,
+            hovered_square: None,
             workspace_drag_refusal: None,
             space_sort: self.space_sort,
         };
@@ -262,6 +263,7 @@ impl ClientShellState {
                 workspace_drop_before,
                 pressed_workspace_id,
                 hovered_workspace_id,
+                hovered_square: self.hovered_square.as_deref(),
                 workspace_drag_refusal,
                 space_sort: self.space_sort,
             },

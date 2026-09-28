@@ -538,6 +538,7 @@ pub(super) fn render_expanded(
                     endpoint_active && workspace.focused,
                     // No line is unfolded here, so no squares wrap.
                     nested.width,
+                    None,
                     config,
                 );
                 if endpoint.status != ClientEndpointStatus::Online {

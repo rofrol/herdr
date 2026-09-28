@@ -32,11 +32,22 @@ pub(super) struct SpaceTabLine {
     /// The nested tabs, in tab order, drawn as squares while unfolded.
     pub(super) squares: Vec<TabSquare>,
     pub(super) unfolded: bool,
+    /// Every square is shown, past [`MAX_SQUARE_ROWS`].
+    pub(super) all_squares: bool,
+}
+
+/// A cell group on a line's square rows: a nested tab's square, or the last
+/// slot of a capped line, `+N` for the squares it hides.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum SquareSlot {
+    Square(usize),
+    More(usize),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct TabSquare {
     pub(super) tab_id: String,
+    pub(super) label: String,
     pub(super) status: Option<TabStatus>,
     /// The client's focused tab: the open job.
     pub(super) focused: bool,
@@ -47,17 +58,46 @@ const SQUARE_WIDTH: u16 = 3;
 const SQUARE_GAP: u16 = 1;
 /// Squares start where the tab line's fill starts, past its state icon.
 const SQUARES_INDENT: u16 = 5;
+/// Square rows a line shows before its last slot becomes `+N`, so one tab's
+/// jobs rarely make its space taller than the list (the list scrolls by
+/// whole spaces). Clicking `+N` shows them all.
+const MAX_SQUARE_ROWS: usize = 3;
 
 impl SpaceTabLine {
     /// Rows the line takes: its own and, while unfolded, its squares'.
     pub(super) fn height(&self, width: u16) -> u16 {
-        let squares = if self.unfolded {
-            self.squares.len().div_ceil(squares_per_row(width))
-        } else {
-            0
-        };
+        let squares = self
+            .square_slots(width)
+            .len()
+            .div_ceil(squares_per_row(width));
         (1 + squares).min(u16::MAX as usize) as u16
     }
+
+    /// The slots drawn on the square rows of a block `width` columns wide:
+    /// none while folded; past [`MAX_SQUARE_ROWS`] the last one is `+N`.
+    /// The squares keep their order, so a new job never moves the others.
+    pub(super) fn square_slots(&self, width: u16) -> Vec<SquareSlot> {
+        if !self.unfolded {
+            return Vec::new();
+        }
+        let room = squares_per_row(width).saturating_mul(MAX_SQUARE_ROWS);
+        let count = self.squares.len();
+        if self.all_squares || count <= room {
+            return (0..count).map(SquareSlot::Square).collect();
+        }
+        let shown = room.saturating_sub(1);
+        (0..shown)
+            .map(SquareSlot::Square)
+            .chain(std::iter::once(SquareSlot::More(count - shown)))
+            .collect()
+    }
+}
+
+/// Prefix of the key in the unfolded set that shows all of a tab's squares.
+pub(super) const ALL_SQUARES_PREFIX: &str = "all:";
+
+pub(super) fn all_squares_key(tab_id: &str) -> String {
+    format!("{ALL_SQUARES_PREFIX}{tab_id}")
 }
 
 /// Squares that fit on a row of a space block `width` columns wide, from the
@@ -110,6 +150,7 @@ pub(super) fn space_tab_lines(
                 .into_iter()
                 .map(|child| TabSquare {
                     tab_id: child.tab_id.clone(),
+                    label: child.label.clone(),
                     status: child.status,
                     focused: child.focused,
                 })
@@ -121,6 +162,7 @@ pub(super) fn space_tab_lines(
                 active: active_group == Some(tab.tab_id.as_str()),
                 jobs: super::tab_groups::children_summary_segments(&group),
                 unfolded: !squares.is_empty() && unfolded_squares.contains(&tab.tab_id),
+                all_squares: unfolded_squares.contains(&all_squares_key(&tab.tab_id)),
                 squares,
             }
         })
@@ -310,26 +352,30 @@ fn is_dark(color: Color) -> Option<bool> {
 }
 
 /// Where a click on the drawn tab lines lands: each line's rect with its tab,
-/// each line's disclosure triangle and counts with its tab, and each square's
-/// rect with its nested tab.
+/// each line's disclosure triangle and counts with its tab, each square's
+/// rect with its nested tab, and each `+N` slot with the line's tab.
 #[derive(Debug, Default)]
 pub(super) struct SpaceTabHits {
     pub(super) lines: Vec<(Rect, String)>,
     pub(super) folds: Vec<(Rect, String)>,
     pub(super) squares: Vec<(Rect, String)>,
+    pub(super) more: Vec<(Rect, String)>,
 }
 
 /// Draws `lines` from the top of `area`, below the space's own rows, each
 /// followed by its squares while unfolded, wrapped at `squares_width` (see
 /// [`squares_per_row`]). Each line is a tab filled from the label (see
 /// [`TabLineFills`]). The state icon stays left of the fill, on the panel
-/// background, so it keeps its colour on every line.
+/// background, so it keeps its colour on every line. While the pointer is
+/// over one of a line's squares (`hovered_square`), the line names that job
+/// in place of its label: a square shows only a glyph.
 pub(super) fn render_space_tab_lines(
     buffer: &mut Buffer,
     area: Rect,
     lines: &[SpaceTabLine],
     focused_space: bool,
     squares_width: u16,
+    hovered_square: Option<&str>,
     config: &ClientShellConfig,
 ) -> SpaceTabHits {
     let palette = &config.palette;
@@ -398,8 +444,34 @@ pub(super) fn render_space_tab_lines(
             (true, jobs) => jobs + 2,
         };
         let label_width = available.saturating_sub(if fold_width > 0 { fold_width + 1 } else { 0 });
-        let label = truncate(&line.label, label_width as usize);
-        super::render::put_text(buffer, text_x, y, label_width, &label, text_style);
+        let hovered = hovered_square
+            .and_then(|hovered| line.squares.iter().find(|square| square.tab_id == hovered));
+        match hovered {
+            Some(square) if label_width > 2 => {
+                let glyph = super::tab_groups::status_icon(square.status).unwrap_or("•");
+                super::render::put_text(
+                    buffer,
+                    text_x,
+                    y,
+                    1,
+                    glyph,
+                    on_accent.unwrap_or_else(|| {
+                        Style::default()
+                            .fg(
+                                super::render::tabs::tab_status_color(square.status, palette)
+                                    .unwrap_or(palette.overlay0),
+                            )
+                            .add_modifier(Modifier::BOLD)
+                    }),
+                );
+                let label = truncate(&square.label, usize::from(label_width - 2));
+                super::render::put_text(buffer, text_x + 2, y, label_width - 2, &label, text_style);
+            }
+            _ => {
+                let label = truncate(&line.label, label_width as usize);
+                super::render::put_text(buffer, text_x, y, label_width, &label, text_style);
+            }
+        }
         if fold_width > 0 {
             let fold_x = right.saturating_sub(fold_width);
             super::render::put_text(
@@ -429,21 +501,31 @@ pub(super) fn render_space_tab_lines(
             );
         }
         y = y.saturating_add(1);
-        if line.unfolded {
-            let per_row = squares_per_row(squares_width);
-            for row in line.squares.chunks(per_row) {
-                if y >= area.bottom() {
-                    break;
-                }
-                let mut square_x = area.x.saturating_add(SQUARES_INDENT);
-                for square in row {
-                    let rect = Rect::new(square_x, y, SQUARE_WIDTH, 1).intersection(area);
-                    render_square(buffer, rect, square, &fills, palette);
-                    hits.squares.push((rect, square.tab_id.clone()));
-                    square_x = square_x.saturating_add(SQUARE_WIDTH + SQUARE_GAP);
-                }
-                y = y.saturating_add(1);
+        let per_row = squares_per_row(squares_width);
+        for row in line.square_slots(squares_width).chunks(per_row) {
+            if y >= area.bottom() {
+                break;
             }
+            let mut square_x = area.x.saturating_add(SQUARES_INDENT);
+            for slot in row {
+                let rect = Rect::new(square_x, y, SQUARE_WIDTH, 1).intersection(area);
+                match *slot {
+                    SquareSlot::Square(index) => {
+                        let square = &line.squares[index];
+                        render_square(buffer, rect, square, &fills, palette);
+                        hits.squares.push((rect, square.tab_id.clone()));
+                    }
+                    SquareSlot::More(hidden) => {
+                        let failed = line.squares[line.squares.len() - hidden..]
+                            .iter()
+                            .any(|square| square.status == Some(TabStatus::Failed));
+                        render_more(buffer, rect, hidden, failed, &fills, palette);
+                        hits.more.push((rect, line.tab_id.clone()));
+                    }
+                }
+                square_x = square_x.saturating_add(SQUARE_WIDTH + SQUARE_GAP);
+            }
+            y = y.saturating_add(1);
         }
     }
     hits
@@ -482,6 +564,43 @@ fn render_square(
         style = style.add_modifier(Modifier::BOLD);
     }
     super::render::put_text(buffer, rect.x.saturating_add(1), rect.y, 1, glyph, style);
+}
+
+/// The `+N` slot of a capped line, red when a hidden job failed, so a
+/// failure never hides behind it.
+fn render_more(
+    buffer: &mut Buffer,
+    rect: Rect,
+    hidden: usize,
+    failed: bool,
+    fills: &TabLineFills,
+    palette: &Palette,
+) {
+    if rect.is_empty() {
+        return;
+    }
+    buffer.set_style(rect, Style::default().bg(fills.inactive));
+    let text = if hidden > 99 {
+        "+99".to_owned()
+    } else {
+        format!("+{hidden}")
+    };
+    let style = if failed {
+        Style::default()
+            .fg(palette.red)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(palette.overlay1)
+    };
+    let x = rect.x.saturating_add(u16::from(text.len() < 3));
+    super::render::put_text(
+        buffer,
+        x,
+        rect.y,
+        rect.right().saturating_sub(x),
+        &text,
+        style,
+    );
 }
 
 fn segments_width(segments: &[(Option<TabStatus>, String)]) -> u16 {
@@ -784,6 +903,42 @@ mod tests {
         assert_eq!(unfolded[0].height(40), 2);
         // Too narrow for one square still lays one per row.
         assert_eq!(squares_per_row(2), 1);
+    }
+
+    #[test]
+    fn a_long_line_caps_its_squares_at_three_rows_until_all_are_shown() {
+        let mut tabs = vec![tab("tab_1", None, None)];
+        tabs.extend((0..20).map(|index| {
+            tab(
+                &format!("job_{index}"),
+                Some("tab_1"),
+                Some(TabStatus::Running),
+            )
+        }));
+        let snapshot = snapshot_with(tabs);
+        let workspace = snapshot.workspaces[0].clone();
+        let lines = |keys: &[String]| {
+            let unfolded = keys.iter().cloned().collect();
+            space_tab_lines(
+                &snapshot,
+                &workspace,
+                &HashSet::new(),
+                &unfolded,
+                &config(true),
+            )
+        };
+
+        // Five a row at 26 columns: 14 squares, then `+6`.
+        let capped = lines(&["tab_1".to_owned()]);
+        let slots = capped[0].square_slots(26);
+        assert_eq!(slots.len(), 15);
+        assert_eq!(slots[13], SquareSlot::Square(13));
+        assert_eq!(slots[14], SquareSlot::More(6));
+        assert_eq!(capped[0].height(26), 4);
+
+        let all = lines(&["tab_1".to_owned(), all_squares_key("tab_1")]);
+        assert_eq!(all[0].square_slots(26).len(), 20);
+        assert_eq!(all[0].height(26), 5);
     }
 
     #[test]

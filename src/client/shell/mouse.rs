@@ -130,12 +130,26 @@ impl ClientShellState {
                     .iter()
                     .map(|tab| tab.tab_id.as_str())
                     .collect::<HashSet<_>>();
-                self.unfolded_squares
-                    .retain(|unfolded| live.contains(unfolded.as_str()));
+                self.unfolded_squares.retain(|unfolded| {
+                    live.contains(
+                        unfolded
+                            .strip_prefix(super::space_tabs::ALL_SQUARES_PREFIX)
+                            .unwrap_or(unfolded),
+                    )
+                });
             }
-            if !self.unfolded_squares.remove(&tab_id) {
+            if self.unfolded_squares.remove(&tab_id) {
+                // Folding forgets `+N`; the next unfold is capped again.
+                self.unfolded_squares
+                    .remove(&super::space_tabs::all_squares_key(&tab_id));
+            } else {
                 self.unfolded_squares.insert(tab_id);
             }
+            return Some(None);
+        }
+        if let Some(tab_id) = hit(&self.hits.space_tab_more) {
+            self.unfolded_squares
+                .insert(super::space_tabs::all_squares_key(&tab_id));
             return Some(None);
         }
         if let Some(square) = hit(&self.hits.space_tab_squares) {

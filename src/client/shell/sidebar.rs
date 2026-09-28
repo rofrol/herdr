@@ -568,11 +568,13 @@ pub(crate) fn render_sidebar(
             &tab_lines,
             workspace.focused,
             squares_width,
+            state.hovered_square,
             config,
         );
         hits.space_tabs.extend(tab_hits.lines);
         hits.space_tab_folds.extend(tab_hits.folds);
         hits.space_tab_squares.extend(tab_hits.squares);
+        hits.space_tab_more.extend(tab_hits.more);
         let group_toggle = if config.spaces.tabs {
             super::space_tabs::render_space_disclosure(
                 buffer,

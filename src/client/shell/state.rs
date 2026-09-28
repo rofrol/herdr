@@ -107,6 +107,8 @@ pub(super) struct ShellHitMap {
     pub(super) space_tab_folds: Vec<(Rect, String)>,
     /// Squares of nested tabs under an unfolded tab line, with their tab.
     pub(super) space_tab_squares: Vec<(Rect, String)>,
+    /// `+N` slots of capped square rows, with the tab they show all of.
+    pub(super) space_tab_more: Vec<(Rect, String)>,
     pub(super) endpoint_agents: Vec<(Rect, ClientEndpointId, String)>,
     pub(super) agent_body: Rect,
     pub(super) agent_scrollbar: Rect,
@@ -948,6 +950,8 @@ pub(crate) struct ClientShellState {
     /// Space of the active endpoint under the pointer that can be dragged,
     /// so its name line shows a grip.
     pub(super) hovered_workspace_id: Option<String>,
+    /// Nested tab whose square under a tab line is under the pointer.
+    pub(super) hovered_square: Option<String>,
     pub(super) tab_press: Option<ClientTabPress>,
     /// Last focused tab of each tab group, by endpoint and the group's
     /// top-level tab. Kept by this client, so one client's navigation never
@@ -1127,6 +1131,7 @@ impl ClientShellState {
             chrome_drag: None,
             workspace_press: None,
             hovered_workspace_id: None,
+            hovered_square: None,
             tab_press: None,
             last_group_tabs: HashMap::new(),
             collapsed_groups: preferences.collapsed_groups.into_iter().collect(),
@@ -1341,6 +1346,7 @@ impl ClientShellState {
         self.chrome_drag = None;
         self.workspace_press = None;
         self.hovered_workspace_id = None;
+        self.hovered_square = None;
         self.tab_press = None;
         self.workspace_scroll = 0;
         self.agent_scroll = 0;

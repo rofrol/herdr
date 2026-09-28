@@ -255,6 +255,8 @@ pub(super) struct ShellRenderState<'a> {
     pub(super) pressed_workspace_id: Option<&'a str>,
     /// Space under the pointer that can be dragged.
     pub(super) hovered_workspace_id: Option<&'a str>,
+    /// Nested tab whose square is under the pointer; its tab line names it.
+    pub(super) hovered_square: Option<&'a str>,
     /// Why the pressed space cannot be dragged, once the pointer moved.
     pub(super) workspace_drag_refusal: Option<super::WorkspaceDragRefusal>,
     pub(super) usage: Option<&'a crate::api::schema::UsageReport>,

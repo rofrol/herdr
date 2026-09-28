@@ -42,6 +42,20 @@ impl ClientShellState {
                 .is_ok()
         })
         .map(|hit| hit.workspace_id.clone());
+        let hovered_square = (mouse.kind == crossterm::event::MouseEventKind::Moved
+            && self.overlay.is_none())
+        .then(|| {
+            self.hits
+                .space_tab_squares
+                .iter()
+                .find(|(rect, _)| super::contains(*rect, point))
+                .map(|(_, tab_id)| tab_id.clone())
+        })
+        .flatten();
+        if self.hovered_square != hovered_square {
+            self.hovered_square = hovered_square;
+            outcome.repaint = true;
+        }
         if self.hovered_workspace_id != hovered {
             self.hovered_workspace_id = hovered;
             outcome.repaint = true;

@@ -582,3 +582,60 @@ fn middle_and_right_click_on_a_tab_line_target_the_tab_not_its_space() {
         })) if workspace_id == "ws_1"
     ));
 }
+
+#[test]
+fn hovering_a_square_names_its_job_on_its_tab_line() {
+    let mut state = state_with_tabs(true);
+    with_job(&mut state, "job_1", TabStatus::Failed);
+    click_fold(&mut state);
+    state.compose(106, 30).unwrap();
+    let (square, _) = state.hits.space_tab_squares[0];
+    let (line, _) = state.hits.space_tabs[0];
+    let hover = |state: &mut ClientShellState, (column, row): (u16, u16)| {
+        state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+            kind: crossterm::event::MouseEventKind::Moved,
+            column,
+            row,
+            modifiers: KeyModifiers::empty(),
+        })]);
+        let frame = state.compose(106, 30).unwrap();
+        frame_rows(&frame)[line.y as usize]
+            .chars()
+            .take(26)
+            .collect::<String>()
+    };
+
+    let text = hover(&mut state, (square.x + 1, square.y));
+    assert!(text.contains("! job job_1"), "{text:?}");
+    // Off the square the label comes back.
+    let text = hover(&mut state, (square.x + 1, square.y + 2));
+    assert!(text.contains("agent t"), "{text:?}");
+}
+
+#[test]
+fn the_more_slot_shows_every_square_until_the_line_folds() {
+    let mut state = state_with_tabs(true);
+    for index in 0..20 {
+        with_job(&mut state, &format!("job_{index}"), TabStatus::Running);
+    }
+    click_fold(&mut state);
+    state.compose(106, 30).unwrap();
+    assert_eq!(state.hits.space_tab_squares.len(), 14);
+    let (more, _) = state.hits.space_tab_more[0];
+    let frame = state.compose(106, 30).unwrap();
+    let row = frame_rows(&frame)[more.y as usize]
+        .chars()
+        .collect::<Vec<_>>();
+    assert_eq!(row[more.x as usize + 1..more.x as usize + 3], ['+', '6']);
+
+    left_click(&mut state, (more.x + 1, more.y));
+    state.compose(106, 30).unwrap();
+    assert_eq!(state.hits.space_tab_squares.len(), 20);
+    assert!(state.hits.space_tab_more.is_empty());
+
+    // Folding and unfolding caps the line again.
+    click_fold(&mut state);
+    click_fold(&mut state);
+    state.compose(106, 30).unwrap();
+    assert_eq!(state.hits.space_tab_squares.len(), 14);
+}
