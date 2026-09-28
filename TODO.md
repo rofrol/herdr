@@ -174,6 +174,15 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     single `!` on failure only; counts chosen), agreed on hiding the main
     row, listing shells, and the new option name. DeepSeek: if middle-click
     close comes, refuse it when the tab has running jobs.
+  - Done 2026-09-28: the vertical tabs, and a disclosure triangle in front
+    of the space's name (`▼`/`►`, grey, two-column hit) that hides its tab
+    lines, as in tree-style tab lists; a worktree parent's triangle
+    collapses its child spaces and tabs together, replacing its right-edge
+    chevron. Consulted (GPT-6 Astra, DeepSeek): both chose `▼`/`►` (not
+    `▶`, which has an emoji form) and a dim colour; Astra merged the
+    parent's two collapses, DeepSeek wanted them separate. Still open:
+    hiding the main tab row with the child row taking the top, and a `+`
+    as the last thing on the space's name line for a new tab.
 - [ ] Dragging a space does not show where it will land (screenshot
   2026-09-26, dragging `herdr`). The dragged space keeps a grey background
   much like the selected row, so two grey blocks are on screen; the drop
