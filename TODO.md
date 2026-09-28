@@ -597,6 +597,36 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     and colour together. Next: one `status_style` module per domain (agent,
     job, endpoint, notification) and semantic palette roles, decided
     together with the state-shape redesign.
+- [ ] A legend explaining the UI's dots and symbols (agent state dots,
+  job counts like `!2` / `⧖ 1` / `✓3`, git tokens `↑4` `±7`, endpoint
+  states, sort buttons, the grip, footer provider codes). Nothing in the UI
+  explains them today. Ties in with the colour and symbol audit above: the
+  legend should come from the same glyph/label/colour mapping.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28), both: a full
+    modal (the sidebar's 28 columns cannot hold explanations), opened by a
+    `?` button in the sidebar header, plus a menu entry and a prefix
+    keybinding; never a bare `?`, which belongs to the agent's terminal.
+    Hover tooltips come later as a supplement, never the only way (tmux
+    drops motion, no keyboard access, and five glyphs cannot be compared
+    at once). No first-run hint (gone before it is needed).
+  - Content per domain (agent, job, git, endpoint, controls, usage):
+    glyph, label, one-line meaning and a swatch in the theme's actually
+    rendered colour, never a colour name ("yellow" lies when a theme
+    collapses peach into yellow). Explain the counts by example (`!2` two
+    failed jobs, `↑4` four commits ahead); Astra: define what `±7` counts
+    (files or lines) and never describe planned glyphs as current.
+  - Generated from the per-domain `status_style` mapping of the audit above
+    (glyph, label, colour, explanation), with a test that every state
+    variant has an entry, so a new state cannot ship unexplained. Unknown
+    states from older remote servers show as "unknown status".
+  - DeepSeek: an "on screen now" filter at the top of the modal; a warning
+    when the theme gives two states the same colour. Both: a legend exposes
+    colour-only meaning (Dots draws four states as `●`) but does not fix
+    it; the shape redesign must.
+  - Order: they differ. DeepSeek: after the consolidation and the shape
+    redesign. Astra: together with the consolidation, not waiting for the
+    redesign. Astra's, I think: a generated legend follows the redesign
+    for free, and it helps now, while the glyphs are most confusing.
 - [ ] Analyse whether all tests are needed.
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): optimise for
     confidence and upkeep, not the test count. First find the slow, flaky
