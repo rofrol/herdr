@@ -193,9 +193,15 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     collapses its child spaces and tabs together, replacing its right-edge
     chevron. Consulted (GPT-6 Astra, DeepSeek): both chose `▼`/`►` (not
     `▶`, which has an emoji form) and a dim colour; Astra merged the
-    parent's two collapses, DeepSeek wanted them separate. Still open:
-    hiding the main tab row with the child row taking the top, and a `+`
-    as the last thing on the space's name line for a new tab.
+    parent's two collapses, DeepSeek wanted them separate. Hiding the tab
+    rows is done (job squares, below).
+  - Done 2026-09-29: a dim `+` at the right end of every space's name line
+    (2-column hit) opens and focuses a new tab in that space, whichever
+    space is focused, and expands a collapsed space; the drag grip moved a
+    column left, with a blank column between them, so the name line keeps
+    four columns free. Consulted (GPT-6 Astra, DeepSeek): Astra wanted it
+    always visible (chosen: a space that is not focused needs it most),
+    DeepSeek on hover only and apart from the grip (the gap column).
   - Done 2026-09-28: only the tab lines have a background, in the tab
     bar's colours, from the tab indent to one column before the right
     edge: inactive `surface0`, the focused space's active tab accent-filled

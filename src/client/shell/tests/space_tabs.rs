@@ -733,3 +733,25 @@ fn revealing_the_focused_space_brings_its_open_job_square_in() {
         .expect("the open square is revealed");
     assert!(open.y >= body.y && open.bottom() <= body.bottom());
 }
+
+#[test]
+fn the_plus_on_a_spaces_name_line_opens_a_tab_there() {
+    let mut state = state_with_tabs(true);
+    let frame = state.compose(106, 30).unwrap();
+    let space = state.hits.workspaces[0].rect;
+    let (plus, workspace_id) = state.hits.space_new_tab[0].clone();
+    assert_eq!(workspace_id, "ws_1");
+    assert_eq!(plus.y, space.y);
+    let row = frame_rows(&frame)[plus.y as usize]
+        .chars()
+        .collect::<Vec<_>>();
+    assert_eq!(row[plus.x as usize + 1], '+');
+
+    let outcome = left_click(&mut state, (plus.x + 1, plus.y));
+    assert!(outcome.actions.iter().any(|action| matches!(action,
+        ClientShellAction::Endpoint { request, .. }
+            if matches!(&request.method, crate::api::schema::Method::TabCreate(params)
+                if params.workspace_id.as_deref() == Some("ws_1") && params.focus))));
+    // Not a press on the space, which would start a drag or select it.
+    assert!(state.workspace_press.is_none());
+}

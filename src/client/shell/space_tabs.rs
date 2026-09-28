@@ -175,7 +175,7 @@ pub(super) fn space_tab_lines(
 
 /// The key that hides a space's tab lines, kept with the collapsed worktree
 /// groups (keyed by repository path, so they cannot clash) and saved with them.
-fn tabs_collapse_key(workspace_id: &str) -> String {
+pub(super) fn tabs_collapse_key(workspace_id: &str) -> String {
     format!("tabs:{workspace_id}")
 }
 

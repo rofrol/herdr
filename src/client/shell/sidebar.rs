@@ -617,18 +617,35 @@ pub(crate) fn render_sidebar(
         );
         if let Some(color) = grab_color {
             // A grip at the name line's right edge, left of the group
-            // chevron, in the spacer column the name never reaches.
+            // chevron (with vertical tabs, left of the new-tab `+`), in the
+            // spacer column the name never reaches.
             let hovered = state.hovered_workspace_id == Some(workspace.workspace_id.as_str());
-            if (dragged || pressed || hovered) && rect.width >= 4 {
+            if (dragged || pressed || hovered) && rect.width >= 6 {
                 put_text(
                     target,
-                    rect.right().saturating_sub(2),
+                    rect.right()
+                        .saturating_sub(if config.spaces.tabs { 3 } else { 2 }),
                     rect.y,
                     1,
                     "⋮",
                     Style::default().fg(color).add_modifier(Modifier::BOLD),
                 );
             }
+        }
+        if config.spaces.tabs && config.mouse_capture && rect.width >= 6 {
+            // A new tab in this space, whichever space is focused.
+            put_text(
+                target,
+                rect.right().saturating_sub(1),
+                rect.y,
+                1,
+                "+",
+                Style::default().fg(palette.overlay1),
+            );
+            block_hits.space_new_tab.push((
+                Rect::new(rect.right().saturating_sub(2), rect.y, 2, 1),
+                workspace.workspace_id.clone(),
+            ));
         }
         let tab_hits = super::space_tabs::render_space_tab_lines(
             target,
@@ -1139,6 +1156,10 @@ pub(in crate::client::shell) fn workspace_rows(
         .collect()
 }
 
+/// Columns the name line of a space leaves at its right with vertical tabs:
+/// a gap, the drag grip, a gap and the new-tab `+`.
+const NAME_LINE_ACTIONS_WIDTH: u16 = 4;
+
 pub(in crate::client::shell) fn render_workspace_rows(
     buffer: &mut Buffer,
     area: Rect,
@@ -1160,6 +1181,15 @@ pub(in crate::client::shell) fn render_workspace_rows(
     // name for `render_space_disclosure`, and give a focused space no
     // background; only its tab lines have one.
     let vertical_tabs = config.spaces.tabs;
+    // Columns left free at the right: the grip's; with vertical tabs the
+    // name line also ends in a new-tab `+`, a column apart from the grip.
+    let reserved = |row_index: usize| {
+        if vertical_tabs && row_index == 0 {
+            NAME_LINE_ACTIONS_WIDTH
+        } else {
+            2
+        }
+    };
     for (row_index, row) in rows.iter().enumerate() {
         let y = area.y + row_index as u16;
         if y >= area.bottom() {
@@ -1220,10 +1250,19 @@ pub(in crate::client::shell) fn render_workspace_rows(
             secondary_style,
             Style::default().fg(palette.overlay1),
             palette,
-            area.right().saturating_sub(2).saturating_sub(x) as usize,
+            area.right()
+                .saturating_sub(reserved(row_index))
+                .saturating_sub(x) as usize,
         );
         Paragraph::new(Line::from(spans)).render(
-            Rect::new(x, y, area.right().saturating_sub(2).saturating_sub(x), 1),
+            Rect::new(
+                x,
+                y,
+                area.right()
+                    .saturating_sub(reserved(row_index))
+                    .saturating_sub(x),
+                1,
+            ),
             buffer,
         );
     }

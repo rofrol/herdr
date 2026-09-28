@@ -105,6 +105,9 @@ pub(super) struct ShellHitMap {
     pub(super) agents: Vec<(Rect, String)>,
     /// Tab lines under a space (`ui.sidebar.spaces.tabs`), with their tab ids.
     pub(super) space_tabs: Vec<(Rect, String)>,
+    /// The `+` at the end of a space's name line, with the space it adds a
+    /// tab to.
+    pub(super) space_new_tab: Vec<(Rect, String)>,
     /// Disclosure triangles and counts at the end of tab lines, with the
     /// tab whose squares they fold.
     pub(super) space_tab_folds: Vec<(Rect, String)>,
@@ -332,6 +335,7 @@ impl ShellHitMap {
                 .collect();
         };
         shift_all(&mut self.space_tabs);
+        shift_all(&mut self.space_new_tab);
         shift_all(&mut self.space_tab_folds);
         shift_all(&mut self.space_tab_squares);
         self.space_tab_gone = std::mem::take(&mut self.space_tab_gone)
@@ -351,6 +355,7 @@ impl ShellHitMap {
     pub(super) fn merge_space_block(&mut self, block: ShellHitMap) {
         self.workspaces.extend(block.workspaces);
         self.space_tabs.extend(block.space_tabs);
+        self.space_new_tab.extend(block.space_new_tab);
         self.space_tab_folds.extend(block.space_tab_folds);
         self.space_tab_squares.extend(block.space_tab_squares);
         self.space_tab_gone.extend(block.space_tab_gone);

@@ -26,6 +26,7 @@ impl ClientShellState {
                 .space_tabs
                 .iter()
                 .chain(&self.hits.space_tab_squares)
+                .chain(&self.hits.space_new_tab)
                 .any(|(rect, _)| super::contains(*rect, point)))
         .then(|| {
             self.hits.workspaces.iter().find(|hit| {

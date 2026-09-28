@@ -2468,6 +2468,35 @@ impl ClientShellState {
                     self.persist_chrome_preferences(outcome);
                     return;
                 }
+                // The `+` on a space's name line opens a tab in that space.
+                let new_tab = self
+                    .hits
+                    .space_new_tab
+                    .iter()
+                    .find(|(rect, _)| super::contains(*rect, point))
+                    .map(|(_, workspace_id)| workspace_id.clone());
+                if let Some(workspace_id) = new_tab {
+                    // A collapsed space shows the new tab.
+                    if self
+                        .collapsed_groups
+                        .remove(&super::space_tabs::tabs_collapse_key(&workspace_id))
+                    {
+                        self.persist_chrome_preferences(outcome);
+                    }
+                    self.push_endpoint_method(
+                        crate::api::schema::Method::TabCreate(
+                            crate::api::schema::TabCreateParams {
+                                workspace_id: Some(workspace_id),
+                                cwd: None,
+                                focus: true,
+                                label: None,
+                                env: Default::default(),
+                            },
+                        ),
+                        outcome,
+                    );
+                    return;
+                }
                 // A tab line or square under a space acts on its tab, not
                 // the space.
                 if let Some(target) = self.space_tab_click(point) {
