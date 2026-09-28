@@ -155,6 +155,25 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     blue only in the current space, derivable from `focused` with no
     protocol change. Decided: every space shows its selected agent blue
     (Astra's), not only the current one.
+  - 2026-09-28: decided to replace the agents under each space with plain
+    vertical tabs, which supersedes the agents sort row, the per-agent
+    selected flag, the `other jobs` line and the agent colouring above.
+    `ui.sidebar.spaces.tabs = true` replaces `spaces.agents`: one line per
+    top-level tab in tab order (plain shells too; a tab with several agents
+    is one line), with the tab's state icon and the tab bar's label. Job
+    tabs nested under a tab are not listed; clicking the tab enters its
+    group's last focused tab and the child row at the top shows them. The
+    line ends with the running and failed counts of its nested jobs
+    (`⧖1 !1`), so a failed job in a background space stays visible;
+    truncate the label first. The active tab of every space is accent
+    foreground, bold (its group: an active child marks its parent's line);
+    `active_tab_id` gives this with no protocol change. With vertical tabs
+    on, the main tab row is hidden and the child row takes the top. A
+    collapsed worktree group shows no tabs. Consulted (GPT-6 Astra,
+    DeepSeek): both wanted some job signal (Astra counts, DeepSeek a
+    single `!` on failure only; counts chosen), agreed on hiding the main
+    row, listing shells, and the new option name. DeepSeek: if middle-click
+    close comes, refuse it when the tab has running jobs.
 - [ ] Dragging a space does not show where it will land (screenshot
   2026-09-26, dragging `herdr`). The dragged space keeps a grey background
   much like the selected row, so two grey blocks are on screen; the drop
