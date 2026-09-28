@@ -816,9 +816,10 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     forwards the key) and `performable:` is always true for it, so neither
     routes Cmd+W to herdr (consulted GPT-6 Astra and DeepSeek, 2026-09-28).
   - Set up 2026-09-28: dotfiles Ghostty config has `cmd+w=unbind` (like
-    Cmd+1..9) and `cmd+ctrl+w=close_surface`; herdr config has
-    `[keys] close_pane = "cmd+w"`. Cost: Cmd+W no longer closes splits in
-    plain Ghostty windows. Don't use `cmd+w=csi:...`: plain shells would
+    Cmd+1..9); herdr config has `[keys] close_pane = "cmd+w"`. The
+    `cmd+ctrl+w=close_surface` fallback was dropped on 2026-09-28 (the
+    user's choice), so Ghostty splits have no close key; Cmd+Opt+W still
+    closes a Ghostty tab. Don't use `cmd+w=csi:...`: plain shells would
     get the escape sequence as input.
   - Verify after reloading Ghostty: Cmd+W reaches herdr as `super+w` and
     closes the focused pane; `confirm_close_running` asks before closing a
@@ -826,13 +827,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     Reopening can't bring back killed processes, so the confirmation
     matters more than undo.
 - [ ] Open a herdr tab with Cmd+T (macOS), as Cmd+W closes panes.
-  - Set up 2026-09-28: dotfiles Ghostty config has `cmd+t=unbind` and
-    `cmd+ctrl+t=new_tab`; herdr config has
+  - Set up 2026-09-28: dotfiles Ghostty config has `cmd+t=unbind`, with no
+    replacement key (the user's choice); herdr config has
     `[keys] new_tab = ["prefix+c", "cmd+t"]` (prefix+c kept for SSH and
     terminals without super key reporting). Consulted GPT-6 Astra and
     DeepSeek: no objections.
   - Verify after reloading Ghostty: Cmd+T opens a herdr tab in the current
-    space; Cmd+Ctrl+T opens a Ghostty tab and File > New Tab still works;
+    space; File > New Tab still opens a Ghostty tab;
     Cmd+Shift+T is still Ghostty's undo, not a herdr tab.
   - Linux: Ctrl+Shift+T opens a tab and Ctrl+Shift+W closes a pane, the
     keys Ghostty uses there; plain Ctrl+T/W stay shell keys (fzf file
