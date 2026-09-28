@@ -508,6 +508,25 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Smallest stage: that state file, a plugin menu toggle, the Claude hook
     and the dispatch-time check, logging policy against actual consults.
     Kill it if agents ignore it; a footer checkbox only if I flip it often.
+  - Inject every turn, only for questions, or only on change? Consulted
+    models (GPT-6 Astra, DeepSeek, 2026-09-28), both: not only for
+    questions (the hook sees my prompt, not the agent's decision point;
+    "implement X" hits design choices mid-turn, a classifier adds latency
+    and misses). Not every turn either (repetition primes over-consulting).
+    Inject at session start (startup, resume, clear, compact) and on
+    `UserPromptSubmit` only when the policy's generation counter differs
+    from the one last injected into that session (per session, not per
+    workspace; a `PreCompact` dirty flag forces reinjection). Inject even
+    when the policy matches the default, and replace the memory rule with
+    "follow the herdr consult policy", so there is one source of truth.
+    The scripts re-check the state file right before sending; a missing or
+    broken file means "auto off" with a clear reason, not a silent "on".
+    Subagents may never see the line: the script prints the policy on its
+    first call. Explicit "consult X" bypasses auto-off and the model list
+    (a separate hard "no external consult" switch, if ever needed, would
+    not be bypassed); scripts take an `--explicit` flag, logged. Astra: one
+    shared dispatch layer for all consult scripts instead of a brittle Bash
+    `PreToolUse` matcher.
   - Idea: when a checked model's limit is exhausted, grey its checkbox out
     and leave it out of the injected policy, so the agent does not try it.
     herdr already has the signals in the usage footer (`usage.read`, cached
