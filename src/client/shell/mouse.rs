@@ -1939,15 +1939,8 @@ impl ClientShellState {
                 }
             }
             MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
-                if self
-                    .hits
-                    .tabs
-                    .iter()
-                    .chain(&self.hits.child_tabs)
-                    .any(|(rect, _)| super::contains(*rect, point))
-                    || super::contains(self.hits.tab_scroll_left, point)
-                    || super::contains(self.hits.tab_scroll_right, point)
-                    || super::contains(self.hits.new_tab, point) =>
+                if super::contains(self.hits.tab_bar, point)
+                    || super::contains(self.hits.child_tab_bar, point) =>
             {
                 let delta = if matches!(mouse.kind, MouseEventKind::ScrollUp) {
                     -1
@@ -1955,11 +1948,7 @@ impl ClientShellState {
                     1
                 };
                 // Each row steps through its own tabs and stops at its ends.
-                let in_child_row = self
-                    .hits
-                    .child_tabs
-                    .iter()
-                    .any(|(rect, _)| super::contains(*rect, point));
+                let in_child_row = super::contains(self.hits.child_tab_bar, point);
                 let tab_id = if in_child_row {
                     self.child_row_step(delta)
                 } else {
@@ -2186,20 +2175,27 @@ impl ClientShellState {
                     self.persist_chrome_preferences(outcome);
                     return;
                 }
-                // An agent line under a space focuses that agent, not the space.
-                let space_agent = self
+                // A line under a space focuses its agent or job tab, not the space.
+                let space_line = self
                     .hits
                     .space_agents
                     .iter()
                     .find(|(rect, _)| super::contains(*rect, point))
-                    .map(|(_, pane_id)| pane_id.clone());
-                if let Some(pane_id) = space_agent {
-                    self.push_endpoint_method(
-                        crate::api::schema::Method::PaneFocus(crate::api::schema::PaneTarget {
-                            pane_id,
-                        }),
-                        outcome,
-                    );
+                    .map(|(_, target)| target.clone());
+                if let Some(target) = space_line {
+                    use super::space_agents::SpaceLineTarget;
+                    let method =
+                        match target {
+                            SpaceLineTarget::Pane(pane_id) => {
+                                crate::api::schema::Method::PaneFocus(
+                                    crate::api::schema::PaneTarget { pane_id },
+                                )
+                            }
+                            SpaceLineTarget::Tab(tab_id) => crate::api::schema::Method::TabFocus(
+                                crate::api::schema::TabTarget { tab_id },
+                            ),
+                        };
+                    self.push_endpoint_method(method, outcome);
                     return;
                 }
                 let workspace_press = self

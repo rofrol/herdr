@@ -18,6 +18,7 @@ pub(crate) fn render_tab_bar(
 ) {
     let palette = &config.palette;
     buffer.set_style(area, Style::default().bg(palette.panel_bg));
+    hits.tab_bar = area;
     // Child tabs have their own row; a parent shows a summary of them.
     let tabs = tab_groups::main_row_tabs(snapshot);
     let active_tab_id = tab_groups::active_main_tab_id(snapshot);
@@ -313,6 +314,7 @@ pub(crate) fn render_child_tab_bar(
     if tabs.is_empty() {
         return;
     }
+    hits.child_tab_bar = area;
     let labels = tabs
         .iter()
         .map(|tab| {

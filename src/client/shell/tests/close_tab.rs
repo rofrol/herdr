@@ -409,6 +409,13 @@ fn the_wheel_steps_through_its_own_row_and_stops_at_the_ends() {
     state.compose(106, 24).unwrap();
     let child_row = state.hits.child_tabs[0].0;
     let main_row = state.hits.tabs[0].0;
+    let child_bar = state.hits.child_tab_bar;
+    let child_gap = Rect::new(child_bar.right() - 1, child_bar.y, 1, 1);
+    assert!(state
+        .hits
+        .child_tabs
+        .iter()
+        .all(|(rect, _)| rect.right() <= child_gap.x));
     let mut wheel = |rect: Rect, kind| {
         let outcome =
             state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
@@ -443,6 +450,11 @@ fn the_wheel_steps_through_its_own_row_and_stops_at_the_ends() {
     assert!(
         wheel(main_row, MouseEventKind::ScrollUp).is_empty(),
         "the parent is the first main tab"
+    );
+    assert_eq!(
+        wheel(child_gap, MouseEventKind::ScrollUp),
+        ["tab_2"],
+        "the empty end of the child row steps its own row"
     );
 }
 

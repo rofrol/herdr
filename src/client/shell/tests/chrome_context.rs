@@ -101,6 +101,25 @@ fn tab_bar_wheel_stops_at_the_first_and_last_tab() {
     assert!(wheel(&mut state, MouseEventKind::ScrollDown)
         .actions
         .is_empty());
+
+    // The empty end of the row, past the last tab and the `+` button, steps too.
+    let bar = state.hits.tab_bar;
+    assert!(bar.right() - 1 > state.hits.new_tab.right());
+    let outcome =
+        state.handle_raw_events(vec![RawInputEvent::Mouse(crossterm::event::MouseEvent {
+            kind: MouseEventKind::ScrollUp,
+            column: bar.right() - 1,
+            row: bar.y,
+            modifiers: KeyModifiers::empty(),
+        })]);
+    assert!(matches!(
+        &outcome.actions[..],
+        [ClientShellAction::Endpoint { request, .. }]
+            if matches!(
+                &request.method,
+                crate::api::schema::Method::TabFocus(target) if target.tab_id == "tab_1"
+            )
+    ));
 }
 
 #[test]

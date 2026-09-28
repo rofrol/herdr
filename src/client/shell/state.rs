@@ -100,8 +100,8 @@ pub(super) struct ShellHitMap {
     pub(super) popup: Option<PaneHit>,
     pub(super) pane_splits: Vec<PaneSplitHit>,
     pub(super) agents: Vec<(Rect, String)>,
-    /// Agent and job lines under a space (`ui.sidebar.spaces.agents`), by pane.
-    pub(super) space_agents: Vec<(Rect, String)>,
+    /// Agent and job lines under a space (`ui.sidebar.spaces.agents`).
+    pub(super) space_agents: Vec<(Rect, super::space_agents::SpaceLineTarget)>,
     pub(super) endpoint_agents: Vec<(Rect, ClientEndpointId, String)>,
     pub(super) agent_body: Rect,
     pub(super) agent_scrollbar: Rect,
@@ -120,6 +120,10 @@ pub(super) struct ShellHitMap {
     pub(super) new_tab: Rect,
     pub(super) tab_scroll_left: Rect,
     pub(super) tab_scroll_right: Rect,
+    /// The whole main tab row and child tab row: the wheel steps through
+    /// their tabs anywhere on them, gaps and status included.
+    pub(super) tab_bar: Rect,
+    pub(super) child_tab_bar: Rect,
     pub(super) mobile_switch: Rect,
     pub(super) mobile_close: Rect,
     pub(super) mobile_targets: Vec<(Rect, ClientMobileTarget)>,
