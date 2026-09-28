@@ -101,6 +101,14 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     listed: both said no while the two counts come from different sources
     (a failed job showed only as the space's `!1`); hide it only for jobs
     shown under an agent, matched by tab id, never by subtracting counts.
+  - 2026-09-28: the remaining jobs (no listed agent) moved from the space row
+    to an `other jobs ⧖ 1 !1` line below the agents: they matter less than
+    the agents' own. Consulted (GPT-6 Astra, DeepSeek), both agreed on:
+    `other jobs`, not `unowned` (the owner may just not be listed); label at
+    the agents' icon column, dimmed, counts coloured; running and failed
+    only; a click focuses the first failed tab, else the first running; a
+    space without listed agents keeps the counts on its row. When the
+    chevron collapses a space's agents, its counts go back to the space row.
   - 2026-09-28: tasks fall back to the agent's terminal title (was always
     `claude · no task`). Decided by me instead of the header toggle above:
     the "spaces" title is now `cust  name ↑  prio ↓`, sorting the spaces

@@ -333,7 +333,7 @@ pub(super) fn render_expanded(
                                 workspace,
                                 collapsed_groups,
                             ),
-                            super::space_agents::unlisted_tab_jobs(
+                            super::space_agents::space_row_tab_jobs(
                                 snapshot,
                                 workspace,
                                 collapsed_groups,
@@ -469,7 +469,7 @@ pub(super) fn render_expanded(
                     collapsed_groups,
                     config,
                 );
-                let tab_jobs = super::space_agents::unlisted_tab_jobs(
+                let tab_jobs = super::space_agents::space_row_tab_jobs(
                     snapshot,
                     workspace,
                     collapsed_groups,

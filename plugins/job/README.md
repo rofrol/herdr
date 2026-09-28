@@ -48,8 +48,8 @@ herdr-job clean           # close this pane's finished job tabs (--all: everyone
   the agent waits for a job (the `tab_jobs` token). With
   `ui.sidebar.spaces.agents` each agent listed under the space shows the
   counts of the job tabs nested under its tab, read from the tab statuses,
-  not from `$jobs`, and the space row counts only the rest (jobs whose agent
-  pane closed).
+  not from `$jobs`; the rest (jobs whose agent pane closed) go to an
+  `other jobs` line below the agents instead of the space row.
 - `herdr-bg-badge` (a Claude Code Stop hook) puts the number of Claude's own
   background tasks in `$bg` (`2 bg`), skipping `herdr-job wait` tasks, which
   `$jobs` already counts.

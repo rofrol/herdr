@@ -374,7 +374,7 @@ pub(crate) fn render_sidebar(
                     let rows = workspace_rows(
                         workspace,
                         displayed_workspace_status(snapshot, workspace, state.collapsed_groups),
-                        super::space_agents::unlisted_tab_jobs(
+                        super::space_agents::space_row_tab_jobs(
                             snapshot,
                             workspace,
                             state.collapsed_groups,
@@ -444,7 +444,7 @@ pub(crate) fn render_sidebar(
             state.collapsed_groups,
             config,
         );
-        let tab_jobs = super::space_agents::unlisted_tab_jobs(
+        let tab_jobs = super::space_agents::space_row_tab_jobs(
             snapshot,
             workspace,
             state.collapsed_groups,
@@ -881,13 +881,11 @@ pub(in crate::client::shell) fn displayed_workspace_status(
 }
 
 /// Running and failed tabs of the workspace, or of its whole group while the
-/// group is collapsed, so a job in a hidden worktree still shows. Tabs in
-/// `listed` are left out: they already show under their agent.
+/// group is collapsed, so a job in a hidden worktree still shows.
 pub(in crate::client::shell) fn displayed_workspace_tab_jobs(
     snapshot: &ClientShellSnapshot,
     workspace: &ClientShellWorkspace,
     collapsed_groups: &HashSet<String>,
-    listed: &HashSet<&str>,
 ) -> (usize, usize) {
     use crate::api::schema::TabStatus;
     let mut counts = (0, 0);
@@ -896,7 +894,6 @@ pub(in crate::client::shell) fn displayed_workspace_tab_jobs(
             .tabs
             .iter()
             .filter(|tab| tab.workspace_id == candidate.workspace_id)
-            .filter(|tab| !listed.contains(tab.tab_id.as_str()))
         {
             match tab.status {
                 Some(TabStatus::Running) => counts.0 += 1,

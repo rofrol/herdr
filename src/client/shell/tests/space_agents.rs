@@ -87,7 +87,10 @@ fn clicking_an_agent_line_focuses_its_pane() {
     let mut state = state_with_agent(true);
     state.compose(106, 30).unwrap();
     let (rect, pane_id) = state.hits.space_agents[0].clone();
-    assert_eq!(pane_id, "pane_1");
+    assert_eq!(
+        pane_id,
+        super::super::space_agents::SpaceLineTarget::Pane("pane_1".into())
+    );
     let outcome =
         state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
             kind: crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left),
@@ -99,6 +102,52 @@ fn clicking_an_agent_line_focuses_its_pane() {
         ClientShellAction::Endpoint { request, .. }
             if matches!(&request.method, crate::api::schema::Method::PaneFocus(target)
                 if target.pane_id == "pane_1"))));
+}
+
+#[test]
+fn jobs_of_no_agent_show_below_the_agents_and_focus_their_tab() {
+    let mut state = state_with_agent(true);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    let mut orphan = projected.tabs[0].clone();
+    orphan.tab_id = "tab_orphan".into();
+    orphan.focused = false;
+    orphan.status = Some(TabStatus::Failed);
+    projected.tabs.push(orphan);
+    state.set_snapshot(Box::new(projected));
+    let frame = state.compose(106, 30).unwrap();
+    let rows = frame_rows(&frame);
+    let other = rows
+        .iter()
+        .position(|row| row.contains("other jobs !1"))
+        .expect("other jobs line");
+    let agent = rows
+        .iter()
+        .position(|row| row.contains("Fold agents into"))
+        .expect("agent line");
+    assert!(other > agent, "below the agents");
+    assert!(
+        rows[..agent].iter().all(|row| !row.contains("!1")),
+        "not on the space row: {rows:?}"
+    );
+
+    let (rect, _) = state
+        .hits
+        .space_agents
+        .iter()
+        .find(|(rect, _)| rect.y as usize == other)
+        .cloned()
+        .expect("other jobs hit");
+    let outcome =
+        state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+            kind: crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left),
+            column: rect.x + 4,
+            row: rect.y,
+            modifiers: KeyModifiers::empty(),
+        })]);
+    assert!(outcome.actions.iter().any(|action| matches!(action,
+        ClientShellAction::Endpoint { request, .. }
+            if matches!(&request.method, crate::api::schema::Method::TabFocus(target)
+                if target.tab_id == "tab_orphan"))));
 }
 
 fn with_job(state: &mut ClientShellState, status: AgentStatus, job: Option<TabStatus>) {

@@ -1,7 +1,9 @@
 //! Agents listed under their space (`ui.sidebar.spaces.agents`): per agent a
 //! line with its state and task, then a line with its job counts when tabs
-//! with a status are nested under its tab. The first step of folding the
-//! agents panel into spaces; the panel stays until this works in daily use.
+//! with a status are nested under its tab, and last an `other jobs` line with
+//! the space's running and failed jobs listed under no agent. The first step
+//! of folding the agents panel into spaces; the panel stays until this works
+//! in daily use.
 
 use std::collections::HashSet;
 
@@ -27,12 +29,30 @@ pub(super) enum SpaceAgentLine {
         tab_ids: Vec<String>,
         segments: Vec<(Option<TabStatus>, String)>,
     },
+    /// The space's running and failed job tabs that no agent line lists: the
+    /// agent's pane closed, the agent view filters it out, or something other
+    /// than an agent set the status. Below the agents: they matter less.
+    OtherJobs {
+        /// The tab a click focuses: the first failed one, else the first running.
+        tab_id: String,
+        segments: Vec<(Option<TabStatus>, String)>,
+    },
+}
+
+/// What clicking a line under a space focuses.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum SpaceLineTarget {
+    Pane(String),
+    Tab(String),
 }
 
 impl SpaceAgentLine {
-    fn pane_id(&self) -> &str {
+    fn target(&self) -> SpaceLineTarget {
         match self {
-            Self::Agent { pane_id, .. } | Self::Jobs { pane_id, .. } => pane_id,
+            Self::Agent { pane_id, .. } | Self::Jobs { pane_id, .. } => {
+                SpaceLineTarget::Pane(pane_id.clone())
+            }
+            Self::OtherJobs { tab_id, .. } => SpaceLineTarget::Tab(tab_id.clone()),
         }
     }
 }
@@ -106,51 +126,71 @@ pub(super) fn space_agent_lines(
             });
         }
     }
+    if lines.is_empty() {
+        return lines;
+    }
+    let listed = lines
+        .iter()
+        .filter_map(|line| match line {
+            SpaceAgentLine::Jobs { tab_ids, .. } => Some(tab_ids),
+            _ => None,
+        })
+        .flatten()
+        .map(String::as_str)
+        .collect::<HashSet<_>>();
+    let others = snapshot
+        .tabs
+        .iter()
+        .filter(|tab| workspace_ids.contains(&tab.workspace_id.as_str()))
+        .filter(|tab| matches!(tab.status, Some(TabStatus::Running | TabStatus::Failed)))
+        .filter(|tab| !listed.contains(tab.tab_id.as_str()))
+        .collect::<Vec<_>>();
+    let target = others
+        .iter()
+        .find(|tab| tab.status == Some(TabStatus::Failed))
+        .or_else(|| others.first());
+    if let Some(target) = target {
+        lines.push(SpaceAgentLine::OtherJobs {
+            tab_id: target.tab_id.clone(),
+            segments: super::tab_groups::children_summary_segments(&others),
+        });
+    }
     lines
 }
 
-/// The space row's running and failed tab counts
-/// (`sidebar::displayed_workspace_tab_jobs`) less the job tabs `lines` already
-/// show under the space's agents, so each job is counted in one place. What
-/// remains are jobs without a listed agent: its pane closed, the agent view
-/// filters it out, or something else set the tab's status.
-pub(super) fn unlisted_tab_jobs(
+/// The running and failed tab counts for the space row's `tab_jobs`: none
+/// while `lines` lists agents, which show every job themselves or in the
+/// `other jobs` line below them.
+pub(super) fn space_row_tab_jobs(
     snapshot: &ClientShellSnapshot,
     workspace: &ClientShellWorkspace,
     collapsed_groups: &HashSet<String>,
     lines: &[SpaceAgentLine],
 ) -> (usize, usize) {
-    let listed = lines
-        .iter()
-        .filter_map(|line| match line {
-            SpaceAgentLine::Jobs { tab_ids, .. } => Some(tab_ids),
-            SpaceAgentLine::Agent { .. } => None,
-        })
-        .flatten()
-        .map(String::as_str)
-        .collect::<HashSet<_>>();
-    super::sidebar::displayed_workspace_tab_jobs(snapshot, workspace, collapsed_groups, &listed)
+    if lines.is_empty() {
+        super::sidebar::displayed_workspace_tab_jobs(snapshot, workspace, collapsed_groups)
+    } else {
+        (0, 0)
+    }
 }
 
 /// Draws `lines` from the top of `area`, below the space's own rows, and
-/// returns each drawn line's rect with its agent's pane, for clicks.
+/// returns each drawn line's rect with what clicking it focuses.
 pub(super) fn render_space_agent_lines(
     buffer: &mut Buffer,
     area: Rect,
     lines: &[SpaceAgentLine],
     config: &ClientShellConfig,
-) -> Vec<(Rect, String)> {
+) -> Vec<(Rect, SpaceLineTarget)> {
     let palette = &config.palette;
+    let right = area.right().saturating_sub(1);
     let mut hits = Vec::new();
     for (index, line) in lines.iter().enumerate() {
         let y = area.y.saturating_add(index as u16);
         if y >= area.bottom() {
             break;
         }
-        hits.push((
-            Rect::new(area.x, y, area.width, 1),
-            line.pane_id().to_owned(),
-        ));
+        hits.push((Rect::new(area.x, y, area.width, 1), line.target()));
         match line {
             SpaceAgentLine::Agent {
                 status,
@@ -184,37 +224,71 @@ pub(super) fn render_space_agent_lines(
                 );
             }
             SpaceAgentLine::Jobs { segments, .. } => {
-                // Coloured like the space row's counts and the child-tab row.
-                let mut x = area.x.saturating_add(5);
-                let right = area.right().saturating_sub(1);
-                for (index, (status, text)) in segments.iter().enumerate() {
-                    if index > 0 {
-                        x = x.saturating_add(1);
-                    }
-                    let width = right.saturating_sub(x);
-                    if width == 0 {
-                        break;
-                    }
-                    let text = truncate(text, width as usize);
-                    super::render::put_text(
-                        buffer,
-                        x,
-                        y,
-                        width,
-                        &text,
-                        Style::default()
-                            .fg(super::render::tabs::tab_status_color(*status, palette)
-                                .unwrap_or(palette.overlay0)),
-                    );
-                    x =
-                        x.saturating_add(
-                            unicode_width::UnicodeWidthStr::width(text.as_str()) as u16
-                        );
+                render_segments(
+                    buffer,
+                    area.x.saturating_add(5),
+                    y,
+                    right,
+                    segments,
+                    palette,
+                );
+            }
+            SpaceAgentLine::OtherJobs { segments, .. } => {
+                // Aligned with the agents' icons, not their job lines, so it
+                // does not read as the last agent's.
+                const LABEL: &str = "other jobs";
+                let x = area.x.saturating_add(3);
+                let width = right.saturating_sub(x);
+                let label = truncate(LABEL, width as usize);
+                super::render::put_text(
+                    buffer,
+                    x,
+                    y,
+                    width,
+                    &label,
+                    Style::default().fg(palette.overlay0),
+                );
+                if label == LABEL {
+                    let x = x.saturating_add(LABEL.len() as u16 + 1);
+                    render_segments(buffer, x, y, right, segments, palette);
                 }
             }
         }
     }
     hits
+}
+
+/// Job counts from `x` up to `right`, coloured like the space row's counts
+/// and the child-tab row.
+fn render_segments(
+    buffer: &mut Buffer,
+    mut x: u16,
+    y: u16,
+    right: u16,
+    segments: &[(Option<TabStatus>, String)],
+    palette: &Palette,
+) {
+    for (index, (status, text)) in segments.iter().enumerate() {
+        if index > 0 {
+            x = x.saturating_add(1);
+        }
+        let width = right.saturating_sub(x);
+        if width == 0 {
+            break;
+        }
+        let text = truncate(text, width as usize);
+        super::render::put_text(
+            buffer,
+            x,
+            y,
+            width,
+            &text,
+            Style::default()
+                .fg(super::render::tabs::tab_status_color(*status, palette)
+                    .unwrap_or(palette.overlay0)),
+        );
+        x = x.saturating_add(unicode_width::UnicodeWidthStr::width(text.as_str()) as u16);
+    }
 }
 
 /// `text` cut to `width` columns, ending in `…` when cut.
@@ -348,25 +422,46 @@ mod tests {
     }
 
     #[test]
-    fn the_space_row_counts_only_jobs_not_listed_under_an_agent() {
+    fn jobs_listed_under_no_agent_go_below_the_agents_not_on_the_space_row() {
         let mut snapshot = super::super::tests::snapshot();
         snapshot.agents = vec![agent("pane_1", "ws_1", None)];
         snapshot.tabs.extend([
             tab("job_1", Some("tab_1"), Some(TabStatus::Failed)),
             tab("job_2", Some("tab_1"), Some(TabStatus::Running)),
-            // Its agent's tab is gone, e.g. the agent's pane was closed.
-            tab("orphan", Some("tab_9"), Some(TabStatus::Failed)),
             // A status set on a top-level tab, not by a job of an agent.
             tab("build", None, Some(TabStatus::Running)),
+            // Its agent's tab is gone, e.g. the agent's pane was closed.
+            tab("orphan", Some("tab_9"), Some(TabStatus::Failed)),
+            // A finished job no agent lists is not worth a line.
+            tab("done", None, Some(TabStatus::Succeeded)),
         ]);
         let workspace = snapshot.workspaces[0].clone();
-        let counts = |agents: bool| {
-            let lines = space_agent_lines(&snapshot, &workspace, &HashSet::new(), &config(agents));
-            unlisted_tab_jobs(&snapshot, &workspace, &HashSet::new(), &lines)
+        let space_row = |snapshot: &ClientShellSnapshot, lines: &[SpaceAgentLine]| {
+            space_row_tab_jobs(snapshot, &workspace, &HashSet::new(), lines)
         };
 
-        assert_eq!(counts(false), (2, 2));
-        assert_eq!(counts(true), (1, 1));
+        let lines = space_agent_lines(&snapshot, &workspace, &HashSet::new(), &config(false));
+        assert_eq!(space_row(&snapshot, &lines), (2, 2));
+
+        let lines = space_agent_lines(&snapshot, &workspace, &HashSet::new(), &config(true));
+        assert_eq!(space_row(&snapshot, &lines), (0, 0));
+        assert_eq!(
+            lines.last(),
+            Some(&SpaceAgentLine::OtherJobs {
+                // The failed one, though the running one comes first.
+                tab_id: "orphan".into(),
+                segments: vec![
+                    (Some(TabStatus::Running), "⧖ 1".into()),
+                    (Some(TabStatus::Failed), "!1".into()),
+                ],
+            })
+        );
+
+        // A space without agents keeps the counts on its own row.
+        snapshot.agents.clear();
+        let lines = space_agent_lines(&snapshot, &workspace, &HashSet::new(), &config(true));
+        assert!(lines.is_empty());
+        assert_eq!(space_row(&snapshot, &lines), (2, 2));
     }
 
     #[test]
@@ -385,7 +480,7 @@ mod tests {
             .into_iter()
             .filter_map(|line| match line {
                 SpaceAgentLine::Agent { text, .. } => Some(text),
-                SpaceAgentLine::Jobs { .. } => None,
+                _ => None,
             })
             .collect::<Vec<_>>();
         assert_eq!(

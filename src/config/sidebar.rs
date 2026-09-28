@@ -469,8 +469,9 @@ pub struct SpacesSidebarConfig {
     pub row_gap: u16,
     /// List each space's agents under it, with their jobs. Experimental: the
     /// first step of folding the agents panel into spaces. Hides the spaces'
-    /// own `state_icon`, which the listed agents make redundant, and leaves
-    /// the jobs listed under an agent out of `tab_jobs`. Default: false.
+    /// own `state_icon`, which the listed agents make redundant, and moves
+    /// `tab_jobs` of a space with agents to an `other jobs` line below them,
+    /// counting only jobs no agent lists. Default: false.
     pub agents: bool,
 }
 
