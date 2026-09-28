@@ -56,6 +56,17 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
   [ui.sidebar.spaces]
   tabs = true
   ```
+- **Awaiting-reply mark.** An agent whose turn ends with a question for you
+  shows `?` in the sidebar and tab bar, so it stands out from agents that
+  simply finished. The agent reports it with `herdr agent awaiting-reply`
+  (`pane.report_awaiting_reply`); the Claude integration asks Claude to run
+  it as its last command before a plain-text question, never for
+  `AskUserQuestion`, which already shows as blocked. The mark stays until
+  you type into the pane (keys, text or a paste, or input sent through the
+  API); viewing, clicking and scrolling do not clear it. Working hides it
+  without clearing it, and a question form or permission prompt after the
+  report drops it. The API exposes it as `awaiting_reply`; set
+  `HERDR_AWAITING_REPLY_INSTRUCTIONS=0` to leave the instruction out.
 - **Consult stats in the herdr menu.** The sidebar's `menu` has an
   **consult stats** item that opens the [consult plugin](plugins/consult/README.md)'s
   stats popup; a click outside closes it. Plugin popups also dim the

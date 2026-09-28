@@ -641,9 +641,8 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Decided (user, 2026-09-28): the explicit `herdr agent awaiting-reply`
     command (cleanest engineering-wise), with the permission rule added
     by the consented Claude integration install. Done: server flag
-    `awaiting_reply` (a report during the turn shows at its end; cleared by
-    the next working state, a turn ending without a report, exit or session
-    change), `pane.report_awaiting_reply`, the TUI keeps the agent `Done`
+    `awaiting_reply` (see the 2026-09-28 rework below for when it clears),
+    `pane.report_awaiting_reply`, the TUI keeps the agent `Done`
     while it is set, Claude integration v11 injects the instruction
     (`HERDR_AWAITING_REPLY_INSTRUCTIONS=0` leaves it out). Tried live with
     Claude Haiku 4.5 (Claude Code 2.1.283): it ran the command without a
@@ -651,6 +650,18 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Done (2026-09-28): its own glyph, `?` in the finished colour in both
     indicator styles, winning over the waiting-on-job mark; the state text
     reads "awaiting reply".
+  - Done (2026-09-28, consulted GPT-6 Astra and DeepSeek): a wrong `?`
+    appeared because Claude reported and then asked with `AskUserQuestion`,
+    which the user answers inside the same turn; the report surfaced when
+    the turn ended ten minutes later. Now the report holds until someone
+    types into the pane (client keys, text, paste; `pane.send_*`,
+    `agent.prompt`, `agent.send_keys`; not clicks, scrolling or focus),
+    entering Blocked drops it, and exit or a session change clears it.
+    `awaiting_reply` is derived as report && idle, so working hides it
+    without using it up and a mid-turn idle flicker no longer loses it. The
+    hook asks for the report only as the last command before a plain-text
+    question, never for `AskUserQuestion`. No time windows: the user
+    rejected them as race-prone.
 - [ ] Awaiting reply for agents other than Claude, the same way as their
   integrations (user, 2026-09-28): each integration that can add session
   context (a session-start hook, an extension, a plugin) injects the same
