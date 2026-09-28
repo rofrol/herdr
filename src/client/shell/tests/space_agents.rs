@@ -5,7 +5,7 @@ fn state_with_agent(agents: bool) -> ClientShellState {
     config.spaces.agents = agents;
     let mut state = ClientShellState::new(config);
     let mut projected = snapshot();
-    let tokens = vec![("jobs".to_owned(), "1⧖ 2✓".to_owned())];
+    let tokens = vec![("jobs".to_owned(), "⧖ 1 ✓2".to_owned())];
     projected.agents.push(ClientShellAgent {
         pane_id: "pane_1".into(),
         workspace_id: "ws_1".into(),
@@ -36,7 +36,7 @@ fn spaces_list_their_agents_and_jobs_under_them_when_enabled() {
         .iter()
         .position(|row| row.contains("Fold agents into"))
         .expect("agent line under the space");
-    assert!(rows[task + 1].contains("1⧖ 2✓"), "{}", rows[task + 1]);
+    assert!(rows[task + 1].contains("⧖ 1 ✓2"), "{}", rows[task + 1]);
     let space = state
         .hits
         .workspaces
@@ -62,7 +62,7 @@ fn spaces_keep_their_rows_when_disabled() {
         .expect("space hit");
     let space_rows = &rows[space.rect.y as usize..space.rect.bottom() as usize];
     assert!(
-        space_rows.iter().all(|row| !row.contains("1⧖ 2✓")),
+        space_rows.iter().all(|row| !row.contains("⧖ 1 ✓2")),
         "{space_rows:?}"
     );
 }

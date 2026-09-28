@@ -36,7 +36,8 @@ herdr-job clean           # close this pane's finished job tabs (--all: everyone
   to `$HERDR_JOB_TTY` shows it in the tab but keeps it out of the log that
   `wait` streams (see [Skills](#skills-a-script-in-its-own-job-tab)).
 - The starting pane gets a `$jobs` token with counts of its jobs that still
-  have a tab, e.g. `2⧖ 1✗ 1✓`: running, failed (or lost) and successful.
+  have a tab, e.g. `⧖ 2 !1 ✓1`: running, failed (or lost) and successful,
+  with the same icons as the tab bar.
   Closing a job tab drops it from the counts (a `tab.closed` hook recounts),
   so a success shows until its tab closes itself and a failure until you
   close its tab. Counts, not names: the agents panel cannot scroll, so a

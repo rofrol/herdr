@@ -10,7 +10,7 @@ use ratatui::{buffer::Buffer, layout::Rect, style::Style};
 use super::*;
 use crate::protocol::{ClientShellSnapshot, ClientShellWorkspace};
 
-/// The pane metadata token herdr-job reports its counts in, e.g. `1⧖ 2✓`.
+/// The pane metadata token herdr-job reports its counts in, e.g. `⧖ 1 ✓2`.
 const JOBS_TOKEN: &str = "jobs";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -221,7 +221,7 @@ mod tests {
     fn lists_the_spaces_agents_with_their_jobs_only_when_enabled() {
         let mut snapshot = super::super::tests::snapshot();
         let mut with_jobs = agent("pane_1", "ws_1", Some("Fix the drop marker"));
-        with_jobs.tokens.push(("jobs".into(), "1⧖ 2✓".into()));
+        with_jobs.tokens.push(("jobs".into(), "⧖ 1 ✓2".into()));
         snapshot.agents = vec![
             with_jobs,
             agent("pane_2", "ws_1", None),
@@ -244,7 +244,7 @@ mod tests {
                 },
                 SpaceAgentLine::Jobs {
                     pane_id: "pane_1".into(),
-                    jobs: "1⧖ 2✓".into(),
+                    jobs: "⧖ 1 ✓2".into(),
                 },
                 SpaceAgentLine::Agent {
                     pane_id: "pane_2".into(),
