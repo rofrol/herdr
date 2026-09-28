@@ -215,9 +215,11 @@ const PROGRAM_ICON: &str = "❏";
 
 /// Draws `lines` from the top of `area`, below the space's own rows, and
 /// returns each drawn line's rect with the tab a click enters. Each line is
-/// a tab in the tab bar's colours, filled from the tab indent: grey, the
-/// active tab accent-filled in the focused space and accent-tinted in the
-/// others, like a tab bar parent whose children are open.
+/// a tab in the tab bar's colours, filled from the label: grey, the active
+/// tab accent-filled in the focused space and accent-tinted in the others,
+/// like a tab bar parent whose children are open. The state icon stays left
+/// of the fill, on the panel background, so it keeps its colour on every
+/// line.
 pub(super) fn render_space_tab_lines(
     buffer: &mut Buffer,
     area: Rect,
@@ -226,10 +228,12 @@ pub(super) fn render_space_tab_lines(
     config: &ClientShellConfig,
 ) -> Vec<(Rect, String)> {
     let palette = &config.palette;
-    let fill_x = area.x.saturating_add(3);
+    let x = area.x.saturating_add(3);
+    // A column of the panel background between the icon and the fill.
+    let fill_x = x.saturating_add(2);
     let fill_right = area.right().saturating_sub(1);
     // One column of padding inside the fill on each side.
-    let x = fill_x.saturating_add(1);
+    let text_x = fill_x.saturating_add(1);
     let right = fill_right.saturating_sub(1);
     let mut hits = Vec::new();
     for (index, line) in lines.iter().enumerate() {
@@ -260,8 +264,8 @@ pub(super) fn render_space_tab_lines(
             Rect::new(fill_x, y, fill_right.saturating_sub(fill_x), 1),
             Style::default().bg(bg),
         );
-        // On the accent fill the state and job colours can vanish, so they
-        // take the text colour, as on the tab bar.
+        // On the accent fill the job colours can vanish, so they take the
+        // text colour, as on the tab bar.
         let on_accent = filled.then_some(text_style);
         // A tab without an agent runs a program (a shell, lazygit): a window
         // mark, a square so it cannot pass for an agent state's circle.
@@ -272,10 +276,9 @@ pub(super) fn render_space_tab_lines(
             ),
             None => (PROGRAM_ICON, Style::default().fg(palette.overlay0)),
         };
-        super::render::put_text(buffer, x, y, 1, icon, on_accent.unwrap_or(icon_style));
+        super::render::put_text(buffer, x, y, 1, icon, icon_style);
         // The counts keep their room; the label is cut first.
         let jobs_width = segments_width(&line.jobs);
-        let text_x = x.saturating_add(2);
         let available = right.saturating_sub(text_x);
         let jobs_width = if jobs_width > 0 && jobs_width + 2 <= available {
             jobs_width
