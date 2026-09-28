@@ -1926,3 +1926,55 @@ fn the_move_space_keys_move_the_focused_space_one_place() {
         .clicked(super::super::space_sort::SpaceSortKey::Name);
     assert!(moves(&mut state, crate::input::KeybindAction::MoveSpaceNext).is_empty());
 }
+
+#[test]
+fn a_sorted_list_holds_its_order_while_the_pointer_is_over_it() {
+    let mut projected = snapshot();
+    let mut second = projected.workspaces[0].clone();
+    second.workspace_id = "ws_2".into();
+    second.number = 2;
+    second.label = "workspace-2".into();
+    second.focused = false;
+    projected.workspaces.push(second);
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
+    state.set_snapshot(Box::new(projected));
+    state.set_pane_surface(surface());
+    // Name, descending: workspace-2 first.
+    state.space_sort = super::super::space_sort::SpaceSort::default()
+        .clicked(super::super::space_sort::SpaceSortKey::Name)
+        .clicked(super::super::space_sort::SpaceSortKey::Name);
+    state.compose(106, 24).expect("sorted");
+    let order = |state: &ClientShellState| {
+        state
+            .hits
+            .workspaces
+            .iter()
+            .map(|hit| hit.workspace_id.clone())
+            .collect::<Vec<_>>()
+    };
+    let before = order(&state);
+    let body = state.hits.workspace_body;
+    let move_to = |state: &mut ClientShellState, (column, row): (u16, u16)| {
+        state.handle_raw_events(vec![RawInputEvent::Mouse(crossterm::event::MouseEvent {
+            kind: MouseEventKind::Moved,
+            column,
+            row,
+            modifiers: KeyModifiers::empty(),
+        })]);
+        state.compose(106, 24).expect("frame");
+    };
+    move_to(&mut state, (body.x + 2, body.y));
+
+    // A rename would re-sort; under the pointer the order holds.
+    let mut renamed = state.snapshot.as_deref().expect("snapshot").clone();
+    renamed.workspaces[1].label = "a-first".into();
+    state.set_snapshot(Box::new(renamed));
+    state.compose(106, 24).expect("held");
+    assert_eq!(order(&state), before);
+
+    // Leaving the list applies it.
+    let pane = state.hits.panes[0].inner_rect;
+    move_to(&mut state, (pane.x + 1, pane.y));
+    state.compose(106, 24).expect("resorted");
+    assert_ne!(order(&state), before);
+}

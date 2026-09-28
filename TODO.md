@@ -119,9 +119,16 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     DeepSeek): both preferred keeping "spaces" with a dropdown and an agent
     list for priority; overruled. `ui.sidebar.show_agents_panel = false`
     hides the old panel (kept in code for cheap rebases). Still open: the
-    attention counts (`◉1 ●1`) have no place in the header now; prio does
-    not freeze the order while the pointer is over the list; the
+    attention counts (`◉1 ●1`) have no place in the header now; the
     multi-machine sidebar.
+  - Done 2026-09-28: a sorted list (name or prio) holds its order while the
+    pointer is over it: the order drawn last stays, new spaces come last,
+    closed ones drop out, and leaving the list (or the window losing
+    focus) applies the live order; keyboard navigation follows the held
+    order. The sort header is outside the list, so clicking it re-sorts at
+    once. Consulted (GPT-6 Astra, DeepSeek): both wanted a true freeze
+    (no re-sort on real state changes either) and keyboard order to match;
+    Astra wanted name frozen too (chosen), DeepSeek prio only.
   - Missing (screenshot 2026-09-28): a sort button for the agents listed
     under each space, like the one for spaces. Their order still comes from
     the hidden agents panel's `agent_panel_sort` (config only, no UI).

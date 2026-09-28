@@ -73,6 +73,10 @@ impl ClientShellState {
                 .unfolded_squares
                 .get(&self.active_endpoint_id)
                 .unwrap_or(&NO_UNFOLDED_SQUARES),
+            held_space_order: (self.pointer_over_spaces
+                && !self.space_sort.allows_drag()
+                && !self.held_space_order.is_empty())
+            .then_some(self.held_space_order.as_slice()),
             held_squares: if self.pointer_over_spaces {
                 &self.held_squares
             } else {
@@ -263,6 +267,10 @@ impl ClientShellState {
                     .unfolded_squares
                     .get(&self.active_endpoint_id)
                     .unwrap_or(&NO_UNFOLDED_SQUARES),
+                held_space_order: (self.pointer_over_spaces
+                    && !self.space_sort.allows_drag()
+                    && !self.held_space_order.is_empty())
+                .then_some(self.held_space_order.as_slice()),
                 held_squares: if self.pointer_over_spaces {
                     &self.held_squares
                 } else {
@@ -293,6 +301,7 @@ impl ClientShellState {
         );
         // The next frame holds this order while the pointer is over the list.
         self.held_squares = std::mem::take(&mut self.hits.space_tab_square_order);
+        self.held_space_order = std::mem::take(&mut self.hits.space_order);
         self.hits.panes = surface
             .panes
             .iter()

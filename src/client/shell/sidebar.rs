@@ -310,6 +310,10 @@ pub(crate) fn render_sidebar(
         state.collapsed_groups,
         state.space_sort,
     );
+    if let Some(held) = state.held_space_order {
+        entries = super::space_sort::held_entries(snapshot, entries, held);
+    }
+    hits.space_order = super::space_sort::root_ids(snapshot, &entries);
     // While a space is dragged the list shows where it would land, and the
     // header says so in words. With the pointer outside the list the order
     // stays, the block stays lifted and the header says a release cancels.

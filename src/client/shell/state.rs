@@ -113,6 +113,8 @@ pub(super) struct ShellHitMap {
     /// Blank slots of job tabs that closed while the pointer was over the
     /// sidebar.
     pub(super) space_tab_gone: Vec<Rect>,
+    /// The spaces' root order drawn, taken into `held_space_order`.
+    pub(super) space_order: Vec<String>,
     /// The square order drawn, taken into `held_squares` after each frame.
     pub(super) space_tab_square_order: super::space_tabs::HeldSquares,
     pub(super) endpoint_agents: Vec<(Rect, ClientEndpointId, String)>,
@@ -1030,6 +1032,9 @@ pub(crate) struct ClientShellState {
     /// moving the others.
     pub(super) held_squares: super::space_tabs::HeldSquares,
     pub(super) pointer_over_spaces: bool,
+    /// The sorted spaces' order as last drawn, held while the pointer is
+    /// over the list so a re-sort cannot move a space under it.
+    pub(super) held_space_order: Vec<String>,
     pub(super) workspace_scroll: usize,
     pub(super) agent_scroll: usize,
     pub(super) pending_agent_reveal: Option<(ClientEndpointId, String)>,
@@ -1210,6 +1215,7 @@ impl ClientShellState {
             unfolded_squares: HashMap::new(),
             held_squares: HashMap::new(),
             pointer_over_spaces: false,
+            held_space_order: Vec::new(),
             workspace_scroll: 0,
             agent_scroll: 0,
             pending_agent_reveal: None,
@@ -1368,7 +1374,20 @@ impl ClientShellState {
         if self.endpoints.len() > 1 {
             return entries;
         }
-        super::space_sort::sorted_entries(snapshot, entries, collapsed_groups, self.space_sort)
+        let sorted =
+            super::space_sort::sorted_entries(snapshot, entries, collapsed_groups, self.space_sort);
+        match self.held_space_order() {
+            Some(held) => super::space_sort::held_entries(snapshot, sorted, held),
+            None => sorted,
+        }
+    }
+
+    /// The order a sorted list holds while the pointer is over it.
+    pub(super) fn held_space_order(&self) -> Option<&[String]> {
+        (self.pointer_over_spaces
+            && !self.space_sort.allows_drag()
+            && !self.held_space_order.is_empty())
+        .then_some(self.held_space_order.as_slice())
     }
 
     pub(super) fn reveal_workspace(&mut self, workspace_id: &str) {
