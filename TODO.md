@@ -501,6 +501,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Alternative to weigh (mine, not consulted): keep a closed tab's
     processes alive for a few seconds with an "undo" toast, which restores
     them exactly.
+- [ ] Pin a tab: pinned tabs are marked with a pin icon (or similar) in
+  the tab bar and stay at its start, before the unpinned tabs, like
+  pinned tabs in Chrome or Firefox.
 - [ ] An agent that finished and waits for me shows a blue dot (`Done`,
   unseen), but it turns green (`Idle`) as soon as I open its tab, before I
   answer: `mark_active_tab_seen` sets `pane.seen` when the tab becomes
