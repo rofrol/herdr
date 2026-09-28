@@ -64,12 +64,17 @@ pub(super) fn space_agent_lines(
             .or(agent.name.as_deref())
             .or(agent.agent.as_deref())
             .unwrap_or("agent");
-        let text = agent
-            .title
-            .as_deref()
-            .map(str::trim)
-            .filter(|title| !title.is_empty())
-            .map_or_else(|| format!("{name} · no task"), str::to_owned);
+        // The reported title wins; otherwise the task title the agent sets as
+        // its terminal title (Claude Code summarizes the task there), as on tabs.
+        let text = [
+            agent.title.as_deref(),
+            agent.terminal_title_stripped.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        .map(str::trim)
+        .find(|title| !title.is_empty())
+        .map_or_else(|| format!("{name} · no task"), str::to_owned);
         lines.push(SpaceAgentLine::Agent {
             pane_id: agent.pane_id.clone(),
             status: agent.agent_status,
@@ -249,6 +254,31 @@ mod tests {
                     focused: false,
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn falls_back_to_the_terminal_title_for_the_task() {
+        let mut snapshot = super::super::tests::snapshot();
+        let mut titled = agent("pane_1", "ws_1", None);
+        titled.terminal_title_stripped = Some("Alternatives to herdr".into());
+        let mut reported = agent("pane_2", "ws_1", Some("Reported task"));
+        reported.terminal_title_stripped = Some("Terminal title".into());
+        let mut blank = agent("pane_3", "ws_1", Some(" "));
+        blank.terminal_title_stripped = Some("  ".into());
+        snapshot.agents = vec![titled, reported, blank];
+        let workspace = snapshot.workspaces[0].clone();
+
+        let texts = space_agent_lines(&snapshot, &workspace, &HashSet::new(), &config(true))
+            .into_iter()
+            .filter_map(|line| match line {
+                SpaceAgentLine::Agent { text, .. } => Some(text),
+                SpaceAgentLine::Jobs { .. } => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            texts,
+            ["Alternatives to herdr", "Reported task", "claude · no task"]
         );
     }
 
