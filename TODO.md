@@ -234,8 +234,8 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     program that clears the screen, as the footer could. Both: unfolded
     state client-local, not in the saved collapsed set; measure the square
     rows once for layout and drawing, and again with the scrollbar column
-    when the list overflows. Still open: the hover name on the sidebar's
-    squares in the multi-machine sidebar.
+    when the list overflows. The follow-ups (hover name, held slots,
+    multi-machine squares) are done below.
   - Changed 2026-09-28 (mockup updated, same link): a disclosure triangle
     right before the counts, `► ⧖ 1 !1` (`▼` unfolded, dim grey, inside
     the fill), folds and unfolds the squares; its hit runs from the
@@ -272,6 +272,11 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     when the pointer enters (DeepSeek: no enter edge to miss). A blank slot
     takes no click, so a middle-click there cannot fall through to closing
     the space (Astra). A tab line that closes still moves the rest.
+  - Done 2026-09-28: the multi-machine sidebar shows squares for the
+    active machine's tab lines, which now take clicks like the local
+    sidebar's (focus, fold, squares, `+N`); another machine's lines stay
+    folded and select its space. The unfolded tabs are kept per machine.
+    Both consults: active machine only, keyed by machine.
   - Consulted (GPT-6 Astra, DeepSeek, 2026-09-28): both called the squares
     fine but removing the rows risky (no navigation with the sidebar
     hidden, keyboard). Both wanted a per-tab number in the square (`1⧖`,

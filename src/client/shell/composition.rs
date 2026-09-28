@@ -19,6 +19,9 @@ fn restore_mode_bar(
     }
 }
 
+static NO_UNFOLDED_SQUARES: std::sync::LazyLock<HashSet<String>> =
+    std::sync::LazyLock::new(HashSet::new);
+
 /// No held order: squares close up at once.
 static NO_HELD_SQUARES: std::sync::LazyLock<super::space_tabs::HeldSquares> =
     std::sync::LazyLock::new(super::space_tabs::HeldSquares::new);
@@ -66,7 +69,10 @@ impl ClientShellState {
             collapsed_endpoints: &self.collapsed_endpoints,
             collapsed_groups: &self.collapsed_groups,
             remote_collapsed_groups: &self.remote_collapsed_groups,
-            unfolded_squares: &self.unfolded_squares,
+            unfolded_squares: self
+                .unfolded_squares
+                .get(&self.active_endpoint_id)
+                .unwrap_or(&NO_UNFOLDED_SQUARES),
             held_squares: if self.pointer_over_spaces {
                 &self.held_squares
             } else {
@@ -253,7 +259,10 @@ impl ClientShellState {
                 collapsed_endpoints: &self.collapsed_endpoints,
                 collapsed_groups: &self.collapsed_groups,
                 remote_collapsed_groups: &self.remote_collapsed_groups,
-                unfolded_squares: &self.unfolded_squares,
+                unfolded_squares: self
+                    .unfolded_squares
+                    .get(&self.active_endpoint_id)
+                    .unwrap_or(&NO_UNFOLDED_SQUARES),
                 held_squares: if self.pointer_over_spaces {
                     &self.held_squares
                 } else {

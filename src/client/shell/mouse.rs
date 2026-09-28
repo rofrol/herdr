@@ -136,26 +136,32 @@ impl ClientShellState {
         };
         if let Some(tab_id) = hit(&self.hits.space_tab_folds) {
             // Tab ids can be reused: forget tabs that are gone.
-            if let Some(snapshot) = self.snapshot.as_deref() {
-                let live = snapshot
-                    .tabs
-                    .iter()
-                    .map(|tab| tab.tab_id.as_str())
-                    .collect::<HashSet<_>>();
-                self.unfolded_squares.retain(|unfolded| {
-                    live.contains(
-                        unfolded
-                            .strip_prefix(super::space_tabs::ALL_SQUARES_PREFIX)
-                            .unwrap_or(unfolded),
-                    )
-                });
-            }
-            if self.unfolded_squares.remove(&tab_id) {
+            let live = self
+                .snapshot
+                .as_deref()
+                .map(|snapshot| {
+                    snapshot
+                        .tabs
+                        .iter()
+                        .map(|tab| tab.tab_id.clone())
+                        .collect::<HashSet<_>>()
+                })
+                .unwrap_or_default();
+            let unfolded = self
+                .unfolded_squares
+                .entry(self.active_endpoint_id.clone())
+                .or_default();
+            unfolded.retain(|key| {
+                live.contains(
+                    key.strip_prefix(super::space_tabs::ALL_SQUARES_PREFIX)
+                        .unwrap_or(key),
+                )
+            });
+            if unfolded.remove(&tab_id) {
                 // Folding forgets `+N`; the next unfold is capped again.
-                self.unfolded_squares
-                    .remove(&super::space_tabs::all_squares_key(&tab_id));
+                unfolded.remove(&super::space_tabs::all_squares_key(&tab_id));
             } else {
-                self.unfolded_squares.insert(tab_id);
+                unfolded.insert(tab_id);
             }
             return Some(None);
         }
@@ -164,6 +170,8 @@ impl ClientShellState {
         }
         if let Some(tab_id) = hit(&self.hits.space_tab_more) {
             self.unfolded_squares
+                .entry(self.active_endpoint_id.clone())
+                .or_default()
                 .insert(super::space_tabs::all_squares_key(&tab_id));
             return Some(None);
         }

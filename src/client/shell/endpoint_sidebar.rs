@@ -12,6 +12,21 @@ fn collapsed_groups_for_endpoint<'a>(
     }
 }
 
+/// The unfolded tabs and held square order for `endpoint_id`'s tab lines:
+/// the active machine's, none for the others, whose squares stay folded.
+fn squares_state<'a>(
+    state: &'a ShellRenderState<'_>,
+    endpoint_id: &ClientEndpointId,
+) -> (&'a HashSet<String>, &'a super::space_tabs::HeldSquares) {
+    static NONE: std::sync::LazyLock<(HashSet<String>, super::space_tabs::HeldSquares)> =
+        std::sync::LazyLock::new(Default::default);
+    if endpoint_id == state.active_endpoint_id {
+        (state.unfolded_squares, state.held_squares)
+    } else {
+        (&NONE.0, &NONE.1)
+    }
+}
+
 pub(super) fn render_collapsed(
     buffer: &mut Buffer,
     area: Rect,
@@ -312,6 +327,9 @@ pub(super) fn render_expanded(
             .saturating_sub(WORKSPACE_HEADER_ROWS + 1),
     );
     hits.workspace_body = body;
+    // Tab lines are indented two columns under their machine, and the
+    // scrollbar column is always left free, so heights and drawing agree.
+    let squares_width = body.width.saturating_sub(3);
     let row_heights = rows
         .iter()
         .map(|row| match row {
@@ -325,12 +343,13 @@ pub(super) fn render_expanded(
                     .as_deref()
                     .and_then(|snapshot| {
                         let workspace = snapshot.workspaces.get(entry.index)?;
+                        let (unfolded, held) = squares_state(state, &endpoint.endpoint_id);
                         let tab_lines = super::space_tabs::space_tab_lines(
                             snapshot,
                             workspace,
                             collapsed_groups,
-                            &HashSet::new(),
-                            &super::space_tabs::HeldSquares::new(),
+                            unfolded,
+                            held,
                             config,
                         );
                         let rows = super::sidebar::workspace_rows(
@@ -351,7 +370,11 @@ pub(super) fn render_expanded(
                         )
                         .len()
                         .max(1);
-                        Some((rows + tab_lines.len()).min(u16::MAX as usize) as u16)
+                        let tab_rows = tab_lines
+                            .iter()
+                            .map(|line| usize::from(line.height(squares_width)))
+                            .sum::<usize>();
+                        Some((rows + tab_rows).min(u16::MAX as usize) as u16)
                     })
                     .unwrap_or(1)
             }
@@ -470,12 +493,13 @@ pub(super) fn render_expanded(
                     workspace,
                     collapsed_groups,
                 );
+                let (unfolded, held) = squares_state(state, &endpoint.endpoint_id);
                 let tab_lines = super::space_tabs::space_tab_lines(
                     snapshot,
                     workspace,
                     collapsed_groups,
-                    &HashSet::new(),
-                    &super::space_tabs::HeldSquares::new(),
+                    unfolded,
+                    held,
                     config,
                 );
                 let tab_jobs = super::space_tabs::space_row_tab_jobs(
@@ -492,8 +516,10 @@ pub(super) fn render_expanded(
                     &config.spaces,
                 );
                 let own_rows = tokens.len().max(1).min(u16::MAX as usize) as u16;
-                let height = own_rows
-                    .saturating_add(tab_lines.len().min(u16::MAX as usize) as u16)
+                let height = row_heights
+                    .get(row_index)
+                    .copied()
+                    .unwrap_or(own_rows)
                     .min(body.height);
                 if y.saturating_add(height) > body.bottom() {
                     break;
@@ -526,9 +552,8 @@ pub(super) fn render_expanded(
                     None,
                     config,
                 );
-                // Clicking another endpoint's agent line selects its space;
-                // focusing a remote pane from here is not wired up yet.
-                let _ = super::space_tabs::render_space_tab_lines(
+                let online = endpoint.status == ClientEndpointStatus::Online;
+                let tab_hits = super::space_tabs::render_space_tab_lines(
                     buffer,
                     Rect::new(
                         nested.x,
@@ -538,11 +563,20 @@ pub(super) fn render_expanded(
                     ),
                     &tab_lines,
                     endpoint_active && workspace.focused,
-                    // No line is unfolded here, so no squares wrap.
-                    nested.width,
-                    None,
+                    squares_width,
+                    state.hovered_square.filter(|_| endpoint_active),
                     config,
                 );
+                // Only the active machine's tab lines and squares take clicks:
+                // they act on it; another machine's lines select its space.
+                if endpoint_active && online {
+                    hits.space_tabs.extend(tab_hits.lines);
+                    hits.space_tab_folds.extend(tab_hits.folds);
+                    hits.space_tab_squares.extend(tab_hits.squares);
+                    hits.space_tab_more.extend(tab_hits.more);
+                    hits.space_tab_gone.extend(tab_hits.gone);
+                    hits.space_tab_square_order.extend(tab_hits.order);
+                }
                 if endpoint.status != ClientEndpointStatus::Online {
                     buffer.set_style(
                         rect,
