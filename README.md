@@ -51,7 +51,8 @@ commits sit on top of upstream `master` and are not meant for upstream PRs.
   again to go back, middle-click to close it; hovering a square names its
   job on the tab line. A job's first row is its header, with ` ← ` to
   go back and ` × ` to close. A disclosure triangle before the space's name
-  collapses its tabs.
+  collapses its tabs. The spaces list scrolls by rows; `keys.move_space_previous`
+  and `keys.move_space_next` move the focused space with the keyboard.
   `show_agents_panel = false` hides the agents panel and gives its height
   to the spaces list:
 

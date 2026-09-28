@@ -1882,3 +1882,47 @@ fn a_space_dragged_to_the_lists_bottom_row_scrolls_the_list() {
     )]);
     assert!(state.space_drag_autoscroll.is_none());
 }
+
+#[test]
+fn the_move_space_keys_move_the_focused_space_one_place() {
+    let mut projected = snapshot();
+    for index in 2..=3 {
+        let mut workspace = projected.workspaces[0].clone();
+        workspace.workspace_id = format!("ws_{index}");
+        workspace.number = index;
+        workspace.label = format!("workspace-{index}");
+        workspace.focused = false;
+        projected.workspaces.push(workspace);
+    }
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
+    state.set_snapshot(Box::new(projected));
+    state.set_pane_surface(surface());
+    let moves = |state: &mut ClientShellState, action| {
+        let mut outcome = ClientShellInput::default();
+        state.record_binding(crate::input::KeybindMatch::Action(action), &mut outcome);
+        outcome
+            .actions
+            .iter()
+            .filter_map(|action| match action {
+                ClientShellAction::Endpoint { request, .. } => {
+                    Some(format!("{:?}", request.method))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    };
+
+    // ws_1 is first: down puts it after ws_2 (before ws_3, insert index 2
+    // in the list before the move), up does nothing.
+    let down = moves(&mut state, crate::input::KeybindAction::MoveSpaceNext);
+    assert_eq!(
+        down,
+        ["WorkspaceMove(WorkspaceMoveParams { workspace_id: \"ws_1\", insert_index: 2 })"]
+    );
+    assert!(moves(&mut state, crate::input::KeybindAction::MoveSpacePrevious).is_empty());
+
+    // Only in the sidebar's own order.
+    state.space_sort = super::super::space_sort::SpaceSort::default()
+        .clicked(super::super::space_sort::SpaceSortKey::Name);
+    assert!(moves(&mut state, crate::input::KeybindAction::MoveSpaceNext).is_empty());
+}

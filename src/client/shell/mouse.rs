@@ -890,7 +890,7 @@ impl ClientShellState {
             .map(|(_, (before, _))| before)
     }
 
-    fn workspace_move_method(
+    pub(super) fn workspace_move_method(
         &self,
         source_workspace_id: &str,
         before_workspace_id: Option<&str>,
