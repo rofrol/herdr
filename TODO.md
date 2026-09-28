@@ -381,6 +381,66 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     which host is affected. Windows symlinks need their own handling.
   - Smallest stage: read-only status plus bundle install/repair in the
     popup; a settings entry, if any, only opens that popup.
+- [ ] A "consult models" checkbox in herdr's bottom bar (on/off), or instead
+  checkboxes next to the models to consult (GPT Astra, DeepSeek, Gemini), so
+  I choose in the UI whether and whom agents consult, instead of the rule in
+  the agent's memory ("before design decisions consult GPT Astra +
+  DeepSeek").
+  - Open: how the state reaches a running agent (a state file the consult
+    skills read, plus a hook such as Claude's `UserPromptSubmit` injecting
+    "consult: on, models: astra, deepseek" so the agent knows before it
+    decides); scope (global, per workspace or per agent pane); core footer
+    or the consult plugin (plugins cannot draw widgets today). Overlaps the
+    per-model "enabled" column on the deferred settings > consults page.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): both agree. A
+    checkbox promises more control than herdr has: it cannot force a
+    running agent to consult, and "off" must beat the rule in the agent's
+    memory. Per workspace (consult policy follows the project; global leaks
+    into unrelated work, per pane gets lost when panes restart). One toggle
+    first, the model list in the same state file; per-model checkboxes mix
+    "whether" with "whom" (fallbacks, missing keys). In the consult plugin
+    (menu action plus popup), not the core footer, which would give one
+    plugin privileged UI. Delivery: a workspace state file as the source
+    of truth, a prompt hook injecting `[herdr consult policy] enabled=…
+    models=…` every turn, and the consult scripts re-reading it before
+    sending, so "off" is enforced, not advisory. pi has no such hook: say
+    so. Astra: label it "Auto-consult" and decide whether my explicit
+    "consult X" bypasses off; show which providers get the code.
+  - Smallest stage: that state file, a plugin menu toggle, the Claude hook
+    and the dispatch-time check, logging policy against actual consults.
+    Kill it if agents ignore it; a footer checkbox only if I flip it often.
+  - Idea: when a checked model's limit is exhausted, grey its checkbox out
+    and leave it out of the injected policy, so the agent does not try it.
+    herdr already has the signals in the usage footer (`usage.read`, cached
+    in `usage-cache.json`): Codex rate-limit windows, DeepSeek balance
+    (`is_available`), Gemini weekly quotas from `agy -p /quota`.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): both: an
+    availability hint, not a hard gate yet. A false "exhausted" silently
+    drops a working model for hours, which is worse than one failed call;
+    unknown means available. Keep the checkbox as my intent and show
+    availability as a separate badge with the reason, when it was observed
+    and the reset hint; a checked-but-grey box reads as "on but not on".
+    Never gate GPT on `usage.read`: the footer reads Codex's own ChatGPT
+    login, the gpt skill uses pi's `openai-codex` token, possibly another
+    account. Better signal: the consult scripts' own classified failures
+    (provider, model, credential hash, hard quota vs rate limit vs auth vs
+    outage, timestamp) logged by consult-stats. DeepSeek `is_available =
+    false` is trustworthy for a hard zero; Gemini's quota only when `agy`
+    uses the same account and the group covers the model. Reset times are
+    hints ("try again tomorrow" cleared in two hours): at reset go back to
+    "unknown", allow one try, re-block with a bounded TTL; a "retry now"
+    action.
+  - Stages: classify and log failures in consult-stats; show the badge; the
+    scripts fail fast only on a same-credential hard quota failure within
+    the TTL (unless I ask explicitly); drop models from the hook only if the
+    data shows agents wasting turns on exhausted ones.
+  - Sort the model checkboxes by the consult-stats ranking (`consult.py
+    stats`: accepted unique findings per rated call, e.g. DeepSeek 1.57,
+    Astra 1.56, Gemini 0.57 on 2026-09-28), with the number next to each
+    model; models under 5 rated calls go last, as in `stats`. The ranking
+    depends on which models were asked together, so it is a hint, not a
+    verdict. Do not reorder while the pointer is over the list (as in the
+    agents' `prio` sort).
 - [ ] Workspace recipes (tmuxp-like): a TOML file under
   `~/.config/herdr/recipes/` naming a root, panes, splits and commands.
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-27): a plugin built on
