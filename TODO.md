@@ -808,29 +808,23 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     history; if that grows, move them to an orphan `assets` branch.
   - Risk: seven loops at once are distracting and ignore reduced-motion;
     if it looks busy, use a static frame per bullet linking to its clip.
-- [ ] Close herdr tabs with Cmd+W.
+- [ ] Close herdr panes with Cmd+W, as Ghostty closes splits: the last
+  pane closes its tab, the last tab its space.
   - Conflict: Ghostty binds Cmd+W to `close_surface` and handles its own
-    keybinds before the program sees the key, so herdr never receives it.
-    Ghostty has no per-foreground-program binding. `unconsumed:` still runs
-    `close_surface` (it only also forwards the key) and `performable:` is
-    always true for `close_surface`, so neither routes Cmd+W to herdr.
-    Today Cmd+W in a herdr window only closes the herdr client (after
-    Ghostty's confirmation); the server and agents keep running.
-  - Plan (consulted GPT-6 Astra and DeepSeek, 2026-09-28): in Ghostty,
-    `keybind = cmd+w=unbind` as already done for Cmd+1..9 (herdr gets
-    `super+w` via the kitty keyboard protocol), move `close_surface` to
-    `cmd+shift+w`, and in herdr bind `close_tab = "cmd+w"`. Cost: Cmd+W no
-    longer closes plain Ghostty tabs/splits. Fallback if that hurts: leave
-    Cmd+W to Ghostty and bind `close_tab = "cmd+shift+w"`. Don't use
-    `cmd+w=csi:...`: plain shells would get the escape sequence as input.
-  - First verify that Ghostty delivers `super+w` to herdr after the unbind
-    (`herdr` parses it, `format_key_combo` shows `cmd+w`).
-  - Safety: tabs hold running agents; `confirm_close_running` already asks
-    before closing a tab with running work; check it covers Cmd+W and that
-    Cancel is the default. Both models suggested Cmd+W close the focused
-    pane (closing the tab with its last pane), as Ghostty does with
-    splits; decide tab vs pane before binding. Reopening a closed tab can't
-    bring back killed processes, so a confirmation matters more than undo.
+    keybinds before the program sees the key, and has no per-foreground
+    program binding. `unconsumed:` still runs `close_surface` (it only also
+    forwards the key) and `performable:` is always true for it, so neither
+    routes Cmd+W to herdr (consulted GPT-6 Astra and DeepSeek, 2026-09-28).
+  - Set up 2026-09-28: dotfiles Ghostty config has `cmd+w=unbind` (like
+    Cmd+1..9) and `cmd+ctrl+w=close_surface`; herdr config has
+    `[keys] close_pane = "cmd+w"`. Cost: Cmd+W no longer closes splits in
+    plain Ghostty windows. Don't use `cmd+w=csi:...`: plain shells would
+    get the escape sequence as input.
+  - Verify after reloading Ghostty: Cmd+W reaches herdr as `super+w` and
+    closes the focused pane; `confirm_close_running` asks before closing a
+    pane or tab with a working agent or job, with Cancel as the default.
+    Reopening can't bring back killed processes, so the confirmation
+    matters more than undo.
 
 ## Deferred
 
