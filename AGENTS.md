@@ -351,6 +351,16 @@ To re-record the fork demo video and upload it for the README, follow
 `scripts/fork_demo/README.md`; uploading needs the Claude in Chrome tools
 (see "Uploading as an agent" there).
 
+### Worktrees in the fork
+
+Work on `master` in the shared checkout by default: commits are small, other
+sessions see them at once, and the live-test candidate must be built from
+current `master` anyway (see below), so a worktree only adds a rebase and a
+cold `target/` rebuild. Use `herdr worktree create` only for long or
+exploratory work that may be abandoned, broad refactors, or when two agents
+must edit the same file. Rebase such a branch onto `master` before building a
+candidate for `scripts/herdr_live.sh`.
+
 ### Trying a fix in the running Herdr
 
 The installed binary on the user's PATH is the last known-good build; the

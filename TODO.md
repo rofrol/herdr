@@ -366,6 +366,27 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     (test entries removed from the log afterwards). Not verified: gpt and
     gemini from pi, and pi outside herdr.
 
+- [ ] Review queue for agent commits, plus `herdr diff`. When an agent's turn
+  ends with new commits, list them as "to review" until I acknowledge them.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-27): a plugin with a
+    popup, no new core state. Uncommitted changes in the shared checkout
+    cannot be attributed to one agent (neither HEAD nor file mtimes tell who
+    changed what), so the unit is the commit.
+  - At turn start record the session id and HEAD; at turn end find new
+    commits carrying `Claude-Session: <id>`. Enqueue only when there are
+    commits, not on every finished turn. Viewing the pane clears "done" as
+    today; only an explicit acknowledgement clears "to review".
+  - Show each commit's own patch (delta or lazygit), never
+    `git diff first^..last`: with other agents committing to master the range
+    includes their commits. Leftover uncommitted files get one line:
+    "N uncommitted (unattributed)".
+  - Sidebar token like `review 3c / 5f`; on the phone one item at a time
+    with next/previous, no side-by-side diffs.
+  - Open questions: the trailer is per session, not per turn, and only
+    Claude adds it; Codex and pi need an equivalent (or hook-reported
+    commits). Prototype a plain commit list first: maybe lazygit in a popup
+    is already enough.
+
 ## Deferred
 
 - [ ] Consult stats: pair the coordinator with Opus at a lower effort
@@ -393,3 +414,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     no consult-specific code in core. Keep latency/tokens from crushing the
     checkbox and model name (a detail view per model).
   - Deferred: one consumer does not justify a plugin settings framework yet.
+- [ ] Workspace recipes (tmuxp-like): a TOML file under
+  `~/.config/herdr/recipes/` naming a root, panes, splits and commands.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-27): a plugin built on
+    the `dev-layout-bootstrap` example (`ogulcancelik/herdr-plugin-examples`),
+    not core. Apply reconciles: create missing panes, leave running
+    processes and hand-made panes alone, re-apply is a no-op, removal only
+    with an explicit `--prune` (panes may hold uncommitted agent work).
+  - Deferred: sessions already survive server restarts with 48 snapshots;
+    recipes only help on a new machine or a fresh checkout. Build it when I
+    notice rebuilding the same layout by hand.
