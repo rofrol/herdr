@@ -404,6 +404,25 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     narrow sidebar clips a dropdown, so maybe an overlay; freeze the list
     while the pointer is over it so new entries do not move the click
     target; script bodies stay in history longer than in a toast.
+- [ ] Child tab row styled like the main row. Now the main row has separate
+  tabs (`surface1` background, a 1-column `panel_bg` gap between them),
+  while the child row is one continuous accent-tint band with plain text
+  entries split by `│` (`render_child_tab_bar` in
+  `src/client/shell/tabs.rs`), so it looks like a different widget.
+  - Decided (2026-09-28, after mockups): copy the main row exactly. Drop
+    the band: the row background and the 1-column gaps are `panel_bg`;
+    each unfocused child is drawn like an inactive main tab (`surface1`
+    background, `overlay1` text, same padding); drop the `│` dividers. The
+    focused child stays the only full-accent block, and the tinted parent
+    above plus the `◆` entry keep the link between the rows.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28) both preferred
+    keeping the band behind the tabs, so the row stays visibly tied to the
+    tinted parent; I chose full consistency with the main row instead. Both
+    rejected tabs in a stronger accent tint: they read as "half selected"
+    and weaken the red/yellow status icons.
+  - Pitfalls: truncate labels before status icons; the whole tab including
+    padding is the hit target, gaps are not; red/yellow icons must stay
+    readable on `surface1` in both light and dark themes.
 
 ## Deferred
 
