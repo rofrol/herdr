@@ -1002,3 +1002,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Deferred: sessions already survive server restarts with 48 snapshots;
     recipes only help on a new machine or a fresh checkout. Build it when I
     notice rebuilding the same layout by hand.
+- [ ] Explain the consult/ask naming mismatch: the plugin (`plugins/consult`,
+  `local.consult`) and the stats skill (`consult-stats`, `consult.py`) say
+  "consult", but the scripts inside the skills say "ask" (`ask_gpt.sh`,
+  `ask_gemini.sh`, `ask_deepseek.py`). Decide whether it is deliberate (the
+  verb an agent runs vs. the feature name) or should be unified, and on
+  which name; consult the agents (DeepSeek, GPT-6 Astra) before renaming.
