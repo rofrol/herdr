@@ -615,6 +615,10 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     only when the target is the active tab and the window is focused
     (`suppress_external` in `tick_notifications`, from `outer_focused`,
     which is `None` when the terminal does not report focus).
+    Done 2026-09-29: with `System` delivery and the window focused
+    (`outer_focused == Some(true)`), herdr's own toast shows instead, for
+    a target that is not the active tab; unfocused or unknown focus keeps
+    the system toast.
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28), both: worth it as
     a plain event log, not a notification centre. History is a shared
     runtime fact: a server-side ring buffer per endpoint (about 100
