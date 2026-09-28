@@ -770,6 +770,43 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     hook, e.g. "2 other agents share this checkout (panes 3, 7); 4
     uncommitted code files, ownership unknown. Ask the user whether to
     create a worktree before editing code."
+  - Idea: a herdr setting for the worktree policy. Consulted models (GPT-6
+    Astra, DeepSeek, 2026-09-28), both:
+    - Per repo, keyed by the common git dir so linked worktrees share it;
+      a global value only as the default; not per workspace (a UI
+      grouping, not a checkout). Modes: `shared` (default), `ask`,
+      `always` (a new worktree per new agent session). Not "never ask": it
+      names the prompt, not where the agent works. DeepSeek: if the
+      setting contradicts `AGENTS.md`, herdr says it overrides the repo
+      rule, never silently.
+    - `ask` triggers on another live agent in the same checkout OR
+      uncommitted changes (tracked, staged or untracked; do not classify
+      code vs notes). The 2026-09-28 race began from a clean `git status`,
+      so "has changes" alone misses it.
+    - herdr asks in its TUI and creates the worktree before the agent
+      starts (pane cwd = worktree); an agent that moves itself later
+      leaves its session and relative paths in the old checkout. The hook
+      text then carries only facts. Serialize herdr's occupancy check so
+      two launches cannot race.
+    - `always` costs a cold `target/` per worktree: a shared
+      `CARGO_TARGET_DIR` contends on cargo's lock and rebuilds on
+      differing flags, sccache skips linking. Every fix must land on
+      current `master` before `scripts/herdr_live.sh install`; never merge
+      or install automatically.
+  - Missed by both: herdr usually does not launch the agent (I type
+    `claude` in a shell pane; herdr detects it after it starts) and cannot
+    move a running agent's cwd. A launch-time prompt only works when herdr
+    starts the agent (pane command, relaunch, `herdr worktree create`).
+    Otherwise: a notification when a second agent is detected in the same
+    checkout ("agent in pane 3 shares this checkout") with an action that
+    creates a worktree and restarts the agent there, plus the first-edit
+    hook as the fallback.
+  - Stages: `herdr checkout status` without any setting; then a per-repo
+    `shared`/`ask` setting (launch prompt, detection notification);
+    `always` only once branch naming, resuming a session in its worktree
+    and cleanup of finished worktrees are reliable. The setting makes me
+    choose between instant visibility on `master` and isolation; it does
+    not reconcile them.
 - [ ] Workspace recipes (tmuxp-like): a TOML file under
   `~/.config/herdr/recipes/` naming a root, panes, splits and commands.
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-27): a plugin built on
