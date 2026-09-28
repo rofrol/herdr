@@ -120,6 +120,23 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     make the release hit another row; keep the selection by pane id. A
     client preference like the spaces sort; `agent_panel_sort` only seeds it
     when no preference is saved.
+  - Colour the agent rows under a space like the tabs: blue for the agent
+    selected in its space, grey for the others. Today only the globally
+    focused agent's task is `text`, the rest `subtext0`, barely different.
+    Consulted (GPT-6 Astra, DeepSeek, 2026-09-28): both: selected means the
+    focused pane of the space's active tab (other agents split into that tab
+    stay grey; none is blue when that pane runs no agent); blue is accent
+    foreground, bold, on the task text only, grey is `overlay1`; no accent
+    background (it fights the grey selected-space row and hides the state
+    colours in ~28 columns); the state icon keeps its colour and the jobs
+    line stays secondary. They differ on background spaces: Astra shows
+    their selected agent blue too, which matches the request ("selected in
+    its space") but needs a new optional per-agent flag from the server
+    (`focused` is global; generation-1 codecs are frozen, so a compatible
+    extension, falling back to `focused` on older servers); DeepSeek shows
+    blue only in the current space, derivable from `focused` with no
+    protocol change. Decided: every space shows its selected agent blue
+    (Astra's), not only the current one.
 - [ ] Dragging a space does not show where it will land (screenshot
   2026-09-26, dragging `herdr`). The dragged space keeps a grey background
   much like the selected row, so two grey blocks are on screen; the drop
