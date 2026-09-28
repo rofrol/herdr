@@ -576,7 +576,6 @@ pub(crate) fn render_sidebar(
         hits.space_tabs.extend(tab_hits.lines);
         hits.space_tab_folds.extend(tab_hits.folds);
         hits.space_tab_squares.extend(tab_hits.squares);
-        hits.space_tab_more.extend(tab_hits.more);
         hits.space_tab_gone.extend(tab_hits.gone);
         hits.space_tab_square_order.extend(tab_hits.order);
         let group_toggle = if config.spaces.tabs {

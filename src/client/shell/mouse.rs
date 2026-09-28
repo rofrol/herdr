@@ -151,28 +151,13 @@ impl ClientShellState {
                 .unfolded_squares
                 .entry(self.active_endpoint_id.clone())
                 .or_default();
-            unfolded.retain(|key| {
-                live.contains(
-                    key.strip_prefix(super::space_tabs::ALL_SQUARES_PREFIX)
-                        .unwrap_or(key),
-                )
-            });
-            if unfolded.remove(&tab_id) {
-                // Folding forgets `+N`; the next unfold is capped again.
-                unfolded.remove(&super::space_tabs::all_squares_key(&tab_id));
-            } else {
+            unfolded.retain(|key| live.contains(key));
+            if !unfolded.remove(&tab_id) {
                 unfolded.insert(tab_id);
             }
             return Some(None);
         }
         if self.on_gone_square(point) {
-            return Some(None);
-        }
-        if let Some(tab_id) = hit(&self.hits.space_tab_more) {
-            self.unfolded_squares
-                .entry(self.active_endpoint_id.clone())
-                .or_default()
-                .insert(super::space_tabs::all_squares_key(&tab_id));
             return Some(None);
         }
         if let Some(square) = hit(&self.hits.space_tab_squares) {

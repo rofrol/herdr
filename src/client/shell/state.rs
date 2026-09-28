@@ -107,8 +107,6 @@ pub(super) struct ShellHitMap {
     pub(super) space_tab_folds: Vec<(Rect, String)>,
     /// Squares of nested tabs under an unfolded tab line, with their tab.
     pub(super) space_tab_squares: Vec<(Rect, String)>,
-    /// `+N` slots of capped square rows, with the tab they show all of.
-    pub(super) space_tab_more: Vec<(Rect, String)>,
     /// Blank slots of job tabs that closed while the pointer was over the
     /// sidebar.
     pub(super) space_tab_gone: Vec<Rect>,

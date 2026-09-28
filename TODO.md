@@ -254,16 +254,15 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     focused tab (herdr's `focused`, the tab shown); herdr-job checks every
     2 s and closes it once you leave it.
   - Done 2026-09-28: hovering a square names its job (glyph and label) in
-    place of its tab line's label, the nearest stable row; and a line shows
-    at most three rows of squares, the last slot `+N` (red when a hidden
-    job failed), which shows them all until the line folds. Consulted
+    place of its tab line's label, the nearest stable row. A cap of three
+    square rows with a `+N` slot was tried and removed the same night at
+    my request: every square shows, and the list scrolls to them. Consulted
     (GPT-6 Astra, DeepSeek): Astra chose the sidebar's footer for the name,
     DeepSeek the tab line (chosen: next to the pointer, no chrome hidden).
     For a space taller than the list, Astra wanted the list to scroll by
     rows instead of whole spaces, DeepSeek the cap now and row scrolling
     later (chosen: row scrolling touches drag and drop, reveal and the
-    scrollbar). Still open: row scrolling for a space that is still taller
-    than the list.
+    scrollbar); the cap was then dropped for row scrolling (below).
   - Done 2026-09-28: while the pointer is over the spaces list, a job tab
     that closes (a success after 10 s, a close elsewhere) leaves a blank,
     inert slot, so the other squares do not move under the pointer; new
@@ -274,7 +273,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     the space (Astra). A tab line that closes still moves the rest.
   - Done 2026-09-28: the multi-machine sidebar shows squares for the
     active machine's tab lines, which now take clicks like the local
-    sidebar's (focus, fold, squares, `+N`); another machine's lines stay
+    sidebar's (focus, fold, squares); another machine's lines stay
     folded and select its space. The unfolded tabs are kept per machine.
     Both consults: active machine only, keyed by machine.
   - Consulted (GPT-6 Astra, DeepSeek, 2026-09-28): both called the squares

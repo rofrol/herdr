@@ -613,34 +613,6 @@ fn hovering_a_square_names_its_job_on_its_tab_line() {
 }
 
 #[test]
-fn the_more_slot_shows_every_square_until_the_line_folds() {
-    let mut state = state_with_tabs(true);
-    for index in 0..20 {
-        with_job(&mut state, &format!("job_{index}"), TabStatus::Running);
-    }
-    click_fold(&mut state);
-    state.compose(106, 30).unwrap();
-    assert_eq!(state.hits.space_tab_squares.len(), 14);
-    let (more, _) = state.hits.space_tab_more[0];
-    let frame = state.compose(106, 30).unwrap();
-    let row = frame_rows(&frame)[more.y as usize]
-        .chars()
-        .collect::<Vec<_>>();
-    assert_eq!(row[more.x as usize + 1..more.x as usize + 3], ['+', '6']);
-
-    left_click(&mut state, (more.x + 1, more.y));
-    state.compose(106, 30).unwrap();
-    assert_eq!(state.hits.space_tab_squares.len(), 20);
-    assert!(state.hits.space_tab_more.is_empty());
-
-    // Folding and unfolding caps the line again.
-    click_fold(&mut state);
-    click_fold(&mut state);
-    state.compose(106, 30).unwrap();
-    assert_eq!(state.hits.space_tab_squares.len(), 14);
-}
-
-#[test]
 fn a_closed_jobs_square_keeps_its_slot_while_the_pointer_is_over_the_list() {
     let mut state = state_with_tabs(true);
     state.config.confirm_close = false;
