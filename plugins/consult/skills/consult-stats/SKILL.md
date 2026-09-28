@@ -19,7 +19,13 @@ $O stats [--days 30]     # per skill/model: unique per rated call, wrong (reject
 $O stats --all           # + score, acc/find, speed, tokens, @high history, per coordinator table
 $O stats --pairs         # + token efficiency (acc/1M output tokens) and paired within-round token ratios (e.g. sol vs astra)
 $O recent [-n 20]        # latest calls with their ids and ratings (find unrated ones)
+$O stats --by-alias      # group by the requested model (alias) instead of the version it resolved to
 ```
+
+Stats name a model by the version the provider reported for the call (`model_version`, e.g. DeepSeek's
+`deepseek-flash` alias is logged as served by `DeepSeek-V4.1-Flash`), so a newer model behind the same alias gets its own
+row. DeepSeek calls logged before 2026-09-28 have no version and stay under the alias: their version is unknown, not
+assumed. GPT and Gemini are called with explicit model ids, so they log none.
 
 Rate after triaging the answer, not on first read:
 - **useful**: changed what we did (a real bug, a better design, a disproved hypothesis); **partial**: something valid but

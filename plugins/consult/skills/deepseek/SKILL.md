@@ -34,4 +34,6 @@ Guidelines:
   (paired token comparisons in `consult.py stats --pairs`; `consult.py self --round <id>`).
 
 API key: `.deepseek.key` in `~/.pi/agent/auth.json` (shared with pi) — never put the key in a tracked file.
+`deepseek-flash` is an alias that moves to newer models; streamed chunks only echo it, so the script looks up the
+serving model's name in `/models` and logs it (`--model-version`) with the chunks' `system_fingerprint`.
 Model list: `curl -s https://api.deepseek.com/models -H "Authorization: Bearer $(jq -r .deepseek.key ~/.pi/agent/auth.json)"` (names change over time).
