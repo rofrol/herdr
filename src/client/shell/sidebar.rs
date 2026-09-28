@@ -476,12 +476,13 @@ pub(crate) fn render_sidebar(
         });
         let dragged = dragged_family.contains(workspace.workspace_id.as_str());
         let pressed = pressed_family.contains(workspace.workspace_id.as_str());
-        // Grey on hover, accent once pressed, mauve while dragged; the
-        // name takes the same colour, so the block is found after it jumps.
+        // Grey on hover, darker grey while pressed, accent while dragged
+        // (mauve would read as a git branch); the name takes the same colour,
+        // so the block is found after it jumps.
         let grab_color = if dragged {
-            Some(palette.mauve)
-        } else if pressed {
             Some(palette.accent)
+        } else if pressed {
+            Some(palette.overlay0)
         } else if state.hovered_workspace_id == Some(workspace.workspace_id.as_str()) {
             Some(palette.overlay1)
         } else {
