@@ -5,8 +5,7 @@ fn state_with_agent(agents: bool) -> ClientShellState {
     config.spaces.agents = agents;
     let mut state = ClientShellState::new(config);
     let mut projected = snapshot();
-    let mut tokens = Vec::new();
-    tokens.push(("jobs".to_owned(), "1⧖ 2✓".to_owned()));
+    let tokens = vec![("jobs".to_owned(), "1⧖ 2✓".to_owned())];
     projected.agents.push(ClientShellAgent {
         pane_id: "pane_1".into(),
         workspace_id: "ws_1".into(),

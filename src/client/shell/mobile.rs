@@ -666,7 +666,7 @@ fn mobile_items(
             if let Some(tab) = tab.filter(|tab| tab.custom_label || workspace_tab_count > 1) {
                 detail.push(tab.label.clone());
             }
-            let waiting = waits_on_job(&endpoint.snapshot, &agent.tab_id, agent.agent_status);
+            let waiting = waits_on_job(endpoint.snapshot, &agent.tab_id, agent.agent_status);
             let status_key = status_text(agent.agent_status);
             detail.push(if waiting {
                 "waiting on job".to_owned()
