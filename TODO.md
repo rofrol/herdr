@@ -198,7 +198,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Keyboard reorder (move space up/down, whole family); none exists now.
   - The move is sent by ids (`move X before Y`); if another client changed
     the order or the anchor vanished, cancel with a notice.
-- [ ] A dragged space that is not the active one gets a light grey
+- [x] A dragged space that is not the active one gets a light grey
   background (2026-09-28), so the moving block stands out; today only the
   accent bar and name mark it, while the active space keeps its
   `active_row_bg`.
@@ -217,6 +217,12 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     light theme (#e6e9ef active leaves almost no contrast) and checked
     against agent state colours; DeepSeek wants the accent blended ~10-15%
     into the sidebar background so it reads as lifted, not selected.
+  - Done 2026-09-28: a `drag_bg` palette key (`theme.custom.drag_bg`),
+    picked per theme (`surface1` matched the active row in nord, kanagawa
+    and rose-pine), very light in light themes, none in `terminal`. Unlike
+    the advice, it shows already on press, together with the grip's accent
+    colour (my call after trying it), and on any grabbed space, the active
+    one too.
 - [ ] The space's name line gives no feedback that it can be dragged
   (2026-09-28). Now: pressing it changes nothing until the pointer moves;
   in prio/name sort, on a remote endpoint or on a linked worktree the drag

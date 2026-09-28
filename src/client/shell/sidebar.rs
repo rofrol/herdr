@@ -487,7 +487,14 @@ pub(crate) fn render_sidebar(
         } else {
             None
         };
-        if selected {
+        // A pressed or dragged block gets its own background, whichever
+        // space it is, together with the accent grip; themes without one
+        // (terminal) rely on the accent bar.
+        let drag_bg = Some(palette.drag_bg)
+            .filter(|bg| (dragged || pressed) && *bg != ratatui::style::Color::Reset);
+        if let Some(bg) = drag_bg {
+            buffer.set_style(rect, Style::default().bg(bg));
+        } else if selected {
             buffer.set_style(rect, Style::default().bg(palette.selection_bg));
         } else if workspace.focused {
             buffer.set_style(rect, Style::default().bg(palette.active_row_bg));
@@ -506,7 +513,9 @@ pub(crate) fn render_sidebar(
             workspace.focused,
             selected,
             state.selected_workspace_id.is_some(),
-            grab_color.filter(|_| dragged || pressed),
+            grab_color
+                .filter(|_| dragged || pressed)
+                .map(|name| (name, drag_bg)),
             palette,
         );
         if let Some(color) = grab_color {
@@ -1015,8 +1024,9 @@ pub(in crate::client::shell) fn render_workspace_rows(
     focused: bool,
     selected: bool,
     navigating: bool,
-    // Name colour of a pressed or dragged space.
-    grabbed: Option<ratatui::style::Color>,
+    // Name colour of a pressed or dragged space and, while dragged, its
+    // background, which wins over selected and focused.
+    grabbed: Option<(ratatui::style::Color, Option<ratatui::style::Color>)>,
     palette: &Palette,
 ) {
     for (row_index, row) in rows.iter().enumerate() {
@@ -1051,6 +1061,7 @@ pub(in crate::client::shell) fn render_workspace_rows(
             x = x.saturating_add(3);
         }
         let highlighted = focused || grabbed.is_some();
+        let grabbed = grabbed.map(|(name, _)| name);
         let workspace_style = Style::default()
             .fg(grabbed.unwrap_or(if highlighted {
                 palette.text
@@ -1083,7 +1094,10 @@ pub(in crate::client::shell) fn render_workspace_rows(
         );
     }
 
-    let background = if selected {
+    let drag_background = grabbed.and_then(|(_, background)| background);
+    let background = if drag_background.is_some() {
+        drag_background
+    } else if selected {
         Some(workspace_selection_background(palette))
     } else if focused {
         Some(workspace_active_background(palette, navigating))
