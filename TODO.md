@@ -347,6 +347,8 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     `MOONSHOT_API_KEY` or `kimi` in the auth file) and `usage.kimi_host`
     (`api.moonshot.cn` bills in CNY). Endpoint checked (401 without a key);
     not tried with a real key, since there is none on this Mac.
+  - Noted 2026-09-28: the footer still has no row for an OpenAI API key
+    (platform, pay-as-you-go); only Codex's ChatGPT limits show.
 - [ ] Review queue for agent commits, plus `herdr diff`. When an agent's turn
   ends with new commits, list them as "to review" until I acknowledge them.
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-27): a plugin with a
