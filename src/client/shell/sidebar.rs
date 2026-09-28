@@ -475,6 +475,18 @@ pub(crate) fn render_sidebar(
             target.matches(state.active_endpoint_id, &workspace.workspace_id)
         });
         let dragged = dragged_family.contains(workspace.workspace_id.as_str());
+        let pressed = pressed_family.contains(workspace.workspace_id.as_str());
+        // Grey on hover, accent once pressed, mauve while dragged; the
+        // name takes the same colour, so the block is found after it jumps.
+        let grab_color = if dragged {
+            Some(palette.mauve)
+        } else if pressed {
+            Some(palette.accent)
+        } else if state.hovered_workspace_id == Some(workspace.workspace_id.as_str()) {
+            Some(palette.overlay1)
+        } else {
+            None
+        };
         if selected {
             buffer.set_style(rect, Style::default().bg(palette.selection_bg));
         } else if workspace.focused {
@@ -490,32 +502,23 @@ pub(crate) fn render_sidebar(
             workspace.focused,
             selected,
             state.selected_workspace_id.is_some(),
-            dragged,
+            grab_color.filter(|_| dragged || pressed),
             palette,
         );
-        let pressed = pressed_family.contains(workspace.workspace_id.as_str());
-        if dragged || pressed {
-            // An accent bar marks the lifted block, a dim one the pressed
-            // block a move would lift; the selection grey stays for the
-            // selection.
-            let color = if dragged {
-                palette.accent
-            } else {
-                palette.overlay1
-            };
-            for row in rect.y..rect.bottom() {
-                put_text(buffer, rect.x, row, 1, "▌", Style::default().fg(color));
+        if let Some(color) = grab_color {
+            // A grip at the name line's right edge, left of the group
+            // chevron, in the spacer column the name never reaches.
+            let hovered = state.hovered_workspace_id == Some(workspace.workspace_id.as_str());
+            if (dragged || pressed || hovered) && rect.width >= 4 {
+                put_text(
+                    buffer,
+                    rect.right().saturating_sub(2),
+                    rect.y,
+                    1,
+                    "⋮",
+                    Style::default().fg(color).add_modifier(Modifier::BOLD),
+                );
             }
-        } else if state.hovered_workspace_id == Some(workspace.workspace_id.as_str()) {
-            // A grip on the name line says the space can be dragged.
-            put_text(
-                buffer,
-                rect.x,
-                rect.y,
-                1,
-                "⋮",
-                Style::default().fg(palette.overlay1),
-            );
         }
         hits.space_agents
             .extend(super::space_agents::render_space_agent_lines(
@@ -1007,7 +1010,8 @@ pub(in crate::client::shell) fn render_workspace_rows(
     focused: bool,
     selected: bool,
     navigating: bool,
-    dragged: bool,
+    // Name colour of a pressed or dragged space.
+    grabbed: Option<ratatui::style::Color>,
     palette: &Palette,
 ) {
     for (row_index, row) in rows.iter().enumerate() {
@@ -1041,13 +1045,13 @@ pub(in crate::client::shell) fn render_workspace_rows(
         } else {
             x = x.saturating_add(3);
         }
-        let highlighted = focused || dragged;
+        let highlighted = focused || grabbed.is_some();
         let workspace_style = Style::default()
-            .fg(if highlighted {
+            .fg(grabbed.unwrap_or(if highlighted {
                 palette.text
             } else {
                 palette.subtext0
-            })
+            }))
             .add_modifier(if highlighted {
                 Modifier::BOLD
             } else {

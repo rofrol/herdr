@@ -239,6 +239,16 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     Hover-only after all: a grip on every row is noise, and the first
     column costs no width. Still open: OSC 22, and all of this in the
     multi-endpoint sidebar.
+  - Changed the same day at my request: no bars. The grip `⋮` sits at the
+    name line's right edge (the spacer column left of the group chevron):
+    grey on hover; on press the grip and the name turn accent; while
+    dragged, mauve and bold, also outside the list. Consulted models (GPT-6
+    Astra, DeepSeek): both read "its colour" as the grip's, and both said
+    to recolour the name text too, since a one-cell cue is lost when the
+    list reorders live; never a new row background (selection and focus
+    own those). DeepSeek warned that `⋮▾` side by side invites toggling
+    the group by mistake; the chevron's hit cell stays separate, so watch
+    for that.
 - [ ] "Restart agents…": restart agent CLIs (Claude, pi) after they update,
   resuming their sessions, e.g. when Claude reports that a new version is
   available. Should herdr tell the instances to restart once they finish

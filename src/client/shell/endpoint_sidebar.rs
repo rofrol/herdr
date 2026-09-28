@@ -510,7 +510,7 @@ pub(super) fn render_expanded(
                     endpoint_active && workspace.focused,
                     selected,
                     state.selected_workspace_id.is_some(),
-                    false,
+                    None,
                     palette,
                 );
                 // Clicking another endpoint's agent line selects its space;

@@ -271,17 +271,19 @@ fn workspace_click_waits_for_release_and_drag_reorders_by_stable_id() {
     let frame = state.compose(106, 24).expect("live drag preview");
     let rows = frame_rows(&frame);
     assert!(rows[0].contains("client-shell → end"), "{}", rows[0]);
-    // The preview draws the dragged space last, marked with an accent bar.
+    // The preview draws the dragged space last, its grip at the right edge.
     let dragged = state
         .hits
         .workspaces
         .last()
         .expect("dragged space drawn last");
     assert_eq!(dragged.workspace_id, "ws_1");
-    assert!(
-        rows[dragged.rect.y as usize].starts_with('▌'),
-        "{}",
-        rows[dragged.rect.y as usize]
+    let grip = &frame.cells
+        [dragged.rect.y as usize * frame.width as usize + dragged.rect.right() as usize - 2];
+    assert_eq!(grip.symbol, "⋮");
+    assert_eq!(
+        grip.fg,
+        crate::protocol::color_to_u32(state.config.palette.mauve)
     );
 
     let release =
@@ -443,22 +445,37 @@ fn a_space_shows_it_can_be_dragged_on_hover_press_and_outside_the_list() {
         let frame = state.compose(106, 24).expect("frame");
         frame_rows(&frame)[y as usize].clone()
     };
+    // Colour of the grip at the right edge of the space's name line.
+    let grip = |state: &mut ClientShellState, workspace_id: &str| {
+        let frame = state.compose(106, 24).expect("frame");
+        let rect = state
+            .hits
+            .workspaces
+            .iter()
+            .find(|hit| hit.workspace_id == workspace_id)
+            .expect("space drawn")
+            .rect;
+        let cell = &frame.cells[rect.y as usize * frame.width as usize + rect.right() as usize - 2];
+        (cell.symbol == "⋮").then_some(cell.fg)
+    };
+    let color = |color| Some(crate::protocol::color_to_u32(color));
+    let palette = state.config.palette.clone();
 
-    // Hovering the name line shows a grip in the first column.
+    // Hovering the name line shows a grey grip at its right edge.
     let hover = state.handle_raw_events(vec![mouse(MouseEventKind::Moved, first.x + 2, first.y)]);
     assert!(hover.repaint);
-    assert!(row(&mut state, first.y).starts_with('⋮'));
-    assert!(!row(&mut state, second.y).starts_with('⋮'));
+    assert_eq!(grip(&mut state, "ws_1"), color(palette.overlay1));
+    assert_eq!(grip(&mut state, "ws_2"), None);
 
-    // A press marks the block before any move; a release in place still
-    // focuses the space.
+    // A press turns the grip accent before any move; a release in place
+    // still focuses the space.
     state.handle_raw_events(vec![mouse(
         MouseEventKind::Down(MouseButton::Left),
         second.x + 2,
         second.y,
     )]);
-    assert!(row(&mut state, second.y).starts_with('▌'));
-    assert!(!row(&mut state, first.y).starts_with('⋮'));
+    assert_eq!(grip(&mut state, "ws_2"), color(palette.accent));
+    assert_eq!(grip(&mut state, "ws_1"), None);
     let click = state.handle_raw_events(vec![mouse(
         MouseEventKind::Up(MouseButton::Left),
         second.x + 2,
@@ -473,9 +490,9 @@ fn a_space_shows_it_can_be_dragged_on_hover_press_and_outside_the_list() {
                     if target.workspace_id == "ws_2"
             )
     ));
-    assert!(!row(&mut state, second.y).starts_with('▌'));
+    assert_eq!(grip(&mut state, "ws_2"), None);
 
-    // Outside the list the block stays lifted and the header says a release
+    // Outside the list the grip stays mauve and the header says a release
     // cancels.
     state.handle_raw_events(vec![mouse(
         MouseEventKind::Down(MouseButton::Left),
@@ -498,7 +515,7 @@ fn a_space_shows_it_can_be_dragged_on_hover_press_and_outside_the_list() {
         Some(ClientChromeDrag::Workspace { target: None, .. })
     ));
     assert!(row(&mut state, 0).contains("release cancels"));
-    assert!(row(&mut state, first.y).starts_with('▌'));
+    assert_eq!(grip(&mut state, "ws_1"), color(palette.mauve));
     let released = state.handle_raw_events(vec![mouse(
         MouseEventKind::Up(MouseButton::Left),
         footer.x + 1,
@@ -513,7 +530,7 @@ fn a_space_shows_it_can_be_dragged_on_hover_press_and_outside_the_list() {
     state.compose(106, 24).expect("sorted by name");
     let first = state.hits.workspaces[0].rect;
     state.handle_raw_events(vec![mouse(MouseEventKind::Moved, first.x + 2, first.y)]);
-    assert!(!row(&mut state, first.y).starts_with('⋮'));
+    assert_eq!(grip(&mut state, "ws_1"), None);
     state.handle_raw_events(vec![
         mouse(
             MouseEventKind::Down(MouseButton::Left),
