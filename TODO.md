@@ -375,6 +375,10 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   so `just check` fails there and agents run narrower checks, and the fork
   has never had a GitHub Actions run although `ci.yml` has a
   `windows-latest` job (`just check` in pwsh plus the ConPTY smoke test).
+  - Also try the Windows Claude hook live (`herdr-agent-state.ps1`,
+    integration v11): the awaiting-reply instruction it prints from
+    `SessionStart` and the `Bash(herdr agent awaiting-reply)` rule are
+    untested there (Claude may run commands through PowerShell).
   - Local: `cargo install xwin --locked`, then `just setup-windows-cross`
     (the user accepts Microsoft's SDK license), and prove a full
     `just check` passes before the fork section of CLAUDE.md requires it.
@@ -578,8 +582,18 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     (`HERDR_AWAITING_REPLY_INSTRUCTIONS=0` leaves it out). Tried live with
     Claude Haiku 4.5 (Claude Code 2.1.283): it ran the command without a
     prompt, but wrote the question twice, before and after the command.
-  - Later: its own glyph (`?`) with the symbols audit below; adapters for
-    other agents; untested Windows hook (`herdr-agent-state.ps1`).
+  - Done (2026-09-28): its own glyph, `?` in the finished colour in both
+    indicator styles, winning over the waiting-on-job mark; the state text
+    reads "awaiting reply".
+- [ ] Awaiting reply for agents other than Claude, the same way as their
+  integrations (user, 2026-09-28): each integration that can add session
+  context (a session-start hook, an extension, a plugin) injects the same
+  instruction, and where the agent has a command allowlist the install
+  adds `herdr agent awaiting-reply` to it, so reporting never stops at a
+  permission prompt. Integrations today: antigravity_cli, codex, copilot,
+  cursor, devin, droid, grok, hermes, kilo, kimi, letta, mastracode, omp,
+  opencode, pi, qodercli, qwen. Check per agent what it offers; bump each
+  changed integration's version once; try each live.
 - [x] Consult stats log DeepSeek under the alias it was called with
   (`deepseek-flash`, now V4.1), so when the alias moves to a new model the
   stats of both merge and we cannot tell which was which.
