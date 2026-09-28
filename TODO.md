@@ -17,6 +17,12 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Agent states are circles that differ by shape, not only colour (now
     working, blocked and done are all `●`): `◐` working, `◉` blocked (as on
     mobile already), `●` done and unseen, `○` idle; colours stay.
+    Done 2026-09-29: a `shapes` indicator style, the fork's default
+    (settings > indicators offers dots, symbols, shapes); a waiting-on-job
+    mark is `◷` there, as in symbols. Consulted (GPT-6 Astra, DeepSeek):
+    both chose a new style over changing `dots`; both warned `◉` and `●`
+    blur at small font sizes (DeepSeek: use the symbols' `×` for blocked);
+    kept `◉` as decided, the colour differs too.
     Priority lists agents, not spaces (a space-sorted list buries several
     urgent agents), with the space on the second line; spaces without
     agents collapse into "other spaces" at the bottom. Freeze the order

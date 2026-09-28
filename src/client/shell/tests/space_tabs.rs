@@ -399,7 +399,8 @@ fn an_idle_tab_with_a_running_job_shows_the_waiting_mark() {
     set_agent_status(&mut state, AgentStatus::Idle, false);
     with_job(&mut state, "job_1", TabStatus::Running);
     let mauve = state.config.palette.mauve;
-    assert_eq!(tab_icon_color(&mut state), ("●".to_owned(), mauve));
+    // The shapes style (the default) marks it with a clock.
+    assert_eq!(tab_icon_color(&mut state), ("◷".to_owned(), mauve));
 
     // A finished job, or a working agent, keeps the usual status.
     let mut state = state_with_tabs(true);

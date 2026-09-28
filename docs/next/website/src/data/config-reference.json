@@ -1159,11 +1159,12 @@
         {
           "key": "ui.status_indicators",
           "type": "enum",
-          "default": "\"dots\"",
-          "description": "Choose compact color dots or distinct static symbols for agent states.",
+          "default": "\"shapes\"",
+          "description": "Choose compact color dots, distinct static symbols, or circles that differ by shape (◐ working, ◉ blocked, ● done, ○ idle) for agent states.",
           "values": [
             "dots",
-            "symbols"
+            "symbols",
+            "shapes"
           ]
         },
         {

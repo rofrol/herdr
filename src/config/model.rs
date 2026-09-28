@@ -111,9 +111,12 @@ enum LegacyAgentPanelScopeConfig {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum StatusIndicatorStyle {
-    #[default]
     Dots,
     Symbols,
+    /// Circles that differ by shape, not only colour: `◐` working, `◉`
+    /// blocked, `●` done, `○` idle. The fork's default.
+    #[default]
+    Shapes,
 }
 
 impl StatusIndicatorStyle {
@@ -121,6 +124,7 @@ impl StatusIndicatorStyle {
         match self {
             Self::Dots => "dots",
             Self::Symbols => "symbols",
+            Self::Shapes => "shapes",
         }
     }
 }
@@ -996,7 +1000,8 @@ pub struct UiConfig {
     /// Retired setting that Herdr wrote before the workspace filter was removed.
     #[serde(rename = "agent_panel_scope")]
     _legacy_agent_panel_scope: Option<LegacyAgentPanelScopeConfig>,
-    /// Agent status indicator style. Saved values are "dots" or "symbols". Default: "dots".
+    /// Agent status indicator style. Saved values are "dots", "symbols" or
+    /// "shapes". Default: "shapes".
     pub status_indicators: StatusIndicatorStyle,
     /// Expanded sidebar row composition.
     pub sidebar: SidebarConfig,
@@ -1226,7 +1231,7 @@ impl Default for UiConfig {
             window_title: super::window_title::default_window_title(),
             agent_panel_sort: AgentPanelSortConfig::Spaces,
             _legacy_agent_panel_scope: None,
-            status_indicators: StatusIndicatorStyle::Dots,
+            status_indicators: StatusIndicatorStyle::Shapes,
             sidebar: SidebarConfig::default(),
             accent: "cyan".into(),
             toast: ToastConfig::default(),
@@ -1475,10 +1480,10 @@ agent_panel_scope = "current"
     }
 
     #[test]
-    fn status_indicator_style_defaults_to_dots_and_parses_symbols() {
+    fn status_indicator_style_defaults_to_shapes_and_parses_symbols() {
         assert_eq!(
             Config::default().ui.status_indicators,
-            StatusIndicatorStyle::Dots
+            StatusIndicatorStyle::Shapes
         );
 
         let config: Config = toml::from_str(
