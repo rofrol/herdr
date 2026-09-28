@@ -238,6 +238,7 @@ pub(super) struct ShellRenderState<'a> {
     pub(super) remote_collapsed_groups: &'a HashMap<ClientEndpointId, HashSet<String>>,
     /// Local tabs whose nested tabs are unfolded as squares.
     pub(super) unfolded_squares: &'a HashSet<String>,
+    pub(super) held_squares: &'a super::space_tabs::HeldSquares,
     pub(super) workspace_scroll: &'a mut usize,
     pub(super) agent_scroll: &'a mut usize,
     pub(super) tab_scroll: &'a mut usize,

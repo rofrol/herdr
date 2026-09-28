@@ -11,6 +11,9 @@ impl ClientShellState {
         if !self.config.mouse_capture {
             return;
         }
+        if self.on_gone_square(point) {
+            return;
+        }
         // A tab line lies inside its space's block but closes only its tab.
         if let Some(tab_id) = self.space_tab_at(point) {
             self.request_tab_close(tab_id, outcome);
@@ -112,6 +115,15 @@ impl ClientShellState {
         false
     }
 
+    /// A closed job's blank slot, held while the pointer is over the list:
+    /// clicks there do nothing, not even act on the space around it.
+    fn on_gone_square(&self, point: (u16, u16)) -> bool {
+        self.hits
+            .space_tab_gone
+            .iter()
+            .any(|rect| super::contains(*rect, point))
+    }
+
     /// The tab a left click on a tab line or square focuses, or none when
     /// the click folds or unfolds the line's squares (on its triangle and
     /// counts). A square opens its tab, and the open one goes back to its
@@ -145,6 +157,9 @@ impl ClientShellState {
             } else {
                 self.unfolded_squares.insert(tab_id);
             }
+            return Some(None);
+        }
+        if self.on_gone_square(point) {
             return Some(None);
         }
         if let Some(tab_id) = hit(&self.hits.space_tab_more) {
@@ -856,6 +871,13 @@ impl ClientShellState {
     }
 
     pub(super) fn handle_mouse(&mut self, mouse: MouseEvent, outcome: &mut ClientShellInput) {
+        let over_spaces = !self.sidebar_collapsed
+            && super::contains(self.hits.workspace_body, (mouse.column, mouse.row));
+        if self.pointer_over_spaces != over_spaces {
+            self.pointer_over_spaces = over_spaces;
+            // Leaving lets closed jobs' blank slots go.
+            outcome.repaint |= !self.hits.space_tab_gone.is_empty();
+        }
         self.update_link_hover(mouse, outcome);
         self.update_workspace_hover(mouse, outcome);
         let point = (mouse.column, mouse.row);
@@ -2054,6 +2076,9 @@ impl ClientShellState {
                     }
                 }
                 if !self.config.mouse_capture {
+                    return;
+                }
+                if self.on_gone_square(point) {
                     return;
                 }
                 if let Some(tab_id) = self.space_tab_at(point) {

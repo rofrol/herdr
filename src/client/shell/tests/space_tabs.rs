@@ -639,3 +639,55 @@ fn the_more_slot_shows_every_square_until_the_line_folds() {
     state.compose(106, 30).unwrap();
     assert_eq!(state.hits.space_tab_squares.len(), 14);
 }
+
+#[test]
+fn a_closed_jobs_square_keeps_its_slot_while_the_pointer_is_over_the_list() {
+    let mut state = state_with_tabs(true);
+    state.config.confirm_close = false;
+    with_job(&mut state, "job_1", TabStatus::Succeeded);
+    with_job(&mut state, "job_2", TabStatus::Running);
+    click_fold(&mut state);
+    state.compose(106, 30).unwrap();
+    let (first, _) = state.hits.space_tab_squares[0];
+    let (second, _) = state.hits.space_tab_squares[1];
+    let move_to = |state: &mut ClientShellState, (column, row): (u16, u16)| {
+        state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+            kind: crossterm::event::MouseEventKind::Moved,
+            column,
+            row,
+            modifiers: KeyModifiers::empty(),
+        })]);
+        state.compose(106, 30).unwrap();
+    };
+    move_to(&mut state, (first.x + 1, first.y));
+
+    // job_1 closes itself under the pointer.
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    projected.tabs.retain(|tab| tab.tab_id != "job_1");
+    state.set_snapshot(Box::new(projected));
+    state.compose(106, 30).unwrap();
+    assert_eq!(state.hits.space_tab_gone, [first]);
+    assert_eq!(state.hits.space_tab_squares, [(second, "job_2".to_owned())]);
+
+    // Its blank slot takes no click, not even the space's middle-click close.
+    let outcome =
+        state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+            kind: crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Middle),
+            column: first.x + 1,
+            row: first.y,
+            modifiers: KeyModifiers::empty(),
+        })]);
+    assert!(outcome.actions.is_empty(), "{:?}", outcome.actions);
+    assert!(state.overlay.is_none());
+    assert!(!focuses(
+        &left_click(&mut state, (first.x + 1, first.y)),
+        "tab_1"
+    ));
+
+    // Leaving the list lets the others close up.
+    let pane = state.hits.panes[0].inner_rect;
+    move_to(&mut state, (pane.x, pane.y));
+    state.compose(106, 30).unwrap();
+    assert!(state.hits.space_tab_gone.is_empty());
+    assert_eq!(state.hits.space_tab_squares, [(first, "job_2".to_owned())]);
+}

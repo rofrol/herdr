@@ -235,7 +235,6 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     state client-local, not in the saved collapsed set; measure the square
     rows once for layout and drawing, and again with the scrollbar column
     when the list overflows. Still open: the hover name on the sidebar's
-    keeping squares in place while the pointer is over the sidebar,
     squares in the multi-machine sidebar.
   - Changed 2026-09-28 (mockup updated, same link): a disclosure triangle
     right before the counts, `► ⧖ 1 !1` (`▼` unfolded, dim grey, inside
@@ -265,6 +264,14 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     later (chosen: row scrolling touches drag and drop, reveal and the
     scrollbar). Still open: row scrolling for a space that is still taller
     than the list.
+  - Done 2026-09-28: while the pointer is over the spaces list, a job tab
+    that closes (a success after 10 s, a close elsewhere) leaves a blank,
+    inert slot, so the other squares do not move under the pointer; new
+    jobs come last; leaving the list (or the window losing focus) closes
+    the gaps. The order is the one drawn last frame, not a snapshot taken
+    when the pointer enters (DeepSeek: no enter edge to miss). A blank slot
+    takes no click, so a middle-click there cannot fall through to closing
+    the space (Astra). A tab line that closes still moves the rest.
   - Consulted (GPT-6 Astra, DeepSeek, 2026-09-28): both called the squares
     fine but removing the rows risky (no navigation with the sidebar
     hidden, keyboard). Both wanted a per-tab number in the square (`1⧖`,

@@ -109,6 +109,11 @@ pub(super) struct ShellHitMap {
     pub(super) space_tab_squares: Vec<(Rect, String)>,
     /// `+N` slots of capped square rows, with the tab they show all of.
     pub(super) space_tab_more: Vec<(Rect, String)>,
+    /// Blank slots of job tabs that closed while the pointer was over the
+    /// sidebar.
+    pub(super) space_tab_gone: Vec<Rect>,
+    /// The square order drawn, taken into `held_squares` after each frame.
+    pub(super) space_tab_square_order: super::space_tabs::HeldSquares,
     pub(super) endpoint_agents: Vec<(Rect, ClientEndpointId, String)>,
     pub(super) agent_body: Rect,
     pub(super) agent_scrollbar: Rect,
@@ -962,6 +967,11 @@ pub(crate) struct ClientShellState {
     /// Local tabs whose nested tabs are unfolded as squares under their tab
     /// line; folded by default and not saved.
     pub(super) unfolded_squares: HashSet<String>,
+    /// The squares' order as last drawn; held while the pointer is over the
+    /// spaces list, so a job tab that closes leaves a blank slot instead of
+    /// moving the others.
+    pub(super) held_squares: super::space_tabs::HeldSquares,
+    pub(super) pointer_over_spaces: bool,
     pub(super) workspace_scroll: usize,
     pub(super) agent_scroll: usize,
     pub(super) pending_agent_reveal: Option<(ClientEndpointId, String)>,
@@ -1137,6 +1147,8 @@ impl ClientShellState {
             collapsed_groups: preferences.collapsed_groups.into_iter().collect(),
             remote_collapsed_groups,
             unfolded_squares: HashSet::new(),
+            held_squares: HashMap::new(),
+            pointer_over_spaces: false,
             workspace_scroll: 0,
             agent_scroll: 0,
             pending_agent_reveal: None,

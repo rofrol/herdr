@@ -388,6 +388,7 @@ pub(crate) fn render_sidebar(
                             workspace,
                             state.collapsed_groups,
                             state.unfolded_squares,
+                            state.held_squares,
                             config,
                         );
                         let rows = workspace_rows(
@@ -477,6 +478,7 @@ pub(crate) fn render_sidebar(
             workspace,
             state.collapsed_groups,
             state.unfolded_squares,
+            state.held_squares,
             config,
         );
         let tab_jobs = super::space_tabs::space_row_tab_jobs(
@@ -575,6 +577,8 @@ pub(crate) fn render_sidebar(
         hits.space_tab_folds.extend(tab_hits.folds);
         hits.space_tab_squares.extend(tab_hits.squares);
         hits.space_tab_more.extend(tab_hits.more);
+        hits.space_tab_gone.extend(tab_hits.gone);
+        hits.space_tab_square_order.extend(tab_hits.order);
         let group_toggle = if config.spaces.tabs {
             super::space_tabs::render_space_disclosure(
                 buffer,

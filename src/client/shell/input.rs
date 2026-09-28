@@ -252,6 +252,10 @@ impl ClientShellState {
                 }
                 RawInputEvent::OuterFocusLost => {
                     outcome.repaint |= self.clear_link_hover();
+                    // The pointer may leave the window without another event.
+                    self.pointer_over_spaces = false;
+                    outcome.repaint |= !self.hits.space_tab_gone.is_empty()
+                        || self.hovered_square.take().is_some();
                     self.outer_focused = Some(false);
                     self.release_input_leases(&mut outcome);
                     outcome

@@ -19,6 +19,10 @@ fn restore_mode_bar(
     }
 }
 
+/// No held order: squares close up at once.
+static NO_HELD_SQUARES: std::sync::LazyLock<super::space_tabs::HeldSquares> =
+    std::sync::LazyLock::new(super::space_tabs::HeldSquares::new);
+
 impl ClientShellState {
     fn compose_unavailable(&mut self, cols: u16, rows: u16) -> FrameData {
         let layout = self.layout(cols, rows);
@@ -63,6 +67,11 @@ impl ClientShellState {
             collapsed_groups: &self.collapsed_groups,
             remote_collapsed_groups: &self.remote_collapsed_groups,
             unfolded_squares: &self.unfolded_squares,
+            held_squares: if self.pointer_over_spaces {
+                &self.held_squares
+            } else {
+                &NO_HELD_SQUARES
+            },
             workspace_scroll: &mut self.workspace_scroll,
             agent_scroll: &mut self.agent_scroll,
             tab_scroll: &mut self.tab_scroll,
@@ -245,6 +254,11 @@ impl ClientShellState {
                 collapsed_groups: &self.collapsed_groups,
                 remote_collapsed_groups: &self.remote_collapsed_groups,
                 unfolded_squares: &self.unfolded_squares,
+                held_squares: if self.pointer_over_spaces {
+                    &self.held_squares
+                } else {
+                    &NO_HELD_SQUARES
+                },
                 workspace_scroll: &mut self.workspace_scroll,
                 agent_scroll: &mut self.agent_scroll,
                 tab_scroll: &mut self.tab_scroll,
@@ -268,6 +282,8 @@ impl ClientShellState {
                 space_sort: self.space_sort,
             },
         );
+        // The next frame holds this order while the pointer is over the list.
+        self.held_squares = std::mem::take(&mut self.hits.space_tab_square_order);
         self.hits.panes = surface
             .panes
             .iter()

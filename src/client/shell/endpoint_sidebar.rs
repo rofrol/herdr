@@ -330,6 +330,7 @@ pub(super) fn render_expanded(
                             workspace,
                             collapsed_groups,
                             &HashSet::new(),
+                            &super::space_tabs::HeldSquares::new(),
                             config,
                         );
                         let rows = super::sidebar::workspace_rows(
@@ -474,6 +475,7 @@ pub(super) fn render_expanded(
                     workspace,
                     collapsed_groups,
                     &HashSet::new(),
+                    &super::space_tabs::HeldSquares::new(),
                     config,
                 );
                 let tab_jobs = super::space_tabs::space_row_tab_jobs(
