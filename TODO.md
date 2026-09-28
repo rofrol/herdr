@@ -286,6 +286,32 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     no consult-specific code in core. Keep latency/tokens from crushing the
     checkbox and model name (a detail view per model).
   - Deferred: one consumer does not justify a plugin settings framework yet.
+- [ ] herdr > menu > settings: the consult skills (gpt, gemini, deepseek,
+  consult-stats) get their own settings section, like Integrations (agent
+  hooks) but a separate item: per agent (Claude Code, pi) whether the skills
+  are installed, with an install button. Today only the "Consult: install
+  skills" popup runs `plugins/consult/install-skills`.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28): both advise against
+    a core section for now (one plugin, four coupled skills); the missing
+    value is status, not placement. Start in the plugin: the popup shows the
+    state per agent and installs or repairs.
+  - If it goes into core, make it generic, not consult-specific: plugins
+    declare skills in `herdr-plugin.toml`, the server advertises new methods
+    (`skill.list`, `skill.install`), and agents are data-driven strings;
+    never new `IntegrationTarget` variants (frozen enum). Installing is not
+    enabling: per-model checkboxes and stats stay on the consults page above.
+  - One row per bundle × agent (the four skills go together: the scripts find
+    `consult-stats` as a sibling), expandable to skills. States: linked,
+    missing, broken link, conflict (a real directory at the destination),
+    mixed; warnings: possibly shadowed by `~/.agents/skills`, plugin
+    installed as a copy (links into it break on update). Install/repair
+    never overwrites foreign files; uninstall (later) removes only links
+    that point into the plugin. Agents without a skills directory are
+    "unsupported", not "missing".
+  - The server writes into its own host's home: with remote endpoints show
+    which host is affected. Windows symlinks need their own handling.
+  - Smallest stage: read-only status plus bundle install/repair in the
+    popup; a settings entry, if any, only opens that popup.
 - [ ] Workspace recipes (tmuxp-like): a TOML file under
   `~/.config/herdr/recipes/` naming a root, panes, splits and commands.
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-27): a plugin built on
