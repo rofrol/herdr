@@ -191,6 +191,47 @@ fn an_idle_agent_with_a_running_job_shows_the_waiting_mark() {
 }
 
 #[test]
+fn an_agent_awaiting_a_reply_shows_a_question_mark_over_a_running_job() {
+    for style in [
+        crate::config::StatusIndicatorStyle::Dots,
+        crate::config::StatusIndicatorStyle::Symbols,
+    ] {
+        let mut state = state_with_agent(true);
+        state.config.status_indicators = style;
+        let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+        projected.agents[0].awaiting_reply = true;
+        state.set_snapshot(Box::new(projected));
+        with_job(&mut state, AgentStatus::Idle, Some(TabStatus::Running));
+        let done = super::super::status_color(AgentStatus::Done, &state.config.palette);
+        assert_eq!(agent_icon_color(&mut state), ("?".to_owned(), done));
+    }
+
+    // Working again wins over the report.
+    let mut state = state_with_agent(true);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    projected.agents[0].awaiting_reply = true;
+    state.set_snapshot(Box::new(projected));
+    with_job(&mut state, AgentStatus::Working, None);
+    assert_eq!(agent_icon_color(&mut state).1, state.config.palette.yellow);
+}
+
+#[test]
+fn a_tab_with_an_agent_awaiting_a_reply_shows_a_question_mark() {
+    let mut state = state_with_agent(true);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    projected.agents[0].awaiting_reply = true;
+    state.set_snapshot(Box::new(projected));
+    with_job(&mut state, AgentStatus::Idle, None);
+    let frame = state.compose(106, 30).unwrap();
+    let buffer = frame.to_ratatui_buffer().expect("buffer");
+    let bar = state.hits.tab_bar;
+    let row: String = (bar.x..bar.right())
+        .map(|x| buffer[(x, bar.y)].symbol().to_owned())
+        .collect();
+    assert!(row.contains("? "), "{row:?}");
+}
+
+#[test]
 fn the_symbols_style_uses_a_clock_for_waiting() {
     let mut state = state_with_agent(true);
     state.config.status_indicators = crate::config::StatusIndicatorStyle::Symbols;

@@ -27,7 +27,7 @@ pub(crate) fn render_tab_bar(
         .map(|tab| {
             let summary =
                 tab_groups::children_summary(&tab_groups::child_tabs(snapshot, &tab.tab_id));
-            let label = match tab_state_icon(tab, config) {
+            let label = match tab_state_icon(tab, snapshot, config) {
                 Some(icon) => format!("{icon} {}", tab_label(tab, snapshot, config)),
                 None => tab_label(tab, snapshot, config),
             };
@@ -177,7 +177,7 @@ pub(crate) fn render_tab_bar(
         // Color the agent state like the sidebar does, except on the accent
         // fill, where the palette's state colors can vanish. A disconnected
         // endpoint's state is stale, so it is dimmed like in the sidebar.
-        if let Some(icon) = tab_state_icon(tab, config) {
+        if let Some(icon) = tab_state_icon(tab, snapshot, config) {
             let fg = if stale {
                 Some(palette.overlay0)
             } else {
@@ -626,9 +626,19 @@ fn max_tab_scroll(widths: &[u16], available: u16) -> usize {
 
 /// The tab's agent state in the sidebar's indicator style; none for tabs
 /// without a detected agent.
-fn tab_state_icon(tab: &ClientShellTab, config: &ClientShellConfig) -> Option<&'static str> {
-    (tab.agent_status != crate::api::schema::AgentStatus::Unknown)
-        .then(|| status_icon(tab.agent_status, config.status_indicators))
+fn tab_state_icon(
+    tab: &ClientShellTab,
+    snapshot: &ClientShellSnapshot,
+    config: &ClientShellConfig,
+) -> Option<&'static str> {
+    (tab.agent_status != crate::api::schema::AgentStatus::Unknown).then(|| {
+        aggregate_icon(
+            snapshot,
+            tab.agent_status,
+            config.status_indicators,
+            |agent| agent.tab_id == tab.tab_id,
+        )
+    })
 }
 
 /// Task titles are model-written sentences; a fixed width keeps the tab bar

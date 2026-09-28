@@ -177,7 +177,12 @@ pub(super) fn render_collapsed(
                 rect.x.saturating_add(number_width),
                 rect.y,
                 rect.width.saturating_sub(number_width),
-                status_icon(workspace.agent_status, config.status_indicators),
+                aggregate_icon(
+                    snapshot,
+                    workspace.agent_status,
+                    config.status_indicators,
+                    |agent| agent.workspace_id == workspace.workspace_id,
+                ),
                 Style::default()
                     .fg(if stale {
                         palette.overlay0
@@ -500,11 +505,15 @@ pub(super) fn render_expanded(
                 let selected = state.selected_workspace_id.is_some_and(|target| {
                     target.matches(&endpoint.endpoint_id, &workspace.workspace_id)
                 });
+                let icon = aggregate_icon(snapshot, status, config.status_indicators, |agent| {
+                    super::sidebar::displayed_workspaces(snapshot, workspace, collapsed_groups)
+                        .any(|shown| shown.workspace_id == agent.workspace_id)
+                });
                 super::sidebar::render_workspace_rows(
                     buffer,
                     nested,
                     status,
-                    config.status_indicators,
+                    icon,
                     entry,
                     tokens,
                     endpoint_active && workspace.focused,

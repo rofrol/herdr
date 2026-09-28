@@ -109,7 +109,12 @@ fn render_header_status(
         name_width.min(3),
         &format!(
             " {} ",
-            status_icon(workspace.agent_status, config.status_indicators)
+            aggregate_icon(
+                snapshot,
+                workspace.agent_status,
+                config.status_indicators,
+                |agent| agent.workspace_id == workspace.workspace_id,
+            )
         ),
         Style::default()
             .fg(status_color(workspace.agent_status, palette))
@@ -666,9 +671,11 @@ fn mobile_items(
             if let Some(tab) = tab.filter(|tab| tab.custom_label || workspace_tab_count > 1) {
                 detail.push(tab.label.clone());
             }
-            let waiting = waits_on_job(endpoint.snapshot, &agent.tab_id, agent.agent_status);
+            let mark = agent_mark(endpoint.snapshot, agent);
             let status_key = status_text(agent.agent_status);
-            detail.push(if waiting {
+            detail.push(if mark == AgentMark::AwaitsReply {
+                "awaiting reply".to_owned()
+            } else if mark == AgentMark::WaitsOnJob {
                 "waiting on job".to_owned()
             } else {
                 agent
@@ -708,12 +715,12 @@ fn mobile_items(
                     Line::from(vec![
                         Span::styled("  ", Style::default().bg(background)),
                         Span::styled(
-                            agent_icon(agent.agent_status, waiting, config.status_indicators),
+                            agent_icon(agent.agent_status, mark, config.status_indicators),
                             Style::default()
                                 .fg(if endpoint.stale() {
                                     palette.overlay0
                                 } else {
-                                    agent_color(agent.agent_status, waiting, palette)
+                                    agent_color(agent.agent_status, mark, palette)
                                 })
                                 .bg(background)
                                 .add_modifier(dim),
@@ -840,7 +847,12 @@ fn mobile_items(
                                 .add_modifier(dim),
                         ),
                         Span::styled(
-                            status_icon(workspace.agent_status, config.status_indicators),
+                            aggregate_icon(
+                                endpoint.snapshot,
+                                workspace.agent_status,
+                                config.status_indicators,
+                                |agent| agent.workspace_id == workspace.workspace_id,
+                            ),
                             Style::default().fg(status).bg(background).add_modifier(dim),
                         ),
                         Span::styled(" ", Style::default().bg(background)),

@@ -18,7 +18,7 @@ pub(super) enum SpaceAgentLine {
     Agent {
         pane_id: String,
         status: crate::api::schema::AgentStatus,
-        waiting: bool,
+        mark: AgentMark,
         text: String,
         focused: bool,
     },
@@ -101,7 +101,7 @@ pub(super) fn space_agent_lines(
         lines.push(SpaceAgentLine::Agent {
             pane_id: agent.pane_id.clone(),
             status: agent.agent_status,
-            waiting: waits_on_job(snapshot, &agent.tab_id, agent.agent_status),
+            mark: agent_mark(snapshot, agent),
             text,
             focused: agent.focused,
         });
@@ -194,7 +194,7 @@ pub(super) fn render_space_agent_lines(
         match line {
             SpaceAgentLine::Agent {
                 status,
-                waiting,
+                mark,
                 text,
                 focused,
                 ..
@@ -205,8 +205,8 @@ pub(super) fn render_space_agent_lines(
                     x,
                     y,
                     1,
-                    agent_icon(*status, *waiting, config.status_indicators),
-                    Style::default().fg(agent_color(*status, *waiting, palette)),
+                    agent_icon(*status, *mark, config.status_indicators),
+                    Style::default().fg(agent_color(*status, *mark, palette)),
                 );
                 let text_x = x.saturating_add(2);
                 let width = area.right().saturating_sub(text_x).saturating_sub(1);
@@ -391,7 +391,7 @@ mod tests {
                 SpaceAgentLine::Agent {
                     pane_id: "pane_1".into(),
                     status: AgentStatus::Working,
-                    waiting: false,
+                    mark: AgentMark::None,
                     text: "Fix the drop marker".into(),
                     focused: false,
                 },
@@ -407,14 +407,14 @@ mod tests {
                 SpaceAgentLine::Agent {
                     pane_id: "pane_2".into(),
                     status: AgentStatus::Working,
-                    waiting: false,
+                    mark: AgentMark::None,
                     text: "Same tab".into(),
                     focused: false,
                 },
                 SpaceAgentLine::Agent {
                     pane_id: "pane_3".into(),
                     status: AgentStatus::Working,
-                    waiting: false,
+                    mark: AgentMark::None,
                     text: "claude · no task".into(),
                     focused: false,
                 },

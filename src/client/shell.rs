@@ -218,31 +218,79 @@ fn waits_on_job(
         })
 }
 
-/// `status_icon`, or the waiting-on-a-job mark: a filled dot in the Dots
-/// style (easy to spot in a long list), `◷` in the Symbols style.
+/// What a finished agent waits on, beyond its `AgentStatus`. A TUI presentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AgentMark {
+    None,
+    /// A job it started still runs (see `waits_on_job`).
+    WaitsOnJob,
+    /// Its turn ended with a question for the user (`awaiting_reply`), which
+    /// wins over a running job: only the user can move it on.
+    AwaitsReply,
+}
+
+fn agent_mark(
+    snapshot: &crate::protocol::ClientShellSnapshot,
+    agent: &crate::protocol::ClientShellAgent,
+) -> AgentMark {
+    use crate::api::schema::AgentStatus;
+    if agent.awaiting_reply && matches!(agent.agent_status, AgentStatus::Idle | AgentStatus::Done) {
+        AgentMark::AwaitsReply
+    } else if waits_on_job(snapshot, &agent.tab_id, agent.agent_status) {
+        AgentMark::WaitsOnJob
+    } else {
+        AgentMark::None
+    }
+}
+
+/// `status_icon` for a tab's or workspace's aggregate status, or `?` when that
+/// status is `Done` because one of its agents (`in_group`) awaits a reply.
+fn aggregate_icon(
+    snapshot: &crate::protocol::ClientShellSnapshot,
+    status: crate::api::schema::AgentStatus,
+    style: crate::config::StatusIndicatorStyle,
+    in_group: impl Fn(&crate::protocol::ClientShellAgent) -> bool,
+) -> &'static str {
+    use crate::api::schema::AgentStatus;
+    let awaits_reply = status == AgentStatus::Done
+        && snapshot.agents.iter().any(|agent| {
+            agent.awaiting_reply && agent.agent_status == AgentStatus::Done && in_group(agent)
+        });
+    if awaits_reply {
+        "?"
+    } else {
+        status_icon(status, style)
+    }
+}
+
+/// `status_icon`, or the mark: `?` for a question in both styles; for a
+/// running job a filled dot in the Dots style (easy to spot in a long list),
+/// `◷` in the Symbols style.
 fn agent_icon(
     status: crate::api::schema::AgentStatus,
-    waiting: bool,
+    mark: AgentMark,
     style: crate::config::StatusIndicatorStyle,
 ) -> &'static str {
-    match (waiting, style) {
-        (true, crate::config::StatusIndicatorStyle::Dots) => "●",
-        (true, crate::config::StatusIndicatorStyle::Symbols) => "◷",
-        (false, style) => status_icon(status, style),
+    match (mark, style) {
+        (AgentMark::AwaitsReply, _) => "?",
+        (AgentMark::WaitsOnJob, crate::config::StatusIndicatorStyle::Dots) => "●",
+        (AgentMark::WaitsOnJob, crate::config::StatusIndicatorStyle::Symbols) => "◷",
+        (AgentMark::None, style) => status_icon(status, style),
     }
 }
 
 /// `status_color`, or mauve while waiting on a job: yellow already means
-/// working, and blue is the accent and means finished elsewhere.
+/// working, and blue is the accent and means finished elsewhere. A question
+/// keeps the finished colour.
 fn agent_color(
     status: crate::api::schema::AgentStatus,
-    waiting: bool,
+    mark: AgentMark,
     palette: &Palette,
 ) -> ratatui::style::Color {
-    if waiting {
-        palette.mauve
-    } else {
-        status_color(status, palette)
+    match mark {
+        AgentMark::WaitsOnJob => palette.mauve,
+        AgentMark::AwaitsReply => status_color(crate::api::schema::AgentStatus::Done, palette),
+        AgentMark::None => status_color(status, palette),
     }
 }
 

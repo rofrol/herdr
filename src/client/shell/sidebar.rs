@@ -98,7 +98,9 @@ pub(crate) fn render_collapsed_sidebar(
             rect.x.saturating_add(2),
             rect.y,
             rect.width.saturating_sub(2),
-            status_icon(status, config.status_indicators),
+            aggregate_icon(snapshot, status, config.status_indicators, |agent| {
+                agent.workspace_id == workspace.workspace_id
+            }),
             Style::default().fg(status_color(status, palette)),
         );
         hits.workspaces.push(WorkspaceHit {
@@ -160,14 +162,14 @@ pub(crate) fn render_collapsed_sidebar(
                 palette.overlay0
             }),
         );
-        let waiting = waits_on_job(snapshot, &agent.tab_id, agent.agent_status);
+        let mark = agent_mark(snapshot, agent);
         put_text(
             buffer,
             rect.x.saturating_add(2),
             rect.y,
             rect.width.saturating_sub(2),
-            agent_icon(agent.agent_status, waiting, config.status_indicators),
-            Style::default().fg(agent_color(agent.agent_status, waiting, palette)),
+            agent_icon(agent.agent_status, mark, config.status_indicators),
+            Style::default().fg(agent_color(agent.agent_status, mark, palette)),
         );
         hits.agents.push((rect, pane_id));
     }
@@ -490,11 +492,15 @@ pub(crate) fn render_sidebar(
         } else if workspace.focused {
             buffer.set_style(rect, Style::default().bg(palette.active_row_bg));
         }
+        let icon = aggregate_icon(snapshot, status, config.status_indicators, |agent| {
+            displayed_workspaces(snapshot, workspace, state.collapsed_groups)
+                .any(|shown| shown.workspace_id == agent.workspace_id)
+        });
         render_workspace_rows(
             buffer,
             rect,
             status,
-            config.status_indicators,
+            icon,
             entry,
             rows,
             workspace.focused,
@@ -1002,7 +1008,8 @@ pub(in crate::client::shell) fn render_workspace_rows(
     buffer: &mut Buffer,
     area: Rect,
     status: crate::api::schema::AgentStatus,
-    indicators: crate::config::StatusIndicatorStyle,
+    // `aggregate_icon` of `status`.
+    icon: &'static str,
     entry: &WorkspaceEntry,
     rows: Vec<Vec<crate::ui::ResolvedToken>>,
     focused: bool,
@@ -1062,10 +1069,7 @@ pub(in crate::client::shell) fn render_workspace_rows(
         });
         let spans = crate::ui::resolved_token_spans(
             row,
-            (
-                status_icon(status, indicators),
-                Style::default().fg(status_color(status, palette)),
-            ),
+            (icon, Style::default().fg(status_color(status, palette))),
             Style::default().fg(status_color(status, palette)),
             workspace_style,
             secondary_style,

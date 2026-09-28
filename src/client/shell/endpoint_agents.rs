@@ -23,17 +23,13 @@ pub(super) fn render_collapsed(
             rect.width,
             &format!(
                 "{initial}{}",
-                agent_icon(
-                    row.agent.status,
-                    row.agent.waiting,
-                    config.status_indicators
-                )
+                agent_icon(row.agent.status, row.agent.mark, config.status_indicators)
             ),
             Style::default()
                 .fg(if row.stale {
                     config.palette.overlay0
                 } else {
-                    agent_color(row.agent.status, row.agent.waiting, &config.palette)
+                    agent_color(row.agent.status, row.agent.mark, &config.palette)
                 })
                 .add_modifier(if row.stale {
                     Modifier::DIM
