@@ -503,6 +503,28 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
 - [ ] Pin a tab: pinned tabs are marked with a pin icon (or similar) in
   the tab bar and stay at its start, before the unpinned tabs, like
   pinned tabs in Chrome or Firefox.
+- [ ] Pin a space, like a pinned tab: a pin icon on the space row, and
+  pinned spaces stay at the top of the spaces list. Consulted (GPT-6 Astra,
+  DeepSeek, 2026-09-28), both agreed on:
+  - Pinned first in every sort mode (cust, name, prio); the sort and its
+    direction apply inside each tier. If it only worked in cust it would
+    duplicate the manual order. Maybe a separator line between the tiers,
+    so `name ↑` honestly sorts only the unpinned ones (DeepSeek).
+  - A 1-cell narrow glyph (ASCII `*` or `▪`), not 📌 (double width, emoji)
+    and no nerd-font requirement; in a fixed leading column, so names do
+    not shift when a space gets pinned.
+  - Server-owned session state (like the manual order), in the JSON API;
+    the sort mode stays client-only. Pins affect every client. In the
+    multi-machine sidebar pins apply per server.
+  - Pin/Unpin in the space's context menu, plus a keybinding; no drag to
+    pin. The icon is only an indicator (1 cell is a poor click target).
+  - Worktree families are pinned whole; a child's menu says "Pin family".
+    Drag in cust moves within a tier (Astra: refuse crossing the boundary;
+    DeepSeek: dragging out unpins); unpinning keeps the underlying manual
+    order. Pinned spaces never go into `other spaces (N)`.
+  - Cost to weigh: in prio an idle pinned space sits above an unpinned
+    blocked one; urgent unpinned agents need another cue (the header
+    attention counts, still without a place).
 - [ ] An agent that finished and waits for me shows a blue dot (`Done`,
   unseen), but it turns green (`Idle`) as soon as I open its tab, before I
   answer: `mark_active_tab_seen` sets `pane.seen` when the tab becomes
