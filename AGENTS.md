@@ -370,12 +370,20 @@ for `scripts/herdr_live.sh install`.
 ### Installing a fix into the running Herdr
 
 After a user-facing fix, commit it, build from current `master` (over a
-minute, so use `herdr-job`) and install it right away, without asking:
+minute, so use `herdr-job`), then ask the user before installing it, because
+the install disconnects their attached clients:
 
 ```bash
 cargo build --release --locked
 scripts/herdr_live.sh install
 ```
+
+Ask with `AskUserQuestion`, putting "Install now (Recommended)" first so
+Enter confirms it, and "Not now" second. If the user is on the phone app,
+where multiple-choice prompts may not work, ask in plain text. Run
+`install` only after a yes; on "Not now", report that the build is ready and
+that they can install it later with `scripts/herdr_live.sh install` or by
+asking you.
 
 `install` copies `target/release/herdr` to a staging file, backs up the
 installed `~/.cargo/bin/herdr` to `~/.cache/herdr/installed/` (the last 5 are
