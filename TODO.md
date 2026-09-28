@@ -525,7 +525,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Cost to weigh: in prio an idle pinned space sits above an unpinned
     blocked one; urgent unpinned agents need another cue (the header
     attention counts, still without a place).
-- [ ] An agent that finished and waits for me shows a blue dot (`Done`,
+- [x] An agent that finished and waits for me shows a blue dot (`Done`,
   unseen), but it turns green (`Idle`) as soon as I open its tab, before I
   answer: `mark_active_tab_seen` sets `pane.seen` when the tab becomes
   active. Should it stay blue until I reply?
@@ -539,11 +539,47 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     scrolling), and dismissable by hand. No "focused for N seconds" timer.
     Decide whether it survives a restart. Astra: clear "unseen" on the pane
     being visible, not merely its tab being active.
-  - Decided (user, 2026-09-28): blue stays until I reply, with no manual
-    dismiss. Implemented in the TUI client: a plain Enter sent to the
-    agent's pane acknowledges the completion (`acknowledge_agent_replies`);
-    showing the pane no longer does. Installed, awaiting trial. The server's
-    `pane.seen` (toasts, sounds, API status) is unchanged.
+  - Tried and rejected (2026-09-28): keeping every `Done` until Enter in the
+    pane. An agent that only waits for the next task must not look like it
+    needs a decision. Reverted, never committed; the diff is not kept.
+  - Refined goal (user): mark only a turn that ended by asking me something
+    (a question in plain text); a plain finish still clears on view. Menus
+    and permission prompts are already `Blocked` (red) until answered.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28, two rounds):
+    - An orthogonal, optional server-side flag ("awaiting reply"), not a
+      new state: viewing clears `Done` but not the flag. Priority: blocked >
+      working > awaiting reply > done > idle. Its own glyph (e.g. `?`).
+    - A trailing `?` in the final message is only a hint: courtesy
+      questions ("Anything else?") are false positives, "Please confirm
+      before I proceed" or "Choose A or B." are misses.
+    - Better (user's idea): the agent reports it itself. Herdr injects an
+      instruction (Claude: `additionalContext` from the SessionStart hook
+      herdr already installs), opt-in, visible, never written into repo
+      instruction files. Report through a strict marker at the end of the
+      final message, parsed by the Stop hook from `last_assistant_message`
+      (verified in Claude Code docs), rather than a `herdr` CLI call: a
+      Bash call may hit a permission prompt and turn the pane red while
+      reporting (DeepSeek: then ship an allowlist entry).
+    - Scope reports to the session and turn so a late report cannot
+      revive a cleared flag; ignore subagent `Stop`. Clear on the next
+      user prompt (Claude `UserPromptSubmit` hook), the next turn start,
+      a turn ending without a report, session reset; never on view. Do not
+      fall back silently to the `?` heuristic; other agents only through
+      tested adapters. Store no question text at first.
+    - Rule change needed: agent detection is screen-evidence based; this
+      adds structured, turn-scoped hook events as a source.
+  - Decided (user, 2026-09-28): the explicit `herdr agent awaiting-reply`
+    command (cleanest engineering-wise), with the permission rule added
+    by the consented Claude integration install. Done: server flag
+    `awaiting_reply` (a report during the turn shows at its end; cleared by
+    the next working state, a turn ending without a report, exit or session
+    change), `pane.report_awaiting_reply`, the TUI keeps the agent `Done`
+    while it is set, Claude integration v11 injects the instruction
+    (`HERDR_AWAITING_REPLY_INSTRUCTIONS=0` leaves it out). Tried live with
+    Claude Haiku 4.5 (Claude Code 2.1.283): it ran the command without a
+    prompt, but wrote the question twice, before and after the command.
+  - Later: its own glyph (`?`) with the symbols audit below; adapters for
+    other agents; untested Windows hook (`herdr-agent-state.ps1`).
 - [x] Consult stats log DeepSeek under the alias it was called with
   (`deepseek-flash`, now V4.1), so when the alias moves to a new model the
   stats of both merge and we cannot tell which was which.
