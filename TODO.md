@@ -834,9 +834,20 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Verify after reloading Ghostty: Cmd+T opens a herdr tab in the current
     space; Cmd+Ctrl+T opens a Ghostty tab and File > New Tab still works;
     Cmd+Shift+T is still Ghostty's undo, not a herdr tab.
-  - Linux: Ctrl+T wanted, but it is a shell key (fzf file picker,
-    readline transpose-chars) and herdr has no per-OS keys, so one shared
-    config would also take Ctrl+T on macOS. Undecided.
+  - Linux: Ctrl+Shift+T opens a tab and Ctrl+Shift+W closes a pane, the
+    keys Ghostty uses there; plain Ctrl+T/W stay shell keys (fzf file
+    picker, transpose-chars, backward-kill-word). herdr's kitty keyboard
+    flags keep Ctrl+Shift+T apart from Ctrl+T. The dotfiles config is
+    shared and herdr has no per-OS keys, so herdr takes Ctrl+Shift+T/W on
+    macOS too, and Cmd+T/W on Linux. Ghostty: `ctrl+shift+t/w=unbind`,
+    its new tab / close split on `ctrl+alt+shift+t/w`. Consulted GPT-6
+    Astra and DeepSeek, 2026-09-28: no blockers. Costs: Ghostty loses
+    Ctrl+Shift+T/W outside herdr (a plain shell may get them as ^T/^W),
+    and programs inside herdr never see them.
+  - Verify on Linux: Ghostty 1.3.1's defaults really are
+    `ctrl+shift+t=new_tab` and `ctrl+shift+w=close_surface`; GNOME/KDE
+    don't grab `ctrl+alt+shift+t/w`; plain Ctrl+T/W still reach the shell
+    inside herdr.
 
 ## Deferred
 
