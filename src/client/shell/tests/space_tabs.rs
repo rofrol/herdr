@@ -791,3 +791,49 @@ fn resting_on_a_cut_tab_label_shows_it_whole_until_a_key() {
     )]);
     assert!(!shown(&mut state));
 }
+
+#[test]
+fn the_spaces_list_keeps_its_top_space_when_squares_above_fold() {
+    let mut state = state_with_tabs(true);
+    for index in 0..40 {
+        with_job(&mut state, &format!("job_{index}"), TabStatus::Running);
+    }
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    for index in 2..=12 {
+        let mut workspace = projected.workspaces[0].clone();
+        workspace.workspace_id = format!("ws_{index}");
+        workspace.label = format!("space-{index}");
+        workspace.focused = false;
+        projected.workspaces.push(workspace);
+    }
+    state.set_snapshot(Box::new(projected));
+    click_fold(&mut state);
+    state.compose(106, 30).unwrap();
+    // Scroll ws_2's name row to the top.
+    let body = state.hits.workspace_body;
+    let ws_2 = state
+        .hits
+        .workspace_layout
+        .iter()
+        .find(|layout| layout.workspace_id == "ws_2")
+        .expect("ws_2")
+        .top;
+    state.workspace_scroll += (ws_2 - i32::from(body.y)) as usize;
+    state.compose(106, 30).unwrap();
+    let top_space = |state: &ClientShellState| {
+        state
+            .hits
+            .workspace_layout
+            .iter()
+            .find(|layout| layout.top == i32::from(body.y))
+            .map(|layout| layout.workspace_id.clone())
+    };
+    assert_eq!(top_space(&state).as_deref(), Some("ws_2"));
+
+    // ws_1's squares fold (all its jobs close): ws_2 stays at the top.
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    projected.tabs.retain(|tab| tab.parent_tab_id.is_none());
+    state.set_snapshot(Box::new(projected));
+    state.compose(106, 30).unwrap();
+    assert_eq!(top_space(&state).as_deref(), Some("ws_2"));
+}

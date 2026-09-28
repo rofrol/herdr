@@ -83,6 +83,7 @@ impl ClientShellState {
                 &NO_HELD_SQUARES
             },
             workspace_scroll: &mut self.workspace_scroll,
+            workspace_scroll_anchor: &mut self.workspace_scroll_anchor,
             agent_scroll: &mut self.agent_scroll,
             tab_scroll: &mut self.tab_scroll,
             reveal_focused_workspace: &mut self.reveal_focused_workspace,
@@ -277,6 +278,7 @@ impl ClientShellState {
                     &NO_HELD_SQUARES
                 },
                 workspace_scroll: &mut self.workspace_scroll,
+                workspace_scroll_anchor: &mut self.workspace_scroll_anchor,
                 agent_scroll: &mut self.agent_scroll,
                 tab_scroll: &mut self.tab_scroll,
                 reveal_focused_workspace: &mut self.reveal_focused_workspace,

@@ -244,6 +244,9 @@ pub(super) struct ShellRenderState<'a> {
     /// drawn, kept until the pointer leaves.
     pub(super) held_space_order: Option<&'a [String]>,
     pub(super) workspace_scroll: &'a mut usize,
+    /// Where the local spaces list's first shown row was, see
+    /// [`super::state::ScrollAnchor`].
+    pub(super) workspace_scroll_anchor: &'a mut Option<super::state::ScrollAnchor>,
     pub(super) agent_scroll: &'a mut usize,
     pub(super) tab_scroll: &'a mut usize,
     pub(super) reveal_focused_workspace: &'a mut bool,

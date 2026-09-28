@@ -307,6 +307,16 @@ pub(super) struct WorkspaceHit {
     pub(super) group_toggle: Option<(Rect, String)>,
 }
 
+/// The space and its row at the top of the local spaces list, with the
+/// scroll offset that showed it: the next frame keeps that row at the top
+/// when rows above it come or go, as long as the offset was not changed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct ScrollAnchor {
+    pub(super) workspace_id: String,
+    pub(super) row: usize,
+    pub(super) scroll: usize,
+}
+
 /// Where a space of the local sidebar is, in screen rows, whether it is
 /// drawn or scrolled out of the list: `top` may be above the screen.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1052,6 +1062,7 @@ pub(crate) struct ClientShellState {
     /// over the list so a re-sort cannot move a space under it.
     pub(super) held_space_order: Vec<String>,
     pub(super) workspace_scroll: usize,
+    pub(super) workspace_scroll_anchor: Option<ScrollAnchor>,
     pub(super) agent_scroll: usize,
     pub(super) pending_agent_reveal: Option<(ClientEndpointId, String)>,
     pub(super) tab_scroll: usize,
@@ -1234,6 +1245,7 @@ impl ClientShellState {
             pointer_over_spaces: false,
             held_space_order: Vec::new(),
             workspace_scroll: 0,
+            workspace_scroll_anchor: None,
             agent_scroll: 0,
             pending_agent_reveal: None,
             tab_scroll: 0,

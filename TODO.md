@@ -289,9 +289,11 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     a renderer that takes a row offset instead of an off-screen copy;
     chose the copy for the one or two cut spaces, as the renderers draw
     into a rect. The multi-machine sidebar scrolls by rows too (done the
-    same night), so both use one unit. Still open: row offsets jump when
-    squares above fold or close (DeepSeek: anchor on the space and its
-    row); space drag and drop there still works from the drawn spaces. Consulted
+    same night), so both use one unit. The local list also keeps its top
+    row on the same space and row when rows above come or go (squares
+    folding or closing), unless it was scrolled since (DeepSeek's anchor).
+    Still open: space drag and drop in the multi-machine sidebar still
+    works from the drawn spaces. Consulted
     (GPT-6 Astra, DeepSeek): Astra chose the sidebar's footer for the name,
     DeepSeek the tab line (chosen: next to the pointer, no chrome hidden).
     For a space taller than the list, Astra wanted the list to scroll by
