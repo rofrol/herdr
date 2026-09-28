@@ -559,6 +559,33 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     depends on which models were asked together, so it is a hint, not a
     verdict. Do not reorder while the pointer is over the list (as in the
     agents' `prio` sort).
+- [ ] Shared checkout awareness: agents in one checkout do not know about
+  each other. On 2026-09-28 another session started editing `src/` minutes
+  after this one checked `git status`; only commits by explicit path kept
+  the two fixes apart. The policy ("ask whether to use a worktree when the
+  checkout has code changes that are not yours") stays in `AGENTS.md`;
+  herdr would add the facts only it knows.
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28), both: herdr gives
+    facts, the repo gives the rule (what counts as code vs notes, whether
+    to ask, warn or require a worktree). Never claim whose changes they
+    are: after resume, `/clear` or compaction an agent can take its own
+    edits for foreign ones, so say "ownership unknown".
+  - Timing: a line at session start only when the checkout is already
+    shared or has code changes (it goes stale in minutes); the real check
+    before the session's first file edit (`PreToolUse` on `Edit`/`Write`,
+    fresh state); not every prompt (noise). DeepSeek: optionally warn at
+    commit when it includes files this session did not edit.
+  - Limits: advisory, not a lock. Edit hooks miss shell edits (`sed`,
+    scripts); hookless agents only get the CLI. Separate from the
+    auto-consult injection above, which refreshes on a policy generation,
+    not on checkout state. A worktree per agent is the real isolation but
+    costs a cold `target/`.
+  - Smallest stage, in the fork (plugin, opt-in), not upstream by default:
+    `herdr checkout status` (other agent panes in the same git root and
+    worktree, uncommitted code files, when observed), then the first-edit
+    hook pointing at the repo's rule, e.g. "2 other agents share this
+    checkout (panes 3, 7); 4 uncommitted code files, ownership unknown;
+    follow AGENTS.md on shared checkouts."
 - [ ] Workspace recipes (tmuxp-like): a TOML file under
   `~/.config/herdr/recipes/` naming a root, panes, splits and commands.
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-27): a plugin built on
