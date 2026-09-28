@@ -564,7 +564,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   after this one checked `git status`; only commits by explicit path kept
   the two fixes apart. The policy ("ask whether to use a worktree when the
   checkout has code changes that are not yours") stays in `AGENTS.md`;
-  herdr would add the facts only it knows.
+  herdr would add the facts only it knows and, when the checkout is shared
+  or has code changes, tell the agent to ask me whether to create a
+  worktree before it edits code (never create one on its own).
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28), both: herdr gives
     facts, the repo gives the rule (what counts as code vs notes, whether
     to ask, warn or require a worktree). Never claim whose changes they
@@ -583,9 +585,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Smallest stage, in the fork (plugin, opt-in), not upstream by default:
     `herdr checkout status` (other agent panes in the same git root and
     worktree, uncommitted code files, when observed), then the first-edit
-    hook pointing at the repo's rule, e.g. "2 other agents share this
-    checkout (panes 3, 7); 4 uncommitted code files, ownership unknown;
-    follow AGENTS.md on shared checkouts."
+    hook, e.g. "2 other agents share this checkout (panes 3, 7); 4
+    uncommitted code files, ownership unknown. Ask the user whether to
+    create a worktree before editing code."
 - [ ] Workspace recipes (tmuxp-like): a TOML file under
   `~/.config/herdr/recipes/` naming a root, panes, splits and commands.
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-27): a plugin built on
