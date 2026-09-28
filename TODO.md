@@ -366,6 +366,44 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     cross-lint is necessary but not sufficient; Astra added verifying the
     activation and the per-SHA ownership, DeepSeek the post-rebase workflow
     check and that a fresh machine without the SDK fails `just check`.
+- [ ] Notifications button above "spaces": clicking it opens a dropdown of
+  past notifications with the time each arrived; clicking an entry
+  navigates like clicking the toast. Today there is no history: a toast
+  (5-12 s, queue of 8, same-pane replacement) is gone once it expires.
+  - The button shows how many notifications I have not clicked whose tab I
+    have not visited since; visiting the tab (or clicking the entry) clears
+    them.
+  - While the herdr window is focused, do not send the system (OS) toast;
+    show herdr's own toast instead. Today `System` delivery is suppressed
+    only when the target is the active tab and the window is focused
+    (`suppress_external` in `tick_notifications`, from `outer_focused`,
+    which is `None` when the terminal does not report focus).
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-28), both: worth it as
+    a plain event log, not a notification centre. History is a shared
+    runtime fact: a server-side ring buffer per endpoint (about 100
+    entries, in memory, lost on server restart) recorded when the server
+    emits a notification, so events while detached and toasts suppressed
+    for the active tab or dropped as stale are kept. A new advertised
+    `notification.list` method returning a stable id and server timestamp
+    per entry (the frozen `SemanticNotification` has neither); refetch on
+    each live notification; hide the button when the method is missing.
+    Do not reuse the toast's same-pane replacement; collapse only identical
+    repeats (with a count) and rate-limit script floods later.
+  - Both: absolute `HH:MM`, with the date for older days. Label entries as
+    past events ("asked for attention"), not current state: the agents list
+    owns the current state. Click reuses the toast path with the system
+    toast's pane -> tab -> workspace fallback; if nothing survives, keep the
+    entry and say "target no longer exists"; an offline machine reports "X
+    is unavailable"; never pick another pane that now sits in the same
+    place.
+  - Both advised skipping an unread count in v1 because "opened the
+    dropdown" does not mean "read". The unvisited-tab rule above answers
+    that; keep it client-side (per client, last-seen id), so one client
+    does not clear another's count.
+  - Pitfalls: keyboard access (a key to open, arrows/j/k, Enter, Esc); a
+    narrow sidebar clips a dropdown, so maybe an overlay; freeze the list
+    while the pointer is over it so new entries do not move the click
+    target; script bodies stay in history longer than in a toast.
 
 ## Deferred
 
