@@ -2,6 +2,9 @@ use super::*;
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 
 const SELECTION_AUTOSCROLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(30);
+/// How often a space dragged to the list's top or bottom row scrolls the
+/// list by a row.
+const SPACE_DRAG_AUTOSCROLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(60);
 const SELECTION_REPAINT_INTERVAL: std::time::Duration = std::time::Duration::from_millis(16);
 
 impl ClientShellState {
@@ -522,11 +525,95 @@ impl ClientShellState {
         self.selection_repaint_deadline.is_none()
     }
 
+    /// While a space is dragged on the list's top or bottom row (or past
+    /// it), the list scrolls a row at a time, so the space can be dropped
+    /// anywhere; elsewhere it stops.
+    fn update_space_drag_autoscroll(&mut self, point: (u16, u16)) {
+        let body = self.hits.workspace_body;
+        let direction = if body.height < 2 || self.hits.workspace_layout.is_empty() {
+            0
+        } else if point.1 <= body.y {
+            -1
+        } else if point.1 >= body.bottom().saturating_sub(1) && point.1 <= body.bottom() {
+            1
+        } else {
+            0
+        };
+        if direction == 0 {
+            self.space_drag_autoscroll = None;
+            return;
+        }
+        if self
+            .space_drag_autoscroll
+            .is_none_or(|(current, _, _)| current != direction)
+        {
+            self.space_drag_autoscroll = Some((
+                direction,
+                point,
+                std::time::Instant::now() + SPACE_DRAG_AUTOSCROLL_INTERVAL,
+            ));
+        } else if let Some((_, last, _)) = self.space_drag_autoscroll.as_mut() {
+            *last = point;
+        }
+    }
+
+    /// One step of [`Self::update_space_drag_autoscroll`]: scrolls a row and
+    /// retargets the drop with the pointer where it was.
+    fn tick_space_drag_autoscroll(
+        &mut self,
+        now: std::time::Instant,
+        outcome: &mut ClientShellInput,
+    ) {
+        let Some((direction, point, deadline)) = self.space_drag_autoscroll else {
+            return;
+        };
+        if now < deadline {
+            return;
+        }
+        let Some(ClientChromeDrag::Workspace {
+            source_workspace_id,
+            grab_offset,
+            ..
+        }) = self.chrome_drag.as_ref()
+        else {
+            self.space_drag_autoscroll = None;
+            return;
+        };
+        let (source, grab_offset) = (source_workspace_id.clone(), *grab_offset);
+        let next = if direction < 0 {
+            self.workspace_scroll.saturating_sub(1)
+        } else {
+            self.workspace_scroll
+                .saturating_add(1)
+                .min(self.hits.workspace_max_scroll)
+        };
+        if next == self.workspace_scroll {
+            self.space_drag_autoscroll = None;
+            return;
+        }
+        self.workspace_scroll = next;
+        // The drawn layout moves with the list until the next frame.
+        for layout in &mut self.hits.workspace_layout {
+            layout.top -= i32::from(direction);
+            layout.bottom -= i32::from(direction);
+        }
+        let target = self.workspace_drop_target_at(point, &source, grab_offset);
+        if let Some(ClientChromeDrag::Workspace {
+            target: current, ..
+        }) = self.chrome_drag.as_mut()
+        {
+            *current = target;
+        }
+        self.space_drag_autoscroll = Some((direction, point, now + SPACE_DRAG_AUTOSCROLL_INTERVAL));
+        outcome.repaint = true;
+    }
+
     pub(crate) fn tick_selection_autoscroll(
         &mut self,
         now: std::time::Instant,
     ) -> ClientShellInput {
         let mut outcome = ClientShellInput::default();
+        self.tick_space_drag_autoscroll(now, &mut outcome);
         if self
             .selection_repaint_deadline
             .is_some_and(|deadline| now >= deadline)
@@ -1448,6 +1535,7 @@ impl ClientShellState {
                     {
                         *current = target;
                     }
+                    self.update_space_drag_autoscroll(point);
                     outcome.repaint = true;
                     return;
                 }
@@ -1489,6 +1577,7 @@ impl ClientShellState {
                                 grab_offset,
                             });
                             outcome.repaint = true;
+                            self.update_space_drag_autoscroll(point);
                         }
                     }
                 }

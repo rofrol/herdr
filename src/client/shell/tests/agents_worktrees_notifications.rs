@@ -1829,3 +1829,56 @@ fn a_dragged_space_passes_a_neighbour_at_its_middle_and_says_no_change_at_home()
     ));
     assert!(cancelled.requests.is_empty());
 }
+
+#[test]
+fn a_space_dragged_to_the_lists_bottom_row_scrolls_the_list() {
+    let mut projected = snapshot();
+    for index in 2..=12 {
+        let mut workspace = projected.workspaces[0].clone();
+        workspace.workspace_id = format!("ws_{index}");
+        workspace.number = index;
+        workspace.label = format!("workspace-{index}");
+        workspace.focused = false;
+        projected.workspaces.push(workspace);
+    }
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
+    state.set_snapshot(Box::new(projected));
+    state.set_pane_surface(surface());
+    state.compose(106, 14).expect("more spaces than rows");
+    assert!(state.hits.workspace_max_scroll > 0);
+    let first = state.hits.workspaces[0].rect;
+    let body = state.hits.workspace_body;
+    let mouse = |kind, row| {
+        RawInputEvent::Mouse(crossterm::event::MouseEvent {
+            kind,
+            column: first.x + 2,
+            row,
+            modifiers: KeyModifiers::empty(),
+        })
+    };
+    state.handle_raw_events(vec![mouse(
+        MouseEventKind::Down(MouseButton::Left),
+        first.y,
+    )]);
+    state.handle_raw_events(vec![mouse(
+        MouseEventKind::Drag(MouseButton::Left),
+        body.bottom() - 1,
+    )]);
+    let (_, _, deadline) = state.space_drag_autoscroll.expect("autoscroll armed");
+    // Nothing moves before the interval, a row each tick after it.
+    assert!(
+        !state
+            .tick_selection_autoscroll(deadline - std::time::Duration::from_millis(1))
+            .repaint
+    );
+    assert_eq!(state.workspace_scroll, 0);
+    assert!(state.tick_selection_autoscroll(deadline).repaint);
+    assert_eq!(state.workspace_scroll, 1);
+
+    // Back inside the list the scrolling stops.
+    state.handle_raw_events(vec![mouse(
+        MouseEventKind::Drag(MouseButton::Left),
+        body.y + 2,
+    )]);
+    assert!(state.space_drag_autoscroll.is_none());
+}

@@ -335,9 +335,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     `no change · Esc`, and Esc cancels. The target is the landing slot
     nearest the block's top (grabbed row kept) in the list without the
     dragged block, so it does not flicker. Still open: the row-by-row
-    slide animation, auto-scroll near the edges, keyboard reorder, the
-    priority-view rule, and the local sidebar only (with remote endpoints
-    the aggregate sidebar keeps the old look).
+    slide animation, keyboard reorder, the priority-view rule, and the
+    local sidebar only (with remote endpoints the aggregate sidebar keeps
+    the old look).
+  - Done 2026-09-28: auto-scroll. A space dragged onto the list's top or
+    bottom row (or past it) scrolls the list a row every 60 ms, retargeting
+    the drop with the pointer where it is, and stops back inside the list;
+    local sidebar only (it scrolls by rows).
   - Drag starts only from the space's name line after a small threshold, so
     clicks, chevrons and agent/job rows keep working; a click is suppressed
     after a drag. Esc cancels. Time-based auto-scroll near the list edges.

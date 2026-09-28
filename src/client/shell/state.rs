@@ -1061,6 +1061,9 @@ pub(crate) struct ClientShellState {
     pub(super) last_pane_click: Option<ClientPaneClick>,
     pub(super) selection_autoscroll: Option<ClientSelectionAutoscroll>,
     pub(super) selection_autoscroll_deadline: Option<std::time::Instant>,
+    /// A dragged space at the list's edge: direction (-1 up, 1 down), the
+    /// pointer, and when the list scrolls next.
+    pub(super) space_drag_autoscroll: Option<(i8, (u16, u16), std::time::Instant)>,
     pub(super) selection_highlight_clear_deadline: Option<std::time::Instant>,
     pub(super) word_selection_gesture: Option<ClientWordSelection>,
     pub(super) word_selection_generation: u64,
@@ -1238,6 +1241,7 @@ impl ClientShellState {
             last_pane_click: None,
             selection_autoscroll: None,
             selection_autoscroll_deadline: None,
+            space_drag_autoscroll: None,
             selection_highlight_clear_deadline: None,
             word_selection_gesture: None,
             word_selection_generation: 0,
@@ -2087,6 +2091,7 @@ impl ClientShellState {
         self.selection_autoscroll_deadline
             .into_iter()
             .chain(self.selection_repaint_deadline)
+            .chain(self.space_drag_autoscroll.map(|(_, _, deadline)| deadline))
             .min()
             .map(|deadline| deadline.saturating_duration_since(now).min(default))
             .unwrap_or(default)
