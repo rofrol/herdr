@@ -367,11 +367,19 @@ exploratory work that may be abandoned, broad refactors, or when two agents
 must edit the same file. Rebase such a branch onto `master` before building
 for `scripts/herdr_live.sh install`.
 
+Before starting a code change, run `git status`. If the shared checkout
+already has uncommitted changes to code (anything that goes into the build,
+such as `src/`, `build.rs`, `Cargo.toml`, `Cargo.lock`; not `TODO.md` or other
+notes) that are not yours, ask the user whether to work in a worktree instead,
+because those changes would end up in your build and your commit.
+
 ### Installing a fix into the running Herdr
 
-After a user-facing fix, commit it, build from current `master` (over a
-minute, so use `herdr-job`), then ask the user before installing it, because
-the install disconnects their attached clients:
+After a user-facing fix passes its tests, build it on top of current
+`master` before committing (over a minute, so use `herdr-job`), then ask the
+user before installing it, because the install disconnects their attached
+clients. Commit once the user has tried the installed build, so a fix that
+does not work never lands on `master`:
 
 ```bash
 cargo build --release --locked
@@ -384,6 +392,13 @@ where multiple-choice prompts may not work, ask in plain text. Run
 `install` only after a yes; on "Not now", report that the build is ready and
 that they can install it later with `scripts/herdr_live.sh install` or by
 asking you.
+
+Right before building, check that `git status` lists only your changes and
+save `git diff HEAD` to your scratchpad. After the build and again before
+`install`, check that `HEAD` has no new commits touching the build inputs and
+that the diff is unchanged; otherwise rebuild. Such a build is labelled
+`<HEAD>-dirty`. Commit your files by explicit path (`git commit -- <paths>`),
+never with `-a`.
 
 `install` copies `target/release/herdr` to a staging file, backs up the
 installed `~/.cargo/bin/herdr` to `~/.cache/herdr/installed/` (the last 5 are
