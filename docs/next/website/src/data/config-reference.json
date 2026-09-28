@@ -1155,6 +1155,12 @@
           "description": "Complete Agent-row overrides keyed by strict canonical agent id. Agents without an override use ui.sidebar.agents.rows."
         },
         {
+          "key": "ui.sidebar.hide_agents_panel",
+          "type": "boolean",
+          "default": "false",
+          "description": "Hide the Agents panel and give its height to the Spaces list. Meant for use with ui.sidebar.spaces.agents, which lists each Space's agents under it."
+        },
+        {
           "key": "ui.sidebar.spaces.row_gap",
           "type": "integer",
           "default": "0",

@@ -23,6 +23,7 @@ pub(crate) struct ClientShellConfig {
     pub(super) tab_label: crate::config::TabLabelConfig,
     pub(super) hide_tab_bar_when_single_tab: bool,
     pub(super) spaces: SpacesSidebarConfig,
+    pub(super) hide_agents_panel: bool,
     pub(super) agents: crate::config::AgentsSidebarConfig,
     pub(super) agent_panel_sort: crate::config::AgentPanelSortConfig,
     pub(super) status_indicators: crate::config::StatusIndicatorStyle,

@@ -294,10 +294,14 @@ pub(crate) fn render_sidebar(
     );
     let (sections, build_area) = split_build_row(area, build);
     hits.sidebar_sections = sections;
-    let (workspace_area, detail_area) =
-        crate::ui::expanded_sidebar_sections(sections, state.sidebar_section_split);
-    hits.sidebar_section_divider =
-        crate::ui::sidebar_section_divider_rect(sections, state.sidebar_section_split);
+    let agents_panel = !config.hide_agents_panel;
+    let (workspace_area, detail_area) = if agents_panel {
+        hits.sidebar_section_divider =
+            crate::ui::sidebar_section_divider_rect(sections, state.sidebar_section_split);
+        crate::ui::expanded_sidebar_sections(sections, state.sidebar_section_split)
+    } else {
+        super::usage::split_spaces_and_footer(sections, state.usage)
+    };
     let mut entries = super::space_sort::sorted_entries(
         snapshot,
         workspace_entries(snapshot, state.collapsed_groups),
@@ -576,7 +580,11 @@ pub(crate) fn render_sidebar(
         }
     }
 
-    let (detail_area, usage_area) = super::usage::split_usage_footer(detail_area, state.usage);
+    let (detail_area, usage_area) = if agents_panel {
+        super::usage::split_usage_footer(detail_area, state.usage)
+    } else {
+        (Rect::default(), detail_area)
+    };
     if let Some(report) = state.usage.filter(|_| !usage_area.is_empty()) {
         super::usage::render_usage_footer(
             buffer,
@@ -587,14 +595,16 @@ pub(crate) fn render_sidebar(
             hits,
         );
     }
-    super::render_agent_panel(
-        buffer,
-        detail_area,
-        snapshot,
-        config,
-        state.agent_scroll,
-        hits,
-    );
+    if agents_panel {
+        super::render_agent_panel(
+            buffer,
+            detail_area,
+            snapshot,
+            config,
+            state.agent_scroll,
+            hits,
+        );
+    }
 
     if let Some(build) = build {
         render_build_row(buffer, build_area, build, palette);

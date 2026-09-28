@@ -138,3 +138,24 @@ fn the_symbols_style_uses_a_clock_for_waiting() {
     with_job(&mut state, AgentStatus::Done, Some(TabStatus::Running));
     assert_eq!(agent_icon_color(&mut state).0, "◷");
 }
+
+#[test]
+fn hiding_the_agents_panel_gives_its_height_to_the_spaces() {
+    let mut shown = state_with_agent(true);
+    shown.compose(106, 30).unwrap();
+    let shown_body = shown.hits.workspace_body;
+    assert!(!shown.hits.agents.is_empty());
+
+    let mut hidden = state_with_agent(true);
+    hidden.config.hide_agents_panel = true;
+    let frame = hidden.compose(106, 30).unwrap();
+    let rows = frame_rows(&frame);
+    assert!(hidden.hits.agents.is_empty());
+    assert_eq!(hidden.hits.agent_sort_toggle, Rect::default());
+    assert_eq!(hidden.hits.sidebar_section_divider, Rect::default());
+    assert!(hidden.hits.workspace_body.height > shown_body.height);
+    assert!(
+        rows.iter().all(|row| !row.starts_with(" agents")),
+        "{rows:?}"
+    );
+}

@@ -494,6 +494,9 @@ impl Default for SpacesSidebarConfig {
 pub struct SidebarConfig {
     pub agents: AgentsSidebarConfig,
     pub spaces: SpacesSidebarConfig,
+    /// Hide the agents panel and give its height to the spaces list, for use
+    /// with `spaces.agents`. Default: false.
+    pub hide_agents_panel: bool,
 }
 
 #[cfg(test)]
