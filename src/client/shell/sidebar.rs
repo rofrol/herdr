@@ -617,7 +617,8 @@ pub(crate) fn render_sidebar(
         let partial = cut > 0 || shown < row_height;
         let mut block_hits = ShellHitMap::default();
         let target: &mut Buffer = if partial {
-            let area = Rect::new(body.x, 0, content_width, row_height);
+            // Full body width: a tab fill continues under the scrollbar.
+            let area = Rect::new(body.x, 0, body.width, row_height);
             let scratch = scratch.get_or_insert_with(|| Buffer::empty(area));
             scratch.resize(area);
             scratch.reset();
@@ -721,6 +722,7 @@ pub(crate) fn render_sidebar(
             workspace.focused,
             squares_width,
             state.hovered_square,
+            u16::from(show_scrollbar),
             config,
         );
         block_hits.space_tabs.extend(tab_hits.lines);
@@ -759,7 +761,7 @@ pub(crate) fn render_sidebar(
         if partial {
             if let Some(scratch) = scratch.as_ref() {
                 for row in 0..shown {
-                    for x in visible.left()..visible.right() {
+                    for x in body.left()..body.right() {
                         buffer[(x, y + row)] = scratch[(x, cut as u16 + row)].clone();
                     }
                 }

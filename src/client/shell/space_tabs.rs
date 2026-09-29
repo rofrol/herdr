@@ -389,6 +389,9 @@ pub(super) fn render_space_tab_lines(
     focused_space: bool,
     squares_width: u16,
     hovered_square: Option<&str>,
+    // Columns right of `area` the tab fill continues into: the scrollbar's,
+    // whose thin glyph then sits on the fill instead of a white gap.
+    fill_past: u16,
     config: &ClientShellConfig,
 ) -> SpaceTabHits {
     let palette = &config.palette;
@@ -425,7 +428,13 @@ pub(super) fn render_space_tab_lines(
             (false, ..) => (fills.inactive, Style::default().fg(palette.overlay1)),
         };
         buffer.set_style(
-            Rect::new(fill_x, y, fill_right.saturating_sub(fill_x), 1),
+            Rect::new(
+                fill_x,
+                y,
+                fill_right.saturating_add(fill_past).saturating_sub(fill_x),
+                1,
+            )
+            .intersection(buffer.area),
             Style::default().bg(bg),
         );
         // On the solid accent the job colours can vanish, so they take the
@@ -464,7 +473,8 @@ pub(super) fn render_space_tab_lines(
                 rect: Rect::new(text_x, y, label_width, 1),
                 id: format!("tab:{}", line.tab_id),
                 text: line.label.clone(),
-                bg: None,
+                // The line's own fill, active or not: only its width grows.
+                bg: Some(bg),
             });
         }
         super::render::put_text(buffer, text_x, y, label_width, &label, text_style);

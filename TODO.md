@@ -293,6 +293,11 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     dwell, DeepSeek at once (chosen). The tooltip then lost the glyph (the
     square shows the state) and took the square's fill, so the two read as
     one.
+  - Changed 2026-09-29 at my request: a tooltip's text starts where its
+    target's text does (its padding column sits left of the target), a
+    cut tab label's tooltip keeps the line's own fill (tint, grey), and a
+    tab line's fill runs under the scrollbar, whose thin `▕` otherwise left
+    a white gap after it.
   - Bug (2026-09-29): the `new` button at the bottom creates a space and
     scrolls the list to it, but a new tab (`+` or the new-tab key) in a
     space low in the list does not scroll to the new tab line. Fixed the

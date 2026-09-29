@@ -126,7 +126,13 @@ impl ClientShellState {
         let width = (unicode_width::UnicodeWidthStr::width(text.as_str()) as u16)
             .saturating_add(2)
             .min(area.width);
-        let x = target.rect.x.min(area.right().saturating_sub(width));
+        // The box's padding column sits left of the target, so the text
+        // starts where the target's text does.
+        let x = target
+            .rect
+            .x
+            .saturating_sub(1)
+            .min(area.right().saturating_sub(width));
         let rect = Rect::new(x, target.rect.y, width, 1).intersection(area);
         let palette = &self.config.palette;
         let bg = target.bg.unwrap_or(palette.surface1);
