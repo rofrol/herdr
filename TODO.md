@@ -298,6 +298,11 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     cut tab label's tooltip keeps the line's own fill (tint, grey), and a
     tab line's fill runs under the scrollbar, whose thin `▕` otherwise left
     a white gap after it.
+  - Changed 2026-09-29 at my request, after a terminal demo of seven ways:
+    unfolded squares are followed by an empty row, so they do not run into
+    the next tab line. Consulted (GPT-6 Astra, DeepSeek): Astra wanted the
+    squares indented under the label, DeepSeek the parent's fill behind
+    them (both to spend no row); I chose the empty row.
   - Bug (2026-09-29): the `new` button at the bottom creates a space and
     scrolls the list to it, but a new tab (`+` or the new-tab key) in a
     space low in the list does not scroll to the new tab line. Fixed the
@@ -357,6 +362,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     pointer (a middle-click could stop the wrong job). DeepSeek wanted the
     footer dropped (chosen); Astra wanted the top line and footer to split
     the fields.
+- [ ] Regression (2026-09-29): closing a tab asks whether to close the
+  space, and cancelling leaves an odd highlight on the space. Probably
+  the tab is the space's last one, so the close becomes a space close
+  (`request_tab_close` opens the workspace confirmation when no other tab
+  is left), and the cancelled confirmation leaves the space selected or
+  highlighted. Reproduce, check whether it predates the vertical tabs, and
+  consult (GPT-6 Astra, DeepSeek) on what closing the last tab should do.
 - [ ] The fork shows upstream's "update ready" badge (`●` before `menu`,
   2026-09-29): the updater checks herdrdev's release channel, but this
   build is the fork, installed with `scripts/herdr_live.sh`, and

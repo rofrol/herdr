@@ -54,9 +54,11 @@ const SQUARE_GAP: u16 = 1;
 const SQUARES_INDENT: u16 = 5;
 impl SpaceTabLine {
     /// Rows the line takes: its own and, while unfolded, its squares'.
+    /// Unfolded squares are followed by an empty row, so they do not run
+    /// into the next tab line.
     pub(super) fn height(&self, width: u16) -> u16 {
         let squares = if self.unfolded {
-            self.squares.len().div_ceil(squares_per_row(width))
+            self.squares.len().div_ceil(squares_per_row(width)) + 1
         } else {
             0
         };
@@ -548,6 +550,8 @@ pub(super) fn render_space_tab_lines(
                 }
                 y = y.saturating_add(1);
             }
+            // The empty row after the squares.
+            y = y.saturating_add(1);
         }
     }
     hits
@@ -897,10 +901,11 @@ mod tests {
         let unfolded = lines(&["tab_1", "tab_2"]);
         assert!(!unfolded[1].unfolded);
         assert_eq!(unfolded[1].height(26), 1);
-        // 26 columns hold (26 - 4 + 1) / 4 = 5 squares a row.
+        // 26 columns hold (26 - 5 + 1) / 4 = 5 squares a row; the line, its
+        // square rows and an empty row after them.
         assert_eq!(squares_per_row(26), 5);
-        assert_eq!(unfolded[0].height(26), 3);
-        assert_eq!(unfolded[0].height(40), 2);
+        assert_eq!(unfolded[0].height(26), 4);
+        assert_eq!(unfolded[0].height(40), 3);
         // Too narrow for one square still lays one per row.
         assert_eq!(squares_per_row(2), 1);
     }
