@@ -290,7 +290,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     square it covers names that job; leaving the squares hides it.
     Consulted (GPT-6 Astra, DeepSeek): both wanted it past the sidebar's
     edge so it covers no square, and no label swap; Astra with the 450 ms
-    dwell, DeepSeek at once (chosen).
+    dwell, DeepSeek at once (chosen). The tooltip then lost the glyph (the
+    square shows the state) and took the square's fill, so the two read as
+    one.
   - Bug (2026-09-29): the `new` button at the bottom creates a space and
     scrolls the list to it, but a new tab (`+` or the new-tab key) in a
     space low in the list does not scroll to the new tab line. Fixed the

@@ -464,6 +464,7 @@ pub(super) fn render_space_tab_lines(
                 rect: Rect::new(text_x, y, label_width, 1),
                 id: format!("tab:{}", line.tab_id),
                 text: line.label.clone(),
+                bg: None,
             });
         }
         super::render::put_text(buffer, text_x, y, label_width, &label, text_style);
@@ -523,12 +524,14 @@ pub(super) fn render_space_tab_lines(
                     // The hovered square's job is named in a tooltip right
                     // of it. The tooltip takes no hits, so moving onto a
                     // square it covers names that one instead.
+                    // It has the square's fill, so the two read as one;
+                    // the square already shows the state.
                     if hovered_square == Some(square.tab_id.as_str()) {
-                        let glyph = super::tab_groups::status_icon(square.status).unwrap_or("•");
                         hits.tooltips.push(super::tooltip::TooltipTarget {
                             rect: Rect::new(rect.right(), rect.y, 1, 1),
                             id: super::tooltip::square_tooltip_id(&square.tab_id),
-                            text: format!("{glyph} {}", square.label),
+                            text: square.label.clone(),
+                            bg: Some(square_fill(square, &fills, palette)),
                         });
                     }
                     square_x = square_x.saturating_add(SQUARE_WIDTH + SQUARE_GAP);
@@ -538,6 +541,16 @@ pub(super) fn render_space_tab_lines(
         }
     }
     hits
+}
+
+/// A square's fill: the inactive tab fill, or the active tab's tint while
+/// its job is open.
+fn square_fill(square: &TabSquare, fills: &TabLineFills, palette: &Palette) -> Color {
+    match (square.focused, fills.focused_active) {
+        (true, Some(tint)) => tint,
+        (true, None) => palette.accent,
+        (false, _) => fills.inactive,
+    }
 }
 
 /// A nested tab's square: its status glyph in the status colour on the
@@ -554,11 +567,7 @@ fn render_square(
         return;
     }
     let solid = square.focused && fills.focused_active.is_none();
-    let bg = match (square.focused, fills.focused_active) {
-        (true, Some(tint)) => tint,
-        (true, None) => palette.accent,
-        (false, _) => fills.inactive,
-    };
+    let bg = square_fill(square, fills, palette);
     buffer.set_style(rect, Style::default().bg(bg));
     if square.gone {
         return;

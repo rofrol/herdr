@@ -31,6 +31,8 @@ pub(super) struct TooltipTarget {
     pub(super) rect: Rect,
     pub(super) id: String,
     pub(super) text: String,
+    /// The tooltip's fill; the default is `surface1`.
+    pub(super) bg: Option<ratatui::style::Color>,
 }
 
 impl ClientShellState {
@@ -127,7 +129,13 @@ impl ClientShellState {
         let x = target.rect.x.min(area.right().saturating_sub(width));
         let rect = Rect::new(x, target.rect.y, width, 1).intersection(area);
         let palette = &self.config.palette;
-        let style = Style::default().fg(palette.text).bg(palette.surface1);
+        let bg = target.bg.unwrap_or(palette.surface1);
+        let fg = if bg == palette.accent {
+            panel_contrast_fg(palette)
+        } else {
+            palette.text
+        };
+        let style = Style::default().fg(fg).bg(bg);
         buffer.set_style(rect, style);
         for x in rect.left()..rect.right() {
             buffer[(x, rect.y)].set_symbol(" ");

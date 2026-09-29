@@ -618,7 +618,7 @@ fn hovering_a_square_names_its_job_right_of_it() {
 
     // At once, on the square's row, right of it; the tab line keeps its label.
     let (row, tab_line) = hover(&mut state, (first.x + 1, first.y));
-    assert!(row.starts_with(" ! job job_1 "), "{row:?}");
+    assert!(row.starts_with(" job job_1 "), "{row:?}");
     assert!(tab_line.contains("agent tab"), "{tab_line:?}");
     // The tooltip covers the next square but takes no hover: moving there
     // names that job.
@@ -629,7 +629,13 @@ fn hovering_a_square_names_its_job_right_of_it() {
         .chars()
         .skip(second.right() as usize)
         .collect::<String>();
-    assert!(second_row.starts_with(" ⧖ job job_2 "), "{second_row:?}");
+    assert!(second_row.starts_with(" job job_2 "), "{second_row:?}");
+    // In the square's fill, so the two read as one.
+    let buffer = frame.to_ratatui_buffer().expect("buffer");
+    assert_eq!(
+        buffer[(second.right(), second.y)].bg,
+        buffer[(second.x, second.y)].bg
+    );
     // Off the squares it goes.
     let (row, _) = hover(&mut state, (first.x + 1, first.y + 3));
     assert!(!row.contains("job job_"), "{row:?}");
