@@ -675,6 +675,12 @@ pub(super) enum ClientContextMenuAction {
     Zoom,
     ToggleRightClickPassthrough,
     ClosePane,
+    /// Closes the tab's nested job tabs that succeeded.
+    CloseSucceededJobs,
+    /// Closes the tab's nested job tabs that failed.
+    CloseFailedJobs,
+    /// Stops the tab's running jobs by closing their tabs, after asking.
+    StopRunningJobs,
 }
 
 #[derive(Debug)]
@@ -689,6 +695,11 @@ pub(super) enum ClientContextMenuTarget {
     Tab {
         tab_id: String,
         workspace_id: String,
+        /// Nested job tabs that run, succeeded and failed, when the menu
+        /// opened.
+        running_jobs: usize,
+        succeeded_jobs: usize,
+        failed_jobs: usize,
     },
     Pane {
         pane_id: String,
@@ -708,7 +719,7 @@ pub(super) struct ClientContextMenuOverlay {
 }
 
 pub(super) struct ClientContextMenuItem {
-    pub(super) label: &'static str,
+    pub(super) label: String,
     pub(super) action: ClientContextMenuAction,
 }
 
@@ -718,6 +729,8 @@ pub(super) struct ClientTabCloseConfirmation {
     pub(super) workspace: WorkspaceNavigationTarget,
     /// Child tabs closed before the tab; the server refuses to close a parent.
     pub(super) children: Vec<String>,
+    /// Close only `children`, keeping the tab: stopping its running jobs.
+    pub(super) children_only: bool,
 }
 
 #[derive(Debug)]

@@ -399,8 +399,17 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     are one column apart, so `manual name ↑ prio ↓` leaves room for `✉N`.
     Consulted (GPT-6 Astra, DeepSeek): both said to keep only those
     exceptional hints; Astra chose `manual` (chosen), DeepSeek `custom`.
-  - Next (2026-09-29, to consult): right-click on a tab line or its job
-    summary offers "close jobs" (the finished ones? all?).
+  - Done 2026-09-29: right-click anywhere on a tab line (its summary
+    too) opens the tab menu with a `Close jobs:` row of chips, as the line
+    counts them, `⧖ 2  !1  ✓3`: a chip closes that state's job tabs (the
+    statuses when clicked, not when the menu opened); `⧖` asks first
+    ("Stop 2 running jobs?", naming them) and keeps the tab; chips appear
+    only for states with jobs. Keyboard moves through the chips as items.
+    Consulted (GPT-6 Astra, DeepSeek): both wanted one tab menu, no menu of
+    its own on the summary, and "close finished jobs"; Astra also a
+    confirmed "stop all", DeepSeek no stopping at all. I asked for
+    succeeded, failed and running separately, as chips on one row. Still
+    open: a per-job menu on a square (open, close).
   - Next (screenshot 2026-09-29): a collapsed space does not show that it
     is the focused one (the only focus mark is its active tab's fill, and
     the tabs are hidden). A collapsed space is one line: no branch line,

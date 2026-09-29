@@ -959,3 +959,76 @@ fn a_new_focused_tab_low_in_a_tall_space_scrolls_into_view() {
         .expect("the new tab's line is drawn");
     assert!(line.y >= body.y && line.bottom() <= body.bottom());
 }
+
+#[test]
+fn the_tab_menu_closes_its_jobs_by_state_from_chips() {
+    let mut state = state_with_tabs(true);
+    state.config.confirm_close = false;
+    with_job(&mut state, "job_run", TabStatus::Running);
+    with_job(&mut state, "job_fail", TabStatus::Failed);
+    with_job(&mut state, "job_ok", TabStatus::Succeeded);
+    let closes = |outcome: &ClientShellInput| {
+        outcome
+            .actions
+            .iter()
+            .filter_map(|action| match action {
+                ClientShellAction::Endpoint { request, .. } => match &request.method {
+                    crate::api::schema::Method::TabClose(target) => Some(target.tab_id.clone()),
+                    _ => None,
+                },
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    };
+    let open_menu = |state: &mut ClientShellState| {
+        state.compose(106, 30).unwrap();
+        let (line, _) = state.hits.space_tabs[0];
+        state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+            kind: crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Right),
+            column: line.x + 6,
+            row: line.y,
+            modifiers: KeyModifiers::empty(),
+        })]);
+        let frame = state.compose(106, 30).unwrap();
+        (frame_rows(&frame), state.hits.context_menu_rows.clone())
+    };
+    let chip = |rows: &[String], hits: &[(Rect, usize)], text: &str| {
+        hits.iter()
+            .find(|(rect, _)| {
+                rows[rect.y as usize]
+                    .chars()
+                    .skip(rect.x as usize)
+                    .take(rect.width as usize)
+                    .collect::<String>()
+                    .contains(text)
+            })
+            .map(|(rect, _)| *rect)
+            .expect(text)
+    };
+
+    let (rows, hits) = open_menu(&mut state);
+    let chips_row = chip(&rows, &hits, "!1").y as usize;
+    assert!(
+        rows[chips_row].contains("Close jobs:  ⧖ 1   !1   ✓1 "),
+        "{}",
+        rows[chips_row]
+    );
+    // A finished state closes at once, only its own jobs.
+    let failed = chip(&rows, &hits, "!1");
+    assert_eq!(
+        closes(&left_click(&mut state, (failed.x + 1, failed.y))),
+        ["job_fail"]
+    );
+
+    // Running jobs ask first, then close only them, not the tab.
+    let (rows, hits) = open_menu(&mut state);
+    let running = chip(&rows, &hits, "⧖ 1");
+    assert!(closes(&left_click(&mut state, (running.x + 1, running.y))).is_empty());
+    assert!(matches!(
+        state.overlay,
+        Some(ClientShellOverlay::ConfirmClose(ref confirm)) if confirm.title == "Stop 1 running job?"
+    ));
+    let mut outcome = ClientShellInput::default();
+    state.accept_close_confirmation(&mut outcome);
+    assert_eq!(closes(&outcome), ["job_run"]);
+}
