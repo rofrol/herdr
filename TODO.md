@@ -2,6 +2,48 @@
 
 ## Next, in order
 
+- [ ] Handoff 2026-09-29 (from the Claude session; its limit ran out). Read
+  AGENTS.md first: consult GPT-6 Astra + DeepSeek on design choices,
+  `herdr-job` for anything over a minute, `just check` before committing,
+  commit each stage, build release and ask before `scripts/herdr_live.sh
+  install` (it disconnects clients).
+  1. Do now (decided by me): move herdr-job's status line back from the
+     job pane's first row to its last row. Why: the header set a scroll
+     region 2..N, and lines scrolled off a region whose top is not row 1
+     never reach the scrollback, so job output cannot be scrolled up. The
+     footer (region 1..N-1) keeps scrollback. Keep the same content
+     (` ← `, state, name, `--why`, origin, job id, ` × `): in
+     `plugins/job/herdr-job` turn `Header` back into a footer on the last
+     row; in `src/client/shell/mouse.rs` `job_header_click` match the
+     pane's last row instead of its first; update
+     `the_job_headers_ends_go_back_and_close` and plugins/job/README.md.
+     Test live: a job printing 200 lines must scroll back to line 1.
+     Then add a TODO: long term, herdr draws the line as client chrome in
+     a reserved row (DeepSeek), which needs `--why`/job id in a new codec;
+     a click on the footer's ends while a full-screen program (vim, less)
+     runs in the job would close it (DeepSeek's warning), so consider
+     skipping the click mapping on the alternate screen.
+  2. Walk through with me the rest of what was done on 2026-09-28/29
+     (points 1-7 confirmed): 8 a sorted spaces list (name/prio) holds its
+     order while the pointer is over it; 9 the `shapes` indicator style
+     (default: `◐` working, `◉` blocked, `●` done, `○` idle, `◷`→`⧖`
+     waiting on a job); 10 the `+` on a space's name line opens a tab
+     there; 11 tooltips: cut tab label (450 ms) and the build line; 12 the
+     spaces list keeps its top row on the same space when squares above
+     fold; 13 with `ui.toast.delivery = "system"` and the window focused,
+     herdr's own toast shows instead; 14 the notification history `✉N`
+     at the right of the spaces header. Show each, ask "ok?", fix what I
+     reject (with a terminal demo in Python when it is about looks).
+  3. Open items added on 2026-09-29, below in this file: the job square
+     tooltip delay (same 450 ms as tab labels; consult first), the
+     regression "closing a tab asks to close the space, cancelling leaves
+     an odd highlight" (my screenshots were the wrong ones; ask me to
+     reproduce), the upstream "update ready" badge in fork builds, the
+     flaky `federated_client_starts_without_local_and_survives_its_restart`
+     under a full `just check`, a per-job menu on a square (open, close).
+     Terminal demos from that session: scratchpad scripts are gone; write
+     new ones as needed (run them with `herdr-job run --keep`).
+
 Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
 
 - [ ] Remove the agents panel; fold agents into spaces. The sort toggle moves
