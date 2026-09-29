@@ -362,6 +362,10 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     pointer (a middle-click could stop the wrong job). DeepSeek wanted the
     footer dropped (chosen); Astra wanted the top line and footer to split
     the fields.
+- [ ] The job square's tooltip should appear after the same dwell as the
+  cut tab label's (450 ms), not at once (2026-09-29, my request; consult
+  GPT-6 Astra and DeepSeek first: DeepSeek had argued for "at once" since
+  a square has no text).
 - [ ] Regression (2026-09-29): closing a tab asks whether to close the
   space, and cancelling leaves an odd highlight on the space. Probably
   the tab is the space's last one, so the close becomes a space close
