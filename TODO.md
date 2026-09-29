@@ -272,6 +272,11 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Changed 2026-09-29 at my request: the tab lines' fill (and the square
     rows) reach the right edge, level with the space name line's `+`,
     instead of stopping a column short.
+  - 2026-09-29: the square glyphs keep the theme's own status colours.
+    Compared in a terminal demo against darkening them to 3:1, 3.5:1 and
+    4.5:1, mixing toward the text colour, more saturation, a darker tint
+    and an accent frame (consulted GPT-6 Astra and DeepSeek: both chose
+    darkening to 3:1); I chose the original colours.
   - Done 2026-09-28: a succeeded job's tab does not close while it is the
     focused tab (herdr's `focused`, the tab shown); herdr-job checks every
     2 s and closes it once you leave it.
