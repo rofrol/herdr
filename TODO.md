@@ -1153,6 +1153,30 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     closes the tab.
   - Verify on Linux: plain Ctrl+T/W still reach the shell inside herdr.
 
+- [ ] Raise the default sidebar width: it now carries spaces with branch
+  and git status, agents with their task, job lines and tab lines, and
+  truncates a lot at 26 columns. Plan: `sidebar_width` 26 → 32,
+  `sidebar_max_width` 36 → 44 (so dragging can go wider), min stays 18.
+  - Consulted GPT-6 Astra and DeepSeek, 2026-09-29: both chose a fixed 32
+    (DeepSeek: max 40, min 20). Not a percentage of the terminal width
+    (a resize would silently reflow the agent panes) and no auto-sizing
+    from content (every rename, checkout or status change would move the
+    dividers and rewrap agent output; at most a one-shot "fit to content"
+    action that stores a dragged width). Budget: two 80-column agent panes
+    next to a 32-column sidebar need at least 192 columns.
+  - Only clients without a dragged width get the new default: the
+    preferences file stores the width only after a drag
+    (`sidebar_width_manual`), so a dragged 26 stays 26.
+  - Narrow terminals: the mobile layout starts at 64 columns
+    (`DEFAULT_MOBILE_WIDTH_THRESHOLD`), so a 70-column terminal would keep
+    only 38 for panes. Consider capping the default at a share of the
+    terminal (e.g. a third) below ~120 columns, without touching a
+    dragged width.
+  - Fix the stale `src/main.rs` config comment saying the width is
+    "auto-scaled based on workspace names"; nothing scales it. Update the
+    defaults in `src/config/model.rs`, the doc comments and the sample
+    config together.
+
 ## Deferred
 
 - [ ] Consult stats: pair the coordinator with Opus at a lower effort
