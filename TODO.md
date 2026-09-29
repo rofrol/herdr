@@ -357,6 +357,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     pointer (a middle-click could stop the wrong job). DeepSeek wanted the
     footer dropped (chosen); Astra wanted the top line and footer to split
     the fields.
+- [ ] The fork shows upstream's "update ready" badge (`●` before `menu`,
+  2026-09-29): the updater checks herdrdev's release channel, but this
+  build is the fork, installed with `scripts/herdr_live.sh`, and
+  `herdr update` would replace it with upstream's binary. Decide: turn the
+  update check off in fork builds (a build-time flag), point it at the
+  fork's own releases, or say "upstream <version>" and never offer to
+  install it.
 - [ ] Dragging a space does not show where it will land (screenshot
   2026-09-26, dragging `herdr`). The dragged space keeps a grey background
   much like the selected row, so two grey blocks are on screen; the drop
