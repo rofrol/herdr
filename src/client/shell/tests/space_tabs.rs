@@ -399,7 +399,7 @@ fn an_idle_tab_with_a_running_job_shows_the_waiting_mark() {
     with_job(&mut state, "job_1", TabStatus::Running);
     let mauve = state.config.palette.mauve;
     // The shapes style (the default) marks it with a clock.
-    assert_eq!(tab_icon_color(&mut state), ("◷".to_owned(), mauve));
+    assert_eq!(tab_icon_color(&mut state), ("⧖".to_owned(), mauve));
 
     // A finished job, or a working agent, keeps the usual status.
     let mut state = state_with_tabs(true);
@@ -434,12 +434,12 @@ fn a_tab_with_an_agent_awaiting_a_reply_shows_a_question_mark_in_the_tab_bar() {
 }
 
 #[test]
-fn the_symbols_style_uses_a_clock_for_waiting() {
+fn the_symbols_style_uses_an_hourglass_for_waiting() {
     let mut state = state_with_tabs(true);
     state.config.status_indicators = crate::config::StatusIndicatorStyle::Symbols;
     set_agent_status(&mut state, AgentStatus::Done, false);
     with_job(&mut state, "job_1", TabStatus::Running);
-    assert_eq!(tab_icon_color(&mut state).0, "◷");
+    assert_eq!(tab_icon_color(&mut state).0, "⧖");
 }
 
 #[test]

@@ -19,7 +19,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     mobile already), `●` done and unseen, `○` idle; colours stay.
     Done 2026-09-29: a `shapes` indicator style, the fork's default
     (settings > indicators offers dots, symbols, shapes); a waiting-on-job
-    mark is `◷` there, as in symbols. Consulted (GPT-6 Astra, DeepSeek):
+    mark is `⧖` there, as in symbols (was `◷` until 2026-09-29: at a small
+    font it read as a moon, close to `◐` working; GPT-6 Astra and DeepSeek
+    both picked `⧖`, the job line's running mark). Consulted (GPT-6 Astra, DeepSeek):
     both chose a new style over changing `dots`; both warned `◉` and `●`
     blur at small font sizes (DeepSeek: use the symbols' `×` for blocked);
     kept `◉` as decided, the colour differs too.
