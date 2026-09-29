@@ -293,7 +293,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     dwell, DeepSeek at once (chosen).
   - Bug (2026-09-29): the `new` button at the bottom creates a space and
     scrolls the list to it, but a new tab (`+` or the new-tab key) in a
-    space low in the list does not scroll to the new tab line.
+    space low in the list does not scroll to the new tab line. Fixed the
+    same day: a change of the focused tab, not only of the focused space,
+    reveals it in the list.
   - Done 2026-09-28: a succeeded job's tab does not close while it is the
     focused tab (herdr's `focused`, the tab shown); herdr-job checks every
     2 s and closes it once you leave it.

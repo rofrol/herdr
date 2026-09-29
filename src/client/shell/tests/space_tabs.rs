@@ -915,3 +915,41 @@ fn the_notification_history_lists_and_opens_past_notifications() {
     assert!(state.overlay.is_none());
     assert_eq!(state.notification_log_button(), Some(0));
 }
+
+#[test]
+fn a_new_focused_tab_low_in_a_tall_space_scrolls_into_view() {
+    let mut state = state_with_tabs(true);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    for index in 2..=30 {
+        let mut tab = projected.tabs[0].clone();
+        tab.tab_id = format!("tab_{index}");
+        tab.label = format!("tab {index}");
+        tab.focused = false;
+        projected.tabs.push(tab);
+    }
+    state.set_snapshot(Box::new(projected));
+    state.compose(106, 30).unwrap();
+    assert_eq!(state.workspace_scroll, 0);
+    // A tab is created at the end and focused.
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    let mut new_tab = projected.tabs[0].clone();
+    new_tab.tab_id = "tab_new".into();
+    new_tab.label = "new tab".into();
+    projected.tabs.push(new_tab);
+    for tab in &mut projected.tabs {
+        tab.focused = tab.tab_id == "tab_new";
+    }
+    projected.focused_tab_id = Some("tab_new".into());
+    projected.workspaces[0].active_tab_id = "tab_new".into();
+    state.set_snapshot(Box::new(projected));
+    state.compose(106, 30).unwrap();
+    let body = state.hits.workspace_body;
+    let (line, _) = state
+        .hits
+        .space_tabs
+        .iter()
+        .find(|(_, tab_id)| tab_id == "tab_new")
+        .cloned()
+        .expect("the new tab's line is drawn");
+    assert!(line.y >= body.y && line.bottom() <= body.bottom());
+}
