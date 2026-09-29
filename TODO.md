@@ -401,6 +401,26 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     exceptional hints; Astra chose `manual` (chosen), DeepSeek `custom`.
   - Next (2026-09-29, to consult): right-click on a tab line or its job
     summary offers "close jobs" (the finished ones? all?).
+  - Next (screenshot 2026-09-29): a collapsed space does not show that it
+    is the focused one (the only focus mark is its active tab's fill, and
+    the tabs are hidden). A collapsed space is one line: no branch line,
+    its git status moves onto the name line without the branch name
+    (`► herdr ↑2 ⧖ 1 !3`), and the focused collapsed space's name line
+    gets the focused active tab's solid accent fill (same span as a tab
+    line). Consulted (GPT-6 Astra, DeepSeek): both: fill only the focused
+    collapsed space, no tint or grey on the others (nearly every space has
+    an active tab, so a tint says nothing, and grey reads as a tab); give
+    the collapsed line its own configurable token list (default
+    `workspace, git_status, tab_jobs`) instead of merging arbitrary row-2
+    tokens; the triangle, `+`, grip and job counts need readable colours on
+    the accent (as the tab line's `on_accent`); hover must differ from the
+    focus fill; a collapsed worktree parent whose child space is focused
+    gets the fill but needs a "focus inside" cue, and its git status must
+    not pass off one child's as the group's. They differ on order: Astra
+    git status before the job counts (as asked, chosen), DeepSeek jobs
+    first; both truncate the name first, then drop the git status, never
+    the job counts. DeepSeek also wanted the branch kept for worktree
+    children (rejected: their names already tell them apart).
   - Done 2026-09-28: keyboard reorder. `keys.move_space_previous` and
     `keys.move_space_next` (unset by default, e.g. `alt+shift+up/down`)
     move the focused space one place in the sidebar's own order, with its
@@ -492,6 +512,37 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     Then, also at my request: one colour, accent blue, while pressed and
     while dragged (mauve read as a git branch; a darker grey and a darker
     blue were tried and dropped).
+- [ ] Dragging tabs in the spaces list does not work (2026-09-29): pressing
+  a tab line and moving starts no drag. Only the top tab bar reorders tabs
+  (`tab_press` comes from `hits.tabs`, the bar), with a thin insertion
+  marker, and only in the focused space. It should work like dragging a
+  space: the tab line moves live in the list to where it would land, with
+  the same accent bar, `drag_bg`, Esc, `release cancels · Esc` outside and
+  auto-scroll.
+  - Drag unit: the tab line with its unfolded job squares and its child
+    tabs (not draggable themselves, their order follows the parent: no
+    grip, no drop slot between a parent and its child). The agent rows are
+    per space (sorted by `tab`/`prio`), so they stay put.
+  - Within its own space only; the drop index counts main tabs, not rows,
+    and a no-op drop sends nothing. Moving a tab to another space is a
+    separate feature (ownership, worktree path, machine). Tabs of a space
+    that is not focused too, so the client's `valid_drop` must stop
+    requiring the focused space; pressing such a tab does not focus it
+    until release without a drag.
+  - Consulted (GPT-6 Astra, DeepSeek, 2026-09-29), both: the whole block,
+    not the label alone; cross-space out of scope, but visible: leaving
+    the source space shows `release cancels · Esc`, never clamps to its
+    first or last slot; while dragging hold the geometry (agent prio sort,
+    folding, closing job tabs leave blank slots as they already do under
+    the pointer), state glyphs and counts may update; cancel if the tab
+    vanishes; the fold triangle, squares and middle-click never start a
+    drag; test a short tab dragged past a tall unfolded one both ways.
+    DeepSeek also: a 3-cell threshold (one cell eats clicks; I would keep
+    the spaces' threshold for consistency), auto-scroll clamped to the
+    source space's rows, a look different from a space drag so it does not
+    read as the space moving, and a target space id in the move API now.
+    Astra: the top bar may keep its marker for now, but the same order,
+    cancel and child-tab rules.
 - [ ] "Restart agents…": restart agent CLIs (Claude, pi) after they update,
   resuming their sessions, e.g. when Claude reports that a new version is
   available. Should herdr tell the instances to restart once they finish
@@ -773,6 +824,28 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Alternative to weigh (mine, not consulted): keep a closed tab's
     processes alive for a few seconds with an "undo" toast, which restores
     them exactly.
+- [ ] Which tab gets focus after closing the active one: should it be the
+  next one (right) instead of the previous one (left), or should that be
+  configurable? Today `Workspace::close_tab` focuses the previous tab (the
+  new last one when the last tab closes).
+  - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-29), who disagree.
+    Astra: default to "next, else previous" (Chrome, Firefox), but a
+    closed child tab should return to its parent. DeepSeek: keep
+    "previous", because parent/child ordering makes it structurally
+    right: closing a parent's first child lands on the parent, and "next"
+    after closing a parent would land on its (now orphaned) child.
+    Chrome and Firefox go right because their tabs are flat. Both: tmux
+    returns to the previously used window, VS Code to the recently used
+    editor (Astra, not verified).
+  - Both: no speculative option matrix; if added,
+    `focus_after_tab_close = "previous" | "next"`, and `"last_used"` only
+    once there is an MRU history of tabs. Child to parent should be
+    unconditional, not a config value. Today it only holds for the first
+    child: closing a later child lands on its previous sibling.
+  - Edge cases: closing a non-active tab keeps the same tab focused (it
+    does today); a tab closing because its process exited, or a
+    background job tab, must never move focus unless it was the active
+    tab; another client's space only gets its stored active tab fixed.
 - [ ] Pin a tab: pinned tabs are marked with a pin icon (or similar) in
   the tab bar and stay at its start, before the unpinned tabs, like
   pinned tabs in Chrome or Firefox.
