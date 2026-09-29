@@ -337,20 +337,20 @@ pub(crate) fn render_sidebar(
         entries = super::space_sort::held_entries(snapshot, entries, held);
     }
     hits.space_order = super::space_sort::root_ids(snapshot, &entries);
-    // While a space is dragged the list shows where it would land, and the
-    // header says so in words. With the pointer outside the list the order
-    // stays, the block stays lifted and the header says a release cancels.
+    // While a space is dragged the list shows where it would land; the
+    // header keeps its sort buttons. With the pointer outside the list the
+    // order stays, the block stays lifted and the header says a release
+    // cancels.
     let drag = state
         .dragged_workspace_id
         .and_then(|source| match state.workspace_drop_before {
             Some(before) => {
                 let preview = entries_with_drag(snapshot, &entries, source, before)?;
-                let hint = drag_hint(snapshot, &entries, &preview, source);
-                Some((Some(preview), hint))
+                Some((Some(preview), None))
             }
-            None => Some((None, "release cancels · Esc".to_owned())),
+            None => Some((None, Some("release cancels · Esc"))),
         });
-    let header_hint = drag.as_ref().map(|(_, hint)| hint.as_str()).or(state
+    let header_hint = drag.as_ref().and_then(|(_, hint)| *hint).or(state
         .workspace_drag_refusal
         .map(super::WorkspaceDragRefusal::hint));
     match header_hint {
@@ -930,46 +930,6 @@ fn family_ids<'a>(
         }
     }
     ids
-}
-
-/// `herdr → before try-roguix`, `herdr → end` or `no change · Esc`; the
-/// sidebar is narrow, so the words are few.
-fn drag_hint(
-    snapshot: &ClientShellSnapshot,
-    entries: &[WorkspaceEntry],
-    preview: &[WorkspaceEntry],
-    source: &str,
-) -> String {
-    let order = |entries: &[WorkspaceEntry]| {
-        entries
-            .iter()
-            .filter(|entry| !entry.indented)
-            .map(|entry| entry.index)
-            .collect::<Vec<_>>()
-    };
-    let (before, after) = (order(entries), order(preview));
-    if before == after {
-        return "no change · Esc".to_owned();
-    }
-    let label = |index: usize| {
-        snapshot
-            .workspaces
-            .get(index)
-            .map_or("?", |workspace| workspace.label.as_str())
-    };
-    let Some(position) = after.iter().position(|index| {
-        snapshot
-            .workspaces
-            .get(*index)
-            .is_some_and(|workspace| workspace.workspace_id == source)
-    }) else {
-        return "no change · Esc".to_owned();
-    };
-    let name = label(after[position]);
-    match after.get(position + 1) {
-        Some(next) => format!("{name} → before {}", label(*next)),
-        None => format!("{name} → end"),
-    }
 }
 
 pub(crate) fn workspace_entries(

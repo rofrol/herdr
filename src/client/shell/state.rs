@@ -237,7 +237,7 @@ pub(super) enum WorkspaceDragRefusal {
 impl WorkspaceDragRefusal {
     pub(super) fn hint(self) -> &'static str {
         match self {
-            Self::Sort => "sort by cust to reorder",
+            Self::Sort => "use manual to reorder",
             Self::LinkedWorktree => "moves with its parent",
             Self::Remote => "can't reorder here",
         }

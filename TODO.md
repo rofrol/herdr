@@ -391,6 +391,16 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     bottom row (or past it) scrolls the list a row every 60 ms, retargeting
     the drop with the pointer where it is, and stops back inside the list;
     local sidebar only (it scrolls by rows).
+  - Changed 2026-09-29 at my request: while a space is dragged the header
+    keeps its sort buttons; the `→ before …`, `→ end` and `no change`
+    hints went (the live reorder shows where it lands). Left:
+    `release cancels · Esc` outside the list and a refusal's reason. The
+    own order's button is `manual`, not `cust`, and the header's buttons
+    are one column apart, so `manual name ↑ prio ↓` leaves room for `✉N`.
+    Consulted (GPT-6 Astra, DeepSeek): both said to keep only those
+    exceptional hints; Astra chose `manual` (chosen), DeepSeek `custom`.
+  - Next (2026-09-29, to consult): right-click on a tab line or its job
+    summary offers "close jobs" (the finished ones? all?).
   - Done 2026-09-28: keyboard reorder. `keys.move_space_previous` and
     `keys.move_space_next` (unset by default, e.g. `alt+shift+up/down`)
     move the focused space one place in the sidebar's own order, with its
