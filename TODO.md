@@ -23,6 +23,11 @@
      a click on the footer's ends while a full-screen program (vim, less)
      runs in the job would close it (DeepSeek's warning), so consider
      skipping the click mapping on the alternate screen.
+     - [ ] Long term: draw the job status as client chrome in a reserved
+       row; expose `--why` and job id through a new codec (DeepSeek).
+       Consider skipping footer-end click mappings on the alternate screen:
+       a full-screen program such as vim or less could otherwise be closed
+       by a click intended for its own bottom row.
   2. Walk through with me the rest of what was done on 2026-09-28/29
      (points 1-7 confirmed): 8 a sorted spaces list (name/prio) holds its
      order while the pointer is over it; 9 the `shapes` indicator style
@@ -404,6 +409,12 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     pointer (a middle-click could stop the wrong job). DeepSeek wanted the
     footer dropped (chosen); Astra wanted the top line and footer to split
     the fields.
+- [ ] A `claude` consult skill in `plugins/consult/skills/`, like `gpt` and
+  `deepseek`, so pi (and other agents) can ask Claude Opus 5.5 for a second
+  opinion: `ask_claude.sh` running `claude -p --model claude-opus-5-5`
+  (billed to the Claude subscription, so it shares Claude Code's usage
+  limit), in its own herdr-job tab, logged to consult-stats; linked into
+  `~/.pi/agent/skills/` by `plugins/consult/install-skills` (2026-09-29).
 - [ ] The job square's tooltip should appear after the same dwell as the
   cut tab label's (450 ms), not at once (2026-09-29, my request; consult
   GPT-6 Astra and DeepSeek first: DeepSeek had argued for "at once" since
