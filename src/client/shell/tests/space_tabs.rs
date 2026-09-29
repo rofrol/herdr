@@ -280,7 +280,7 @@ fn vertical_tabs_hide_both_tab_rows() {
 }
 
 #[test]
-fn the_job_headers_ends_go_back_and_close() {
+fn the_job_footers_ends_go_back_and_close() {
     let mut state = state_with_tabs(true);
     state.config.confirm_close = false;
     // A failed job closes at once; a running one would ask first.
@@ -307,12 +307,13 @@ fn the_job_headers_ends_go_back_and_close() {
     state.set_pane_surface(wide);
     state.compose(106, 30).unwrap();
     let pane = state.hits.panes[0].inner_rect;
+    let footer_y = pane.bottom() - 1;
 
     assert!(focuses(
-        &left_click(&mut state, (pane.x + 1, pane.y)),
+        &left_click(&mut state, (pane.x + 1, footer_y)),
         "tab_1"
     ));
-    let outcome = left_click(&mut state, (pane.right() - 2, pane.y));
+    let outcome = left_click(&mut state, (pane.right() - 2, footer_y));
     assert!(
         outcome.actions.iter().any(|action| matches!(action,
             ClientShellAction::Endpoint { request, .. }
@@ -321,13 +322,13 @@ fn the_job_headers_ends_go_back_and_close() {
         "{:?}",
         outcome.actions
     );
-    // Below the header row, or in its middle, clicks reach the pane.
+    // The old header row and the footer's middle pass clicks to the pane.
     assert!(!focuses(
-        &left_click(&mut state, (pane.x + 1, pane.y + 1)),
+        &left_click(&mut state, (pane.x + 1, pane.y)),
         "tab_1"
     ));
     assert!(!focuses(
-        &left_click(&mut state, (pane.x + 10, pane.y)),
+        &left_click(&mut state, (pane.x + 10, footer_y)),
         "tab_1"
     ));
 }
