@@ -47,11 +47,16 @@ impl ClientShellState {
         let target = (mouse.kind == crossterm::event::MouseEventKind::Moved
             && self.overlay.is_none())
         .then(|| {
-            self.hits
-                .tooltips
-                .iter()
-                .find(|target| super::contains(target.rect, point))
-                .map(|target| target.id.clone())
+            self.hovered_square
+                .as_deref()
+                .map(square_tooltip_id)
+                .or_else(|| {
+                    self.hits
+                        .tooltips
+                        .iter()
+                        .find(|target| super::contains(target.rect, point))
+                        .map(|target| target.id.clone())
+                })
         })
         .flatten();
         match target {
@@ -76,6 +81,18 @@ impl ClientShellState {
     /// Shows a tooltip once its dwell is over, and hides it after
     /// [`MAX_SHOWN`].
     pub(super) fn tick_tooltip(&mut self, now: Instant, outcome: &mut ClientShellInput) {
+        if self.overlay.is_some()
+            || self.tooltip.as_ref().is_some_and(|tip| {
+                !self
+                    .hits
+                    .tooltips
+                    .iter()
+                    .any(|target| target.id == tip.target)
+            })
+        {
+            outcome.repaint |= self.clear_tooltip();
+            return;
+        }
         let Some(tip) = self.tooltip.as_mut() else {
             return;
         };
@@ -96,31 +113,20 @@ impl ClientShellState {
             .map(|tip| tip.since + if tip.shown { MAX_SHOWN } else { DWELL })
     }
 
-    /// Whether a tooltip is to be drawn: a hovered job square's at once,
-    /// others after their dwell.
+    /// Whether a tooltip has completed its dwell.
     pub(super) fn tooltip_visible(&self) -> bool {
-        self.hovered_square.is_some() || self.tooltip.as_ref().is_some_and(|tip| tip.shown)
+        self.tooltip.as_ref().is_some_and(|tip| tip.shown)
     }
 
     /// Draws the shown tooltip on the row of its target, from the target's
-    /// left edge, shifted left to stay on screen. A hovered job square's
-    /// name shows at once: the square has no text at all.
+    /// left edge (right edge for job squares), shifted left to stay on screen.
     pub(super) fn render_tooltip(&self, buffer: &mut ratatui::buffer::Buffer) -> Option<Rect> {
-        let square = self
-            .hovered_square
-            .as_deref()
-            .map(square_tooltip_id)
-            .and_then(|id| self.hits.tooltips.iter().find(|target| target.id == id));
-        let target = match square {
-            Some(target) => target,
-            None => {
-                let tip = self.tooltip.as_ref().filter(|tip| tip.shown)?;
-                self.hits
-                    .tooltips
-                    .iter()
-                    .find(|target| target.id == tip.target)?
-            }
-        };
+        let tip = self.tooltip.as_ref().filter(|tip| tip.shown)?;
+        let target = self
+            .hits
+            .tooltips
+            .iter()
+            .find(|target| target.id == tip.target)?;
         let text = sanitize(&target.text);
         let area = buffer.area;
         let width = (unicode_width::UnicodeWidthStr::width(text.as_str()) as u16)
@@ -128,9 +134,12 @@ impl ClientShellState {
             .min(area.width);
         // The box's padding column sits left of the target, so the text
         // starts where the target's text does.
-        let x = target
-            .rect
-            .x
+        let anchor_x = if target.id.starts_with("square:") {
+            target.rect.right()
+        } else {
+            target.rect.x
+        };
+        let x = anchor_x
             .saturating_sub(1)
             .min(area.right().saturating_sub(width));
         let rect = Rect::new(x, target.rect.y, width, 1).intersection(area);

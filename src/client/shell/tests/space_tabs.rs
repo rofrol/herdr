@@ -590,7 +590,7 @@ fn middle_and_right_click_on_a_tab_line_target_the_tab_not_its_space() {
 }
 
 #[test]
-fn hovering_a_square_names_its_job_right_of_it() {
+fn resting_on_a_square_names_its_job_right_of_it_after_dwell() {
     let mut state = state_with_tabs(true);
     with_job(&mut state, "job_1", TabStatus::Failed);
     with_job(&mut state, "job_2", TabStatus::Running);
@@ -606,6 +606,14 @@ fn hovering_a_square_names_its_job_right_of_it() {
             row,
             modifiers: KeyModifiers::empty(),
         })]);
+        state.compose(106, 30).unwrap();
+        if let Some(deadline) = state.tooltip_deadline() {
+            assert!(!state.tooltip_visible(), "new target starts a fresh dwell");
+            state.tick_selection_autoscroll(deadline - std::time::Duration::from_millis(1));
+            assert!(!state.tooltip_visible(), "not before 450 ms");
+            state.tick_selection_autoscroll(deadline);
+            assert!(state.tooltip_visible(), "shown at 450 ms");
+        }
         let frame = state.compose(106, 30).unwrap();
         let rows = frame_rows(&frame);
         let from = |x: u16, y: u16| {
@@ -617,7 +625,7 @@ fn hovering_a_square_names_its_job_right_of_it() {
         (from(first.right(), first.y), from(line.x, line.y))
     };
 
-    // At once, on the square's row, right of it; the tab line keeps its label.
+    // After the dwell, right of the square; the tab line keeps its label.
     let (row, tab_line) = hover(&mut state, (first.x + 1, first.y));
     assert!(row.starts_with("job job_1 "), "{row:?}");
     assert!(tab_line.contains("agent tab"), "{tab_line:?}");
@@ -640,6 +648,56 @@ fn hovering_a_square_names_its_job_right_of_it() {
     // Off the squares it goes.
     let (row, _) = hover(&mut state, (first.x + 1, first.y + 3));
     assert!(!row.contains("job job_"), "{row:?}");
+}
+
+#[test]
+fn pending_job_tooltips_are_cancelled_by_input_and_target_removal() {
+    for dismiss in ["key", "click", "scroll", "removed"] {
+        let mut state = state_with_tabs(true);
+        with_job(&mut state, "job_1", TabStatus::Running);
+        click_fold(&mut state);
+        state.compose(106, 30).unwrap();
+        let (square, _) = state.hits.space_tab_squares[0];
+        state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+            kind: crossterm::event::MouseEventKind::Moved,
+            column: square.x + 1,
+            row: square.y,
+            modifiers: KeyModifiers::empty(),
+        })]);
+        state.compose(106, 30).unwrap();
+        let deadline = state.tooltip_deadline().expect("pending dwell");
+        assert!(!state.tooltip_visible());
+        match dismiss {
+            "key" => {
+                state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Key(
+                    crate::input::TerminalKey::new(
+                        crossterm::event::KeyCode::Char('x'),
+                        KeyModifiers::empty(),
+                    ),
+                )]);
+            }
+            "click" | "scroll" => {
+                state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+                    kind: if dismiss == "click" {
+                        crossterm::event::MouseEventKind::Down(MouseButton::Left)
+                    } else {
+                        crossterm::event::MouseEventKind::ScrollDown
+                    },
+                    column: square.x + 1,
+                    row: square.y,
+                    modifiers: KeyModifiers::empty(),
+                })]);
+            }
+            "removed" => state.hits.tooltips.clear(),
+            _ => unreachable!(),
+        }
+        state.tick_selection_autoscroll(deadline);
+        assert!(
+            !state.tooltip_visible(),
+            "{dismiss} cancels pending tooltip"
+        );
+        assert!(state.tooltip_deadline().is_none(), "{dismiss} clears timer");
+    }
 }
 
 #[test]

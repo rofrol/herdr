@@ -538,9 +538,9 @@ pub(super) fn render_space_tab_lines(
                     // square it covers names that one instead.
                     // It has the square's fill, so the two read as one;
                     // the square already shows the state.
-                    if hovered_square == Some(square.tab_id.as_str()) {
+                    if hovered_square == Some(square.tab_id.as_str()) && !square.gone {
                         hits.tooltips.push(super::tooltip::TooltipTarget {
-                            rect: Rect::new(rect.right(), rect.y, 1, 1),
+                            rect,
                             id: super::tooltip::square_tooltip_id(&square.tab_id),
                             text: square.label.clone(),
                             bg: Some(square_fill(square, &fills, palette)),
