@@ -269,6 +269,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     space's triangle), no auto-unfold of failed jobs (it moves rows under
     the pointer). Succeeded-only: Astra the triangle alone (chosen),
     DeepSeek nothing.
+  - Changed 2026-09-29 at my request: the tab lines' fill (and the square
+    rows) reach the right edge, level with the space name line's `+`,
+    instead of stopping a column short.
   - Done 2026-09-28: a succeeded job's tab does not close while it is the
     focused tab (herdr's `focused`, the tab shown); herdr-job checks every
     2 s and closes it once you leave it.

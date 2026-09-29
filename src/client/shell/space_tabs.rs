@@ -80,11 +80,11 @@ impl SpaceTabLine {
 pub(super) type HeldSquares = std::collections::HashMap<String, Vec<(String, String)>>;
 
 /// Squares that fit on a row of a space block `width` columns wide, from the
-/// indent to one column before the right edge, as the tab fill. Callers pass
+/// indent to the right edge, as the tab fill. Callers pass
 /// the same width to [`SpaceTabLine::height`] and
 /// [`render_space_tab_lines`], so the rows laid out are the rows drawn.
 fn squares_per_row(width: u16) -> usize {
-    let room = width.saturating_sub(SQUARES_INDENT + 1) + SQUARE_GAP;
+    let room = width.saturating_sub(SQUARES_INDENT) + SQUARE_GAP;
     usize::from((room / (SQUARE_WIDTH + SQUARE_GAP)).max(1))
 }
 
@@ -393,7 +393,8 @@ pub(super) fn render_space_tab_lines(
     let x = area.x.saturating_add(3);
     // A column of the panel background between the icon and the fill.
     let fill_x = x.saturating_add(2);
-    let fill_right = area.right().saturating_sub(1);
+    // To the right edge, level with the `+` on the space name lines.
+    let fill_right = area.right();
     // One column of padding inside the fill on each side.
     let text_x = fill_x.saturating_add(1);
     let right = fill_right.saturating_sub(1);

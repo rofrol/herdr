@@ -62,8 +62,7 @@ fn spaces_list_their_tabs_without_nested_jobs_when_enabled() {
     let rows = frame_rows(&frame);
     let sidebar = |row: &String| row.chars().take(28).collect::<String>();
     let line = state.hits.space_tabs[0].0.y as usize;
-    // The label is cut before the triangle and counts.
-    assert!(sidebar(&rows[line]).contains("agent t…"), "{}", rows[line]);
+    assert!(sidebar(&rows[line]).contains("agent tab"), "{}", rows[line]);
     assert!(sidebar(&rows[line]).contains("► ⧖ 1 !1"), "{}", rows[line]);
     assert!(
         rows.iter().all(|row| !sidebar(row).contains("job job_")),
@@ -365,7 +364,7 @@ fn only_the_focused_spaces_active_tab_line_is_blue() {
         buffer[(rect.x + column, rect.y)].clone()
     };
     let (rect, _) = state.hits.space_tabs[0];
-    let last = rect.width - 3;
+    let last = rect.width - 2;
 
     // The focused space's active tab is accent-tinted, the other tab a
     // lighter grey, and neither fill reaches the state icon, which keeps
