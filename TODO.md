@@ -279,6 +279,21 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     4.5:1, mixing toward the text colour, more saturation, a darker tint
     and an accent frame (consulted GPT-6 Astra and DeepSeek: both chose
     darkening to 3:1); I chose the original colours.
+  - Bug (2026-09-29, screenshot): a tab whose only job succeeded (kept
+    open with `--keep`) shows the `▼` triangle but no count, since the
+    summary counts only running and failed jobs; it should count succeeded
+    ones too (`✓1`). Fixed the same day: the line counts `⧖ !` and `✓`.
+  - Changed 2026-09-29 at my request, after a terminal demo of five
+    placements: a hovered square's job is named at once in a tooltip on
+    the square's row, right of the square, instead of in place of the tab
+    line's label (cut at ~12 columns). It takes no hover, so moving onto a
+    square it covers names that job; leaving the squares hides it.
+    Consulted (GPT-6 Astra, DeepSeek): both wanted it past the sidebar's
+    edge so it covers no square, and no label swap; Astra with the 450 ms
+    dwell, DeepSeek at once (chosen).
+  - Bug (2026-09-29): the `new` button at the bottom creates a space and
+    scrolls the list to it, but a new tab (`+` or the new-tab key) in a
+    space low in the list does not scroll to the new tab line.
   - Done 2026-09-28: a succeeded job's tab does not close while it is the
     focused tab (herdr's `focused`, the tab shown); herdr-job checks every
     2 s and closes it once you leave it.
@@ -1307,6 +1322,11 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   Also flaky: `federated_client_starts_without_local_and_survives_its_restart`
   failed once in `just check` on 2026-09-28 ("remote reconnect 2 must
   restore visible input", 12.8 s) and passed alone and on the rerun.
+  It failed again on 2026-09-29 at "recovered Local must be selectable"
+  (tests/client_mode.rs:1207), once in three full `just check` runs, and
+  passes alone; the same assertion failed every other run while the
+  client fetched `notification.list` in the background (fixed), so check
+  whether something else still races the row click under load.
   - Done 2026-09-29: a test process now reaps `/tmp/herdr-client-test-*`
     bases whose test process (the pid in the name) is gone and that are
     over a minute old: it asks their servers to stop through their sockets

@@ -27,7 +27,8 @@ pub(super) struct SpaceTabLine {
     pub(super) label: String,
     /// The space's active tab is this one or nested under it.
     pub(super) active: bool,
-    /// Running and failed counts of the tab and its nested tabs, e.g. `⧖ 1 !1`.
+    /// Running, failed and succeeded counts of the tab and its nested tabs,
+    /// e.g. `⧖ 1 !1 ✓2`.
     pub(super) jobs: Vec<(Option<TabStatus>, String)>,
     /// The nested tabs, in tab order, drawn as squares while unfolded.
     pub(super) squares: Vec<TabSquare>,
@@ -119,10 +120,12 @@ pub(super) fn space_tab_lines(
                     candidate.tab_id == tab.tab_id
                         || candidate.parent_tab_id.as_deref() == Some(tab.tab_id.as_str())
                 })
+                // Succeeded jobs count too: one kept open (`--keep`) would
+                // otherwise leave the line with a bare triangle.
                 .filter(|candidate| {
                     matches!(
                         candidate.status,
-                        Some(TabStatus::Running | TabStatus::Failed)
+                        Some(TabStatus::Running | TabStatus::Failed | TabStatus::Succeeded)
                     )
                 })
                 .collect::<Vec<_>>();
@@ -455,41 +458,15 @@ pub(super) fn render_space_tab_lines(
             (true, jobs) => jobs + 2,
         };
         let label_width = available.saturating_sub(if fold_width > 0 { fold_width + 1 } else { 0 });
-        let hovered = hovered_square
-            .and_then(|hovered| line.squares.iter().find(|square| square.tab_id == hovered));
-        match hovered {
-            Some(square) if label_width > 2 => {
-                let glyph = super::tab_groups::status_icon(square.status).unwrap_or("•");
-                super::render::put_text(
-                    buffer,
-                    text_x,
-                    y,
-                    1,
-                    glyph,
-                    on_accent.unwrap_or_else(|| {
-                        Style::default()
-                            .fg(
-                                super::render::tabs::tab_status_color(square.status, palette)
-                                    .unwrap_or(palette.overlay0),
-                            )
-                            .add_modifier(Modifier::BOLD)
-                    }),
-                );
-                let label = truncate(&square.label, usize::from(label_width - 2));
-                super::render::put_text(buffer, text_x + 2, y, label_width - 2, &label, text_style);
-            }
-            _ => {
-                let label = truncate(&line.label, label_width as usize);
-                if label != line.label {
-                    hits.tooltips.push(super::tooltip::TooltipTarget {
-                        rect: Rect::new(text_x, y, label_width, 1),
-                        id: format!("tab:{}", line.tab_id),
-                        text: line.label.clone(),
-                    });
-                }
-                super::render::put_text(buffer, text_x, y, label_width, &label, text_style);
-            }
+        let label = truncate(&line.label, label_width as usize);
+        if label != line.label {
+            hits.tooltips.push(super::tooltip::TooltipTarget {
+                rect: Rect::new(text_x, y, label_width, 1),
+                id: format!("tab:{}", line.tab_id),
+                text: line.label.clone(),
+            });
         }
+        super::render::put_text(buffer, text_x, y, label_width, &label, text_style);
         if fold_width > 0 {
             let fold_x = right.saturating_sub(fold_width);
             super::render::put_text(
@@ -542,6 +519,17 @@ pub(super) fn render_space_tab_lines(
                         hits.gone.push(rect);
                     } else {
                         hits.squares.push((rect, square.tab_id.clone()));
+                    }
+                    // The hovered square's job is named in a tooltip right
+                    // of it. The tooltip takes no hits, so moving onto a
+                    // square it covers names that one instead.
+                    if hovered_square == Some(square.tab_id.as_str()) {
+                        let glyph = super::tab_groups::status_icon(square.status).unwrap_or("•");
+                        hits.tooltips.push(super::tooltip::TooltipTarget {
+                            rect: Rect::new(rect.right(), rect.y, 1, 1),
+                            id: super::tooltip::square_tooltip_id(&square.tab_id),
+                            text: format!("{glyph} {}", square.label),
+                        });
                     }
                     square_x = square_x.saturating_add(SQUARE_WIDTH + SQUARE_GAP);
                 }
@@ -712,7 +700,6 @@ mod tests {
             tab("tab_1", None, None),
             tab("job_1", Some("tab_1"), Some(TabStatus::Running)),
             tab("job_2", Some("tab_1"), Some(TabStatus::Failed)),
-            // Finished jobs are not counted on the line.
             tab("job_3", Some("tab_1"), Some(TabStatus::Succeeded)),
             tab("tab_2", None, None),
             tab("elsewhere", None, None),
@@ -751,6 +738,7 @@ mod tests {
                     vec![
                         (Some(TabStatus::Running), "⧖ 1".to_owned()),
                         (Some(TabStatus::Failed), "!1".to_owned()),
+                        (Some(TabStatus::Succeeded), "✓1".to_owned()),
                     ]
                 ),
                 ("tab_2", false, Vec::new()),

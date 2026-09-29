@@ -94,15 +94,31 @@ impl ClientShellState {
             .map(|tip| tip.since + if tip.shown { MAX_SHOWN } else { DWELL })
     }
 
+    /// Whether a tooltip is to be drawn: a hovered job square's at once,
+    /// others after their dwell.
+    pub(super) fn tooltip_visible(&self) -> bool {
+        self.hovered_square.is_some() || self.tooltip.as_ref().is_some_and(|tip| tip.shown)
+    }
+
     /// Draws the shown tooltip on the row of its target, from the target's
-    /// left edge, shifted left to stay on screen.
+    /// left edge, shifted left to stay on screen. A hovered job square's
+    /// name shows at once: the square has no text at all.
     pub(super) fn render_tooltip(&self, buffer: &mut ratatui::buffer::Buffer) -> Option<Rect> {
-        let tip = self.tooltip.as_ref().filter(|tip| tip.shown)?;
-        let target = self
-            .hits
-            .tooltips
-            .iter()
-            .find(|target| target.id == tip.target)?;
+        let square = self
+            .hovered_square
+            .as_deref()
+            .map(square_tooltip_id)
+            .and_then(|id| self.hits.tooltips.iter().find(|target| target.id == id));
+        let target = match square {
+            Some(target) => target,
+            None => {
+                let tip = self.tooltip.as_ref().filter(|tip| tip.shown)?;
+                self.hits
+                    .tooltips
+                    .iter()
+                    .find(|target| target.id == tip.target)?
+            }
+        };
         let text = sanitize(&target.text);
         let area = buffer.area;
         let width = (unicode_width::UnicodeWidthStr::width(text.as_str()) as u16)
@@ -126,6 +142,11 @@ impl ClientShellState {
         );
         Some(rect)
     }
+}
+
+/// The tooltip id of a job square's name.
+pub(super) fn square_tooltip_id(tab_id: &str) -> String {
+    format!("square:{tab_id}")
 }
 
 /// `text` on one line, with control characters (a label may carry them)

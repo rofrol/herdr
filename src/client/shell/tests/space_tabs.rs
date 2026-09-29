@@ -62,8 +62,13 @@ fn spaces_list_their_tabs_without_nested_jobs_when_enabled() {
     let rows = frame_rows(&frame);
     let sidebar = |row: &String| row.chars().take(28).collect::<String>();
     let line = state.hits.space_tabs[0].0.y as usize;
-    assert!(sidebar(&rows[line]).contains("agent tab"), "{}", rows[line]);
-    assert!(sidebar(&rows[line]).contains("► ⧖ 1 !1"), "{}", rows[line]);
+    // The label is cut first; the counts include the succeeded job.
+    assert!(sidebar(&rows[line]).contains("agent…"), "{}", rows[line]);
+    assert!(
+        sidebar(&rows[line]).contains("► ⧖ 1 !1 ✓1"),
+        "{}",
+        rows[line]
+    );
     assert!(
         rows.iter().all(|row| !sidebar(row).contains("job job_")),
         "nested job tabs get no line: {rows:?}"
@@ -584,12 +589,14 @@ fn middle_and_right_click_on_a_tab_line_target_the_tab_not_its_space() {
 }
 
 #[test]
-fn hovering_a_square_names_its_job_on_its_tab_line() {
+fn hovering_a_square_names_its_job_right_of_it() {
     let mut state = state_with_tabs(true);
     with_job(&mut state, "job_1", TabStatus::Failed);
+    with_job(&mut state, "job_2", TabStatus::Running);
     click_fold(&mut state);
     state.compose(106, 30).unwrap();
-    let (square, _) = state.hits.space_tab_squares[0];
+    let (first, _) = state.hits.space_tab_squares[0];
+    let (second, _) = state.hits.space_tab_squares[1];
     let (line, _) = state.hits.space_tabs[0];
     let hover = |state: &mut ClientShellState, (column, row): (u16, u16)| {
         state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
@@ -599,17 +606,33 @@ fn hovering_a_square_names_its_job_on_its_tab_line() {
             modifiers: KeyModifiers::empty(),
         })]);
         let frame = state.compose(106, 30).unwrap();
-        frame_rows(&frame)[line.y as usize]
-            .chars()
-            .take(26)
-            .collect::<String>()
+        let rows = frame_rows(&frame);
+        let from = |x: u16, y: u16| {
+            rows[y as usize]
+                .chars()
+                .skip(x as usize)
+                .collect::<String>()
+        };
+        (from(first.right(), first.y), from(line.x, line.y))
     };
 
-    let text = hover(&mut state, (square.x + 1, square.y));
-    assert!(text.contains("! job job_1"), "{text:?}");
-    // Off the square the label comes back.
-    let text = hover(&mut state, (square.x + 1, square.y + 2));
-    assert!(text.contains("agent t"), "{text:?}");
+    // At once, on the square's row, right of it; the tab line keeps its label.
+    let (row, tab_line) = hover(&mut state, (first.x + 1, first.y));
+    assert!(row.starts_with(" ! job job_1 "), "{row:?}");
+    assert!(tab_line.contains("agent tab"), "{tab_line:?}");
+    // The tooltip covers the next square but takes no hover: moving there
+    // names that job.
+    let (row, _) = hover(&mut state, (second.x + 1, second.y));
+    assert!(!row.contains("job_1"), "{row:?}");
+    let frame = state.compose(106, 30).unwrap();
+    let second_row = frame_rows(&frame)[second.y as usize]
+        .chars()
+        .skip(second.right() as usize)
+        .collect::<String>();
+    assert!(second_row.starts_with(" ⧖ job job_2 "), "{second_row:?}");
+    // Off the squares it goes.
+    let (row, _) = hover(&mut state, (first.x + 1, first.y + 3));
+    assert!(!row.contains("job job_"), "{row:?}");
 }
 
 #[test]
