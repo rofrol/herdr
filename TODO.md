@@ -574,9 +574,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     the pointer), state glyphs and counts may update; cancel if the tab
     vanishes; the fold triangle, squares and middle-click never start a
     drag; test a short tab dragged past a tall unfolded one both ways.
-    DeepSeek also: a 3-cell threshold (one cell eats clicks; I would keep
-    the spaces' threshold for consistency), auto-scroll clamped to the
-    source space's rows, a look different from a space drag so it does not
+    DeepSeek also: a 3-cell threshold, since one cell eats clicks.
+    Rejected: a tab line is one row high, so moving a tab one line would
+    first need a detour. Decided instead: the drag starts after one row of
+    vertical movement, and sideways movement alone never starts it (a
+    vertical list reorders nothing sideways; a click's jitter is a column,
+    rarely a whole row); the same for dragging spaces. DeepSeek also:
+    auto-scroll clamped to the source space's rows, a look different from a space drag so it does not
     read as the space moving, and a target space id in the move API now.
     Astra: the top bar may keep its marker for now, but the same order,
     cancel and child-tab rules.
