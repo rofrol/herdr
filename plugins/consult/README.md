@@ -54,6 +54,12 @@ the only proof. Treat a vendor as unavailable after a limit error, quote that
 error and the reset time it names, and never silently substitute another model.
 That also keeps a self-consultation from being dressed up as a second opinion.
 
+When the endpoint reports a critical limit, a consultation is still worth
+attempting, but single-shot and small: no retry loops against that vendor.
+After the first limit rejection, remember that vendor as unavailable until the
+reset time the error names, switch to another one, and tell the user which is
+unavailable and until when instead of quietly changing the round.
+
 
 Each skill's `SKILL.md` has the details. Inside herdr every call runs in its
 own [herdr-job](../job/README.md) tab, so you can watch it.
