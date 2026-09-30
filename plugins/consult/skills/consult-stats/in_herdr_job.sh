@@ -21,7 +21,7 @@ done
 
 # The job tab starts from its own environment: pass on the round id, the log path and model settings.
 passenv=()
-while IFS= read -r v; do passenv+=("$v=${!v}"); done < <(compgen -e | grep -E '^(CONSULT_ROUND|CONSULT_LOG|GPT_|GEMINI_|DEEPSEEK_)' || true)
+while IFS= read -r v; do passenv+=("$v=${!v}"); done < <(compgen -e | grep -E '^(CONSULT_ROUND|CONSULT_LOG|GPT_|GEMINI_|DEEPSEEK_|CLAUDE_CONSULT_)' || true)
 
 last=${*: -1}
 question=$(tr -s '[:space:]' ' ' <<<"$last")
