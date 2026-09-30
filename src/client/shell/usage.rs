@@ -353,26 +353,20 @@ fn render_provider_row(
 
 /// The 5-hour and weekly windows, falling back to the first two windows reported.
 /// A provider with a weekly window but no 5-hour one leaves the short column empty.
-/// Model-scoped windows (`scoped:` ids) never take a cell: they limit one model
-/// family, so showing one here would silently change what the cell means.
+/// Model-specific windows never take a cell: showing one here would silently
+/// change what the cell means. Filter lazily to avoid allocations during render.
 fn footer_windows(provider: &ProviderUsage) -> (Option<&UsageWindow>, Option<&UsageWindow>) {
-    let shared: Vec<&UsageWindow> = provider
-        .windows
-        .iter()
-        .filter(|window| !window.id.starts_with("scoped:"))
-        .collect();
-    let by_id = |id: &str| shared.iter().copied().find(|window| window.id == id);
-    let short = by_id("five_hour").or_else(|| {
-        by_id("weekly")
-            .is_none()
-            .then(|| shared.first().copied())
-            .flatten()
-    });
+    let shared = || {
+        provider.windows.iter().filter(|window| {
+            !window.id.starts_with("scoped:")
+                && !matches!(window.id.as_str(), "weekly_opus" | "weekly_sonnet")
+        })
+    };
+    let by_id = |id: &str| shared().find(|window| window.id == id);
+    let short =
+        by_id("five_hour").or_else(|| by_id("weekly").is_none().then(|| shared().next()).flatten());
     let weekly = by_id("weekly").or_else(|| {
-        shared
-            .iter()
-            .copied()
-            .find(|window| short.is_none_or(|short| !std::ptr::eq(*window, short)))
+        shared().find(|window| short.is_none_or(|short| !std::ptr::eq(*window, short)))
     });
     (short, weekly)
 }
@@ -610,9 +604,20 @@ mod tests {
         let mut only_scoped = window(90, 1_000 + 3_600);
         only_scoped.id = "scoped:fable".into();
         only_scoped.label = "Fable week".into();
-        scoped.windows.push(only_scoped.clone());
-        let (short, weekly) = footer_windows(&scoped);
-        assert!(short.is_none() && weekly.is_none());
+        for id in ["scoped:fable", "weekly_opus", "weekly_sonnet"] {
+            let mut model_window = only_scoped.clone();
+            model_window.id = id.into();
+            scoped.windows = vec![model_window.clone()];
+            let (short, weekly) = footer_windows(&scoped);
+            assert!(short.is_none() && weekly.is_none(), "{id}");
+
+            let mut session = window(4, 1_000 + 3_600);
+            session.id = "five_hour".into();
+            scoped.windows = vec![session, model_window];
+            let (short, weekly) = footer_windows(&scoped);
+            assert_eq!(short.map(|window| window.used_percent), Some(4));
+            assert!(weekly.is_none(), "{id}");
+        }
 
         scoped.windows = vec![
             UsageWindow {
