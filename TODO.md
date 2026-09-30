@@ -109,6 +109,41 @@
     treats such a child as top-level; the client sends no `tab.focus` of
     its own after a close in the paths checked. It did not run anything.
 
+- [ ] Compact Pi activity rows with click-through to herdr-job details.
+  - User request and screenshot, 2026-10-01:
+    `/Users/romanfrolow/Screenshots/Screenshot 2026-10-01 at 01.12.20.png`.
+    The main Pi transcript should show successive short status rows, each
+    with an animated half-circle indicator while work actually runs and a
+    small summary of the activity. Clicking a row should focus its herdr-job
+    pane. Keep available verbose tool input/output, job logs and explicitly
+    emitted model progress in the detail view, not walls of JSON and `wait`
+    output in the main conversation. Do not claim to expose or relocate
+    hidden internal model reasoning.
+  - Presentation belongs in the Pi/client extension; process state, job
+    identity and logs belong to Herdr runtime. First verify supported Pi
+    render/mouse hooks and Herdr navigation APIs before choosing a design.
+    Reuse existing job identity and focus behavior; do not infer identity
+    from tab titles or create a process/job for every token.
+  - Show real running/done/failed/blocked/cancelled state, stop animation
+    when work settles, retain meaningful completion/error summaries and
+    keyboard/expandable fallback when clicking is unavailable. Do not hide
+    permission prompts or lose original tool results needed for review.
+    Handle reconnect, resume, deleted job tabs and unavailable servers.
+  - No timer/background endpoint requests: use received job state, and
+    navigate only on explicit user action. Bound redraw frequency and keep
+    hidden rows idle. Do not copy credentials or unredacted sensitive tool
+    output into new logs. Outside Herdr preserve ordinary Pi rendering.
+    This is a planning task; no transcript replacement implemented yet.
+  - Consulted DeepSeek and Gemini (medium/high), 2026-10-01: preserve
+    scrollback, selection/copy, narrow-width reflow, session export and raw
+    transcript evidence; bound summaries and sanitise control sequences.
+    Provide reduced-motion/static indicators and a way back to the origin.
+    Renderer/navigation failures must not stop tools or cancel jobs. Use
+    supported Pi rendering rather than injecting carriage-return/escape
+    sequences into its transcript. Test concurrent jobs with explicit
+    tool-call/job mappings, not an assumed universal one-to-one relationship.
+    Gemini low was rejected for exhausted capacity (reported reset 0s);
+    no retry was made and no answer is attributed to that attempt.
 - [ ] Add easily accessible advisor checkboxes in Herdr so it injects
   `Consult with <selected agents>` into coding-agent requests. Let the user
   select advisors (for example DeepSeek) and disable the instruction easily.
@@ -1039,11 +1074,18 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     this; the historical code comparison establishes the platform mismatch.
     No runtime benchmark was run on the parent revision. Other graphics
     regressions are not ruled out by this finding.
-  - [ ] Make the manual benchmark distinguish unsupported source retention
-    from a regression: report the unsupported scenario explicitly without
-    silently replacing it with decoded fallback, while retaining the other
-    1/15-pane profiles. Validate Linux with a reflink-capable filesystem
-    separately; do not add macOS CoW support as part of this diagnostic.
+  - [x] Make the manual benchmark distinguish unsupported platform source
+    retention from a regression. Test-only implementation capability lives
+    in `src/platform/mod.rs`; scenario selection has deterministic tests.
+    Non-Linux reports `status=unsupported` explicitly for 1 and 15 panes,
+    without measuring decoded fallback as source retention. The other modes
+    remain, including native export at both pane counts. DS reviewed the
+    design. Verified 2026-10-01: `just check` passes 3809 Rust tests;
+    `just bench-render-scale` passes all 8 profiles with two explicitly
+    unsupported source-retention scenarios. No runtime or protocol change.
+    Linux retains the real source assertion, so a filesystem without
+    reflinks still fails visibly. Linux/reflink live validation remains
+    unperformed; macOS CoW support is outside this task.
 - [x] Reproduce the general render scaling comparison for the job-footer fix.
   - Measured 2026-10-01: exact baseline `f89ac503` (`a4ec9556^`) and candidate
     `a4ec9556`, three `just bench-render-scale` runs each, macOS, fixed

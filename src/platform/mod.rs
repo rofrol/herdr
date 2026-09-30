@@ -767,6 +767,11 @@ pub(crate) fn shared_ssh_control_path(
     ))
 }
 
+/// Whether source cloning is implemented, not whether the current filesystem
+/// supports it. Manual profiles must still validate actual retention on Linux.
+#[cfg(test)]
+pub(crate) const NATIVE_IMAGE_SOURCE_CLONING_IMPLEMENTED: bool = cfg!(target_os = "linux");
+
 /// Kernel CoW snapshots are deliberately unsupported outside Linux.
 #[cfg(not(target_os = "linux"))]
 pub(crate) fn clone_native_image_source(
