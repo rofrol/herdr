@@ -26,7 +26,7 @@ if [ -z "${CONSULT_IN_JOB:-}" ]; then
     awk -F'\t' '$1 == "Gemini Models" && $2 ~ /Weekly Limit Remaining/ { print $3 "\t" $4; exit }') || line=""
   IFS=$'\t' read -r left reset <<<"$line" || true
   if [[ $left == 0% && $reset > $(date -u +%Y-%m-%dT%H:%M:%SZ) ]]; then
-    echo "Gemini weekly quota exhausted until $reset (UTC); do not call Gemini until then" >&2; exit 3
+    echo "Gemini weekly quota exhausted (0% remaining) until $reset (UTC); do not call Gemini until then" >&2; exit 3
   fi
   [[ $left == 0% || $left =~ ^[0-9]+%$ ]] || echo "warning: could not read the Gemini quota from agy; trying the call anyway" >&2
 fi

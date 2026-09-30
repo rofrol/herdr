@@ -174,6 +174,7 @@ fn parse(body: &str) -> Result<ProviderUsage, String> {
             resets_at: window.resets_at.as_deref().and_then(parse_timestamp),
         });
     }
+    let mut unreadable_scoped = 0usize;
     for entry in &response.limits {
         let name = entry
             .scope
@@ -190,6 +191,8 @@ fn parse(body: &str) -> Result<ProviderUsage, String> {
             continue;
         };
         let Some(percent) = entry.percent else {
+            // Report rather than guess when a scoped limit carries no number.
+            unreadable_scoped += 1;
             continue;
         };
         let label = format!("{name} week");
@@ -206,6 +209,11 @@ fn parse(body: &str) -> Result<ProviderUsage, String> {
             used_percent: scale.to_percent(percent),
             resets_at: entry.resets_at.as_deref().and_then(parse_timestamp),
         });
+    }
+    if unreadable_scoped > 0 {
+        usage.notes.push(format!(
+            "{unreadable_scoped} model-scoped limits[] entries had no percentage"
+        ));
     }
     if response.extra_usage.is_some_and(|extra| extra.is_enabled) {
         usage.notes.push("extra usage is enabled".into());
@@ -390,6 +398,20 @@ mod tests {
                 .map(|window| (window.label.as_str(), window.used_percent))
                 .collect::<Vec<_>>(),
             vec![("sonnet week", 40)]
+        );
+    }
+
+    #[test]
+    fn notes_scoped_entries_without_a_percentage() {
+        let usage = parse(
+            r#"{"limits":[{"kind":"weekly_scoped","scope":{"model":{"display_name":"Fable"}}},
+                 {"kind":"weekly_scoped","percent":3,"scope":{"model":{"display_name":"Sonnet"}}}]}"#,
+        )
+        .unwrap();
+        assert_eq!(usage.windows.len(), 1);
+        assert_eq!(
+            usage.notes,
+            vec!["1 model-scoped limits[] entries had no percentage"]
         );
     }
 
