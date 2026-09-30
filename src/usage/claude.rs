@@ -147,10 +147,13 @@ fn parse(body: &str) -> Result<ProviderUsage, String> {
     let response: UsageResponse = serde_json::from_str(body)
         .map_err(|error| format!("unexpected Claude usage response: {error}"))?;
     let mut usage = ProviderUsage::pending("claude", "Claude");
-    // The endpoint has reported both 0-100 percentages and 0-1 fractions. One
-    // payload speaks one convention, so any value of 1 or more settles the
-    // scale for every window in it.
-    let scale = PercentScale::of(&response);
+    // Claude Code 2.1.286's /usage schemas explicitly describe utilization as
+    // "Percentage of the window used, 0-100" and limits[].percent as "Share of
+    // the window used, 0-100". Its usage UI divides utilization by 100 for bars.
+    // Rate-limit response headers use fractions, but they are a different input:
+    // Claude Code multiplies those by 100 when constructing usage-shaped data.
+    // Values below one from this endpoint are therefore small percentages;
+    // unrelated windows must not choose the unit.
     for (id, label, window) in [
         ("five_hour", "5h", response.five_hour.as_ref()),
         ("weekly", "week", response.seven_day.as_ref()),
@@ -170,7 +173,7 @@ fn parse(body: &str) -> Result<ProviderUsage, String> {
         usage.windows.push(UsageWindow {
             id: id.into(),
             label: label.into(),
-            used_percent: scale.to_percent(utilization),
+            used_percent: super::clamp_percent(utilization),
             resets_at: window.resets_at.as_deref().and_then(parse_timestamp),
         });
     }
@@ -195,7 +198,7 @@ fn parse(body: &str) -> Result<ProviderUsage, String> {
             unreadable_scoped += 1;
             continue;
         };
-        let used_percent = scale.to_percent(percent);
+        let used_percent = super::clamp_percent(percent);
         let label = format!("{name} week");
         if usage
             .windows
@@ -234,40 +237,6 @@ fn parse(body: &str) -> Result<ProviderUsage, String> {
         }
     }
     Ok(usage)
-}
-
-/// How the payload expresses utilization: a 0-100 percentage or a 0-1 fraction.
-#[derive(Clone, Copy)]
-struct PercentScale {
-    percent: bool,
-}
-
-impl PercentScale {
-    fn of(response: &UsageResponse) -> Self {
-        let fixed = [
-            response.five_hour.as_ref(),
-            response.seven_day.as_ref(),
-            response.seven_day_opus.as_ref(),
-            response.seven_day_sonnet.as_ref(),
-        ];
-        let mut values: Vec<f64> = fixed
-            .into_iter()
-            .flatten()
-            .filter_map(|window| window.utilization)
-            .collect();
-        values.extend(response.limits.iter().filter_map(|entry| entry.percent));
-        Self {
-            percent: values.iter().any(|value| *value >= 1.0),
-        }
-    }
-
-    fn to_percent(self, value: f64) -> u8 {
-        if self.percent {
-            super::clamp_percent(value)
-        } else {
-            super::clamp_percent(value * 100.0)
-        }
-    }
 }
 
 fn parse_timestamp(value: &str) -> Option<u64> {
@@ -354,21 +323,32 @@ mod tests {
     }
 
     #[test]
-    fn normalizes_fraction_scale() {
-        let usage = parse(
-            r#"{"five_hour":{"utilization":0.32},"seven_day":{"utilization":0.114},
-                "limits":[{"kind":"weekly_scoped","percent":0.5,
-                  "scope":{"model":{"display_name":"Fable"}}}]}"#,
-        )
-        .unwrap();
-        assert_eq!(
-            usage
-                .windows
-                .iter()
-                .map(|window| window.used_percent)
-                .collect::<Vec<_>>(),
-            vec![32, 11, 50]
-        );
+    fn percentage_units_do_not_depend_on_other_windows() {
+        // The public representation rounds to whole percentages. A low value
+        // must never be multiplied by 100, regardless of the other windows.
+        for (session, weekly, scoped, expected) in [
+            (0.32, 0.114, 0.5, vec![0, 0, 1]),
+            (1.0, 100.0, 1.0, vec![1, 100, 1]),
+            (0.5, 100.0, 0.5, vec![1, 100, 1]),
+            (0.5, 0.25, 100.0, vec![1, 0, 100]),
+        ] {
+            let body = format!(
+                r#"{{"five_hour":{{"utilization":{session}}},
+                    "seven_day":{{"utilization":{weekly}}},
+                    "limits":[{{"kind":"weekly_scoped","percent":{scoped},
+                      "scope":{{"model":{{"display_name":"Fable"}}}}}}]}}"#
+            );
+            let usage = parse(&body).unwrap();
+            assert_eq!(
+                usage
+                    .windows
+                    .iter()
+                    .map(|window| window.used_percent)
+                    .collect::<Vec<_>>(),
+                expected,
+                "{body}"
+            );
+        }
     }
 
     #[test]
