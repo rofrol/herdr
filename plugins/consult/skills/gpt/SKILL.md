@@ -44,6 +44,9 @@ Guidelines:
   Don't ask luna routinely: it adds an answer to read (Claude tokens) for little new. Use luna with `-e medium` only
   as a fallback when a sol call fails or hits the Plus limit. Terra only on request. Rate each call separately;
   `--unique` counts what the others (and Claude) missed.
+- Never consult the model you are running on: that is a self-consultation, not a second opinion. Check your own model
+  first (`$PI_MODEL`, or the model id you were given) and drop it from the pair. When the acting model is DeepSeek,
+  the pair is **sol + Claude Sonnet** (Gemini is the alternative); when it is Claude, ask sol + DeepSeek.
 - If the user asks for "GPT and DeepSeek", run both in parallel and compare.
 - On a usage-limit error, tell the user (Plus limits) and don't retry in that round (no other GPT model either); in a multi-model round go on with the others. The reported reset time is not reliable (on 2026-09-26 a limit said "try again tomorrow" and cleared within two hours), so try GPT once again at the next consultation in the session; after a second limit error in a row, skip it for the rest of the session.
 - After triaging the answer, rate it (id is printed on stderr as `[consult id: ...]`):
