@@ -34,7 +34,7 @@
   - [ ] Maki (`maki`)
   - [ ] Muse (`muse`)
 
-- [ ] Regression (reported 2026-09-30 16:05): closing a tab moved focus to
+- [x] Regression (reported 2026-09-30 16:05): closing a tab moved focus to
   the last herdr-job tab instead of a tab at the same nesting level.
   Hypothesis before the consult: `Workspace::close_tab` (`src/workspace.rs`)
   keeps the closed tab's flat index when the closed tab is the active one
@@ -54,9 +54,9 @@
   the nearest tab at the same level (previous sibling, else the
   next one, else the row's parent) instead of the flat index. Consider
   `Alt-1…9` numbering, the sidebar's squares, and spaces whose only tabs
-  are job tabs. Fix prepared 2026-10-01; installation and user acceptance
-  are pending. Full `just check` passed (3808 tests plus lint, Windows lint,
-  maintenance, integration and documentation checks).
+  are job tabs. Done 2026-10-01 (`faf566fa`): installed with live handoff
+  and user-confirmed. Full `just check` passed (3808 tests plus lint,
+  Windows lint, maintenance, integration and documentation checks).
   - Consulted DeepSeek 2026-10-01 (`7235da15`): agreed on previous sibling,
     then next sibling, then parent for an only child; preserve the active
     identity on inactive close. Highlighted stale raw parent links when
