@@ -54,7 +54,17 @@
   the nearest tab at the same level (previous sibling, else the
   next one, else the row's parent) instead of the flat index. Consider
   `Alt-1…9` numbering, the sidebar's squares, and spaces whose only tabs
-  are job tabs. Reproduced, not implemented.
+  are job tabs. Fix prepared 2026-10-01; installation and user acceptance
+  are pending. Full `just check` passed (3808 tests plus lint, Windows lint,
+  maintenance, integration and documentation checks).
+  - Consulted DeepSeek 2026-10-01 (`7235da15`): agreed on previous sibling,
+    then next sibling, then parent for an only child; preserve the active
+    identity on inactive close. Highlighted stale raw parent links when
+    state callers remove a parent directly: clear those links without
+    reordering survivors. Implemented with stable tab numbers and tests
+    for 14 focus scenarios, invalid/last-tab rejection and API projection.
+    First-child close intentionally prefers its next sibling over its
+    parent. No protocol or close-cascade changes.
   - Reproduced 2026-09-30 16:10 in a throwaway session
     (`herdr-throwaway-repro`, herdr 0.9.1, no agent tokens): tabs
     `[A, job1, job2, mainB]`, both jobs nested under A with
