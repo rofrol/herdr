@@ -43,8 +43,11 @@ renewal while Claude Code answered three consultations in a row, because plan
 limits are separate buckets (rolling windows, and model-specific allowances),
 and an explicitly requested model can still have room.
 
-Availability is decided by the call, not by the dashboard. Claude Code reports
-its buckets for free, without spending tokens:
+Availability is decided by the call, not by the dashboard. The Gemini helper
+attempts the requested call once without a quota preflight or availability cache;
+agy's rejection is reported and logged. Herdr's usage panel separately parses
+agy's JSON quota output in Rust for display, not to authorize consultations.
+Claude Code reports its buckets for free, without spending tokens:
 
 ```sh
 claude -p "/usage"
