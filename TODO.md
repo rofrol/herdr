@@ -45,14 +45,44 @@
   `active_tab` clamps to `n`, the last job tab. herdr-job nests every job
   tab under the pane's tab (`herdr tab parent` in `plugins/job/herdr-job`),
   and `parse_tab_id` maps a tab id to its flat index, so the close uses
-  that index. Closing a parent tab would land on its first job tab the same
-  way. Verify first: which tab was closed, which job it jumped to, and what
+  that index. Closing a parent tab at index 0 focuses its first promoted
+  job tab the same way (recorded hypothesis corrected by the consult: at a
+  later index the flat-previous is the previous main tab's last child, so
+  the landing tab differs, but it is still a nested child). Verify first:
+  which tab was closed, which job it jumped to, and what
   close does for a parent with children and for a middle main tab. Rule to
   decide: the nearest tab at the same level (previous sibling, else the
   next one, else the row's parent) instead of the flat index. Consider
   `Alt-1…9` numbering, the sidebar's squares, and spaces whose only tabs
   are job tabs. Not verified, not implemented.
-  - Consulted Claude Sonnet 5.5 2026-09-30 (user's request):
+  - Consulted Claude Sonnet 5.5 2026-09-30 at the user's request (consult
+    id `fe6e9760`): the clamp explains the report only if the closed tab
+    was the active one after a job group, so the exact case stays
+    unconfirmed until reproduced. It corrected the recorded hypothesis: a
+    parent closed at
+    index 0 moves focus to its first promoted job tab, but at a later
+    index the flat-previous is the previous main tab's last child (checked
+    in `close_tab`, still a nested child). Recommended rule, server-side in
+    `Workspace::close_tab`: focus changes only when the closed tab was
+    active; a main tab without children -> previous main tab, else the next
+    main tab, never a child; a child -> previous sibling, else the next
+    sibling, else its parent; a parent -> compute the successor before its
+    children are promoted and pick the previous main tab, else the next
+    main tab, else the first promoted child (its only sensible choice as a
+    lone parent). Choose the successor by identity (root pane), as
+    `normalize_tab_groups` already remaps the active tab, instead of index
+    arithmetic. Tests it asks for: the reported regression (last main tab
+    after a job group), a parent closed at a later index, a parent at index
+    0 (lone parent -> first promoted child), a child (siblings, then its
+    parent), an inactive tab closed before/after/inside the active group,
+    the workspace's last tab (`close_tab` returns false and the space close
+    handles it), `Alt-1…9` after a close, the sidebar's squares following
+    the newly active tab, and persistence of the active tab and the groups.
+    Settled in the repo already: `tab.number` is monotonic and never reused
+    (`tab_public_numbers_are_stable_and_not_reused_after_close`), so a
+    dead parent link cannot adopt a new tab and `tab_parent_index` already
+    treats such a child as top-level; the client sends no `tab.focus` of
+    its own after a close in the paths checked. It did not run anything.
 
 - [ ] Add easily accessible advisor checkboxes in Herdr so it injects
   `Consult with <selected agents>` into coding-agent requests. Let the user
