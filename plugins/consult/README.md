@@ -31,6 +31,30 @@ also decide which models a round uses: consult the pair that excludes the model
 the session itself runs on, and fall back to another vendor when one is
 exhausted.
 
+Vendors run out independently, but a percentage in a usage panel is not proof
+of unavailability: Anthropic's own view showed 100% used with an 11-hour
+renewal while Claude Code answered three consultations in a row, because plan
+limits are separate buckets (rolling windows, and model-specific allowances),
+and an explicitly requested model can still have room.
+
+Availability is decided by the call, not by the dashboard. Claude Code reports
+its buckets for free, without spending tokens:
+
+```sh
+claude -p "/usage"
+# Current session: 0% used · resets Sep 30 at 7:29pm
+# Current week (all models): 100% used · resets Oct 1 at 1:59am
+# Current week (Fable): 1% used · resets Oct 1 at 1:59am
+```
+
+On 2026-09-30 that weekly all-models bucket stood at 100% while two Sonnet
+consultations and a fresh probe call (`Reply with exactly: SONNET-OK`) all
+succeeded, so the percentage is a warning, not a wall, and a rejected call is
+the only proof. Treat a vendor as unavailable after a limit error, quote that
+error and the reset time it names, and never silently substitute another model.
+That also keeps a self-consultation from being dressed up as a second opinion.
+
+
 Each skill's `SKILL.md` has the details. Inside herdr every call runs in its
 own [herdr-job](../job/README.md) tab, so you can watch it.
 
