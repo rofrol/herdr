@@ -12,6 +12,25 @@ statistics on which of those models actually helped.
   accepted, unique) and scores itself as coordinator. `consult.py stats`
   compares the models.
 
+## Quotas are per vendor
+
+A limit in one skill does not block the others, and asking one model does not
+spend another vendor's quota:
+
+| Skill | Bills |
+| ----- | ----- |
+| `gpt` | the ChatGPT subscription, through Codex CLI |
+| `claude` | the Anthropic account (Claude Code login; no API key is used) |
+| `gemini` | the Google AI subscription, through `agy` |
+| `deepseek` | DeepSeek API credits, per token |
+
+So a Codex/ChatGPT limit (`You've hit your usage limit`) says nothing about
+Sonnet, and vice versa. After a limit error the call is logged with `status
+error` and no answer: check `consult.py recent` before blaming a skill. Limits
+also decide which models a round uses: consult the pair that excludes the model
+the session itself runs on, and fall back to another vendor when one is
+exhausted.
+
 Each skill's `SKILL.md` has the details. Inside herdr every call runs in its
 own [herdr-job](../job/README.md) tab, so you can watch it.
 
