@@ -649,6 +649,19 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     model pages, index methodology, model/version and deployment details.
     Neither score differences nor parameter counts establish the post's
     "1000x" claim or parity for coding consultations.
+  - Also read on 2026-10-01:
+    https://www.reddit.com/r/singularity/comments/1wspt5z/gpt6_sol_vs_sonnet_55_at_the_same_cost_per_task/
+    The author plots claimed Artificial Analysis scores against API cost per
+    task at different effort settings: Sol is claimed more efficient at
+    overlapping budgets, Sonnet has a higher maximum-effort ceiling. The
+    post separately cites Terminal-Bench 4.0 scores; those are not the same
+    metric as the composite Intelligence Index. Verify primary data and
+    token accounting (including reasoning/cache) before adopting conclusions.
+    Equal token prices do not imply equal task costs, and effort labels are
+    not comparable across providers. API dollars/task do not establish
+    subscription quota consumption. Do not transfer GPT-6 Sol results to
+    GPT-6.1 Sol without matching the exact model snapshot. User comments
+    and unverified scores are leads, not grounds for switching defaults.
   - Keep quality, total cost and delivery route separate. Tag CLI subscription,
     hosted API and local weights distinctly; provider wrappers can alter
     harnesses, privacy terms and quotas. For local candidates record hardware,
@@ -1031,13 +1044,27 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     silently replacing it with decoded fallback, while retaining the other
     1/15-pane profiles. Validate Linux with a reflink-capable filesystem
     separately; do not add macOS CoW support as part of this diagnostic.
-- [ ] Reproduce the job-footer render scaling measurements.
-  - Compare `a4ec9556^` and `a4ec9556` on the same machine with fixed geometry,
-    1 and at least 15 populated panes, covering active and background panes.
-    Repeat samples; earlier estimates of +7% background and +17% active
-    pipeline growth are unverified, not established regression figures.
-    Use `just bench-render-scale` and `herdr-job` for long-running work.
-    Optimise only if the measurements support it.
+- [x] Reproduce the general render scaling comparison for the job-footer fix.
+  - Measured 2026-10-01: exact baseline `f89ac503` (`a4ec9556^`) and candidate
+    `a4ec9556`, three `just bench-render-scale` runs each, macOS, fixed
+    120x40, 5 warmups / 40 samples for the pipeline profile. No concurrent
+    project validation during the retained comparison. Seven profiles pass
+    in each run; native-file source retention fails on both due to unsupported
+    macOS CoW. The recipe itself exits 101; it is not an all-green benchmark.
+  - Median of the three run medians, combined pipeline in microseconds:
+    background 1 pane 564 -> 561 (-0.5%), 15 panes 603 -> 585 (-3.0%);
+    active 1 pane 568 -> 555 (-2.3%), 15 panes 666 -> 658 (-1.2%).
+    Within-revision 15/1 growth is background 6.9% -> 4.3%, active
+    17.3% -> 18.6%. Earlier +7%/+17% described cardinality growth, not the
+    overhead of the footer commit. These small sequential samples establish
+    neither a speedup nor regression-free behavior; no general slowdown was
+    demonstrated. DS reviewed this interpretation and agreed with those limits.
+    Logs remain in `.local/prd/footer-perf-comparison/`.
+  - [ ] Add an explicit occupied-job-footer profile: the general benchmark
+    does not configure job metadata and does not isolate footer drawing.
+    Use 1/15 populated panes with and without metadata and interleaved
+    baseline/candidate samples before attributing any cost to the footer.
+    Optimise only if repeatable measurements justify it.
 - [ ] Push the fork's pending commits after explicit user approval.
   - Fetch and refresh the ahead/behind comparison first; the earlier count
     of 52 unpushed commits is stale. Review the outgoing changes, follow
