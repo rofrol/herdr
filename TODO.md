@@ -615,12 +615,35 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     pointer (a middle-click could stop the wrong job). DeepSeek wanted the
     footer dropped (chosen); Astra wanted the top line and footer to split
     the fields.
-- [ ] A `claude` consult skill in `plugins/consult/skills/`, like `gpt` and
-  `deepseek`, so pi (and other agents) can ask Claude Opus 5.5 for a second
-  opinion: `ask_claude.sh` running `claude -p --model claude-opus-5-5`
-  (billed to the Claude subscription, so it shares Claude Code's usage
-  limit), in its own herdr-job tab, logged to consult-stats; linked into
-  `~/.pi/agent/skills/` by `plugins/consult/install-skills` (2026-09-29).
+- [x] A `claude` consult skill in `plugins/consult/skills/`, like `gpt` and
+  `deepseek`: implemented as `ask_claude.py`, with Herdr-job visibility,
+  consult-stats logging and links for Pi and Claude Code. Explicit Opus:
+  `ask_claude.py -m claude-opus-5-5`; Sonnet remains the default. Both use
+  `claude -p --model`, not a direct API client. Subscription billing requires
+  Claude Code subscription login, not API-key/cloud-provider billing.
+  - Opus argument forwarding and resolved-model logging have offline tests.
+    Live attempt on 2026-10-01 was rejected by the weekly limit (reset 02:00
+    Europe/Warsaw); this does not establish Opus availability. Do not retry
+    before reset or silently substitute another model.
+- [ ] Add a model-selection review workflow for the consult/ask skills.
+  - Use official model announcements, CLI release notes and authentication /
+    subscription availability first. Terminal-Bench and SWE-bench Verified /
+    Pro are candidate sources, not automatic rankings for a read-only
+    consultation task. Record benchmark version, date, model snapshot and
+    harness/agent settings; do not compare unlike evaluation setups.
+  - Treat these user-supplied links as unverified leads, not evidence that
+    Opus is better than Sonnet:
+    https://www.reddit.com/r/Anthropic/comments/1wso4lj/silly_question_if_sonnet_opus_55_is_better_than/
+    https://x.com/BalegaNorbert/status/2102451570608853211
+  - Before switching a skill default, verify the exact model through its
+    subscribed CLI and run a small representative local evaluation. Compare
+    accepted/unique findings, incorrect advice, latency and quota consumption
+    using consult-stats. Record the decision and a rollback path; do not
+    auto-switch defaults based on leaderboard or social-media claims.
+  - Consulted DeepSeek on 2026-10-01: prioritise primary sources, exact model
+    identities and local usefulness; preserve explicit selection and report
+    unavailable models without silent fallback. No scheduled polling or
+    paid benchmark/model calls until the workflow is designed and approved.
 - [x] The job square's tooltip should appear after the same dwell as the
   cut tab label's (450 ms), not at once (2026-09-29, my request; consult
   GPT-6 Astra and DeepSeek first: DeepSeek had argued for "at once" since
@@ -936,8 +959,14 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     build on it. The Admin API (`GET /v1/organization/costs`, needs an
     `sk-admin` key) gives spend only, so show month-to-date spend, optionally
     against a budget set in `[usage]`, labeled "spend", never "credits left".
-    An admin key reads org-wide billing: opt-in, its own env var or
-    `auth.json` entry, never logged.
+    An admin key reads org-wide billing: opt-in and disabled by default.
+    Use a dedicated credential file outside the repository, readable only
+    by its owner (0600), containing a restricted Usage Read key. Do not
+    reuse Pi's shared `auth.json`; the server alone reads this credential,
+    and must never expose it in logs, errors, client snapshots or prompts.
+    Separate storage is not a sandbox against agents running as the same
+    OS user. The key has not been created; implementation remains pending
+    an explicit user decision. Label costs as spend, not prepaid balance.
   - Kimi (Moonshot): documented `GET https://api.moonshot.ai/v1/users/me/balance`
     (Bearer key) returns `available_balance`, `voucher_balance`,
     `cash_balance` (cash can go negative). Same shape as `deepseek.rs`; the
@@ -960,6 +989,33 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     not tried with a real key, since there is none on this Mac.
   - Noted 2026-09-28: the footer still has no row for an OpenAI API key
     (platform, pay-as-you-go); only Codex's ChatGPT limits show.
+- [x] Classify the native-graphics CoW retention benchmark failure.
+  - Verified 2026-10-01: this machine is macOS (`uname -s`: Darwin).
+    `src/platform/mod.rs::clone_native_image_source` deliberately returns
+    Unsupported outside Linux. Both that contract and the benchmark's
+    `source_file` assertion exist at `a4ec9556^`, before the job-footer fix.
+    The ignored source-retention profile therefore requires a capability
+    this platform does not implement. The master rerun alone did not prove
+    this; the historical code comparison establishes the platform mismatch.
+    No runtime benchmark was run on the parent revision. Other graphics
+    regressions are not ruled out by this finding.
+  - [ ] Make the manual benchmark distinguish unsupported source retention
+    from a regression: report the unsupported scenario explicitly without
+    silently replacing it with decoded fallback, while retaining the other
+    1/15-pane profiles. Validate Linux with a reflink-capable filesystem
+    separately; do not add macOS CoW support as part of this diagnostic.
+- [ ] Reproduce the job-footer render scaling measurements.
+  - Compare `a4ec9556^` and `a4ec9556` on the same machine with fixed geometry,
+    1 and at least 15 populated panes, covering active and background panes.
+    Repeat samples; earlier estimates of +7% background and +17% active
+    pipeline growth are unverified, not established regression figures.
+    Use `just bench-render-scale` and `herdr-job` for long-running work.
+    Optimise only if the measurements support it.
+- [ ] Push the fork's pending commits after explicit user approval.
+  - Fetch and refresh the ahead/behind comparison first; the earlier count
+    of 52 unpushed commits is stale. Review the outgoing changes, follow
+    the rebase-only fork sync rules in AGENTS.md, and never merge upstream
+    into master. Do not push or rewrite remote history without approval.
 - [ ] Review queue for agent commits, plus `herdr diff`. When an agent's turn
   ends with new commits, list them as "to review" until I acknowledge them.
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-27): a plugin with a
@@ -1515,6 +1571,22 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     `<1m`, expired `now`. Floor units and omit zero secondary units;
     `24h 30m` therefore shows `1d`. Check footer width and boundary tests
     (23h 59m, 24h, 34h, 48h). Presentation only; no provider/API changes.
+  - [ ] Investigate whether Anthropic offers a reset entitlement comparable
+    to the user's ChatGPT Plus `Full reset (Weekly + 5 hr)` observation, and
+    whether it could explain successful Sonnet calls at weekly 100%.
+    This is a hypothesis, not an established Anthropic feature or cause.
+    Distinguish scheduled renewal, a manually redeemed reset, model-specific
+    allowance, delayed/aggregate telemetry and paid usage credits.
+    Record the exact model, plan/auth mode, timestamps, displayed buckets,
+    rejection/reset text and any actual redemption or billing evidence.
+    Use official Claude/Claude Code subscription docs and account usage /
+    billing UI, not API Console limits as proof of subscription semantics.
+    Do not redeem anything, enable paid overage or expose credentials.
+    Consulted DeepSeek and Gemini (low/medium/high) on 2026-10-01: successful
+    calls alone cannot identify the mechanism; none verified an Anthropic
+    reset grant. Gemini's API headers/Console suggestions are not evidence
+    for Claude Code subscription quotas. Claude consultation was deferred
+    after the actual weekly-limit rejection until 02:00 Europe/Warsaw.
   Also show how many redeemable quota resets are available, their types /
   scope, and when each expires; keep these separate from automatic limit
   renewals. Show a compact count in the footer and details in the usage modal.

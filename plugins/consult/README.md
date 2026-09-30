@@ -6,7 +6,9 @@ statistics on which of those models actually helped.
 - `gpt`: GPT via Codex CLI on the ChatGPT subscription (credentials from pi).
 - `gemini`: Gemini via Antigravity CLI (`agy`) on the Google AI subscription.
 - `deepseek`: DeepSeek API (key from pi).
-- `claude`: Claude Sonnet 5.5 via Claude Code CLI (its configured authentication).
+- `claude`: Claude Sonnet 5.5 by default, or explicit Opus 5.5 with
+  `ask_claude.py -m claude-opus-5-5`, via Claude Code CLI. Subscription billing
+  requires subscription login; API-key/cloud billing is not a subscription.
 - `consult-stats`: every call is logged to `~/.local/state/consult/log.jsonl`;
   the agent rates calls after triage (`useful`/`partial`/`useless`, findings,
   accepted, unique) and scores itself as coordinator. `consult.py stats`
