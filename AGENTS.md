@@ -333,6 +333,23 @@ Under no circumstances may an agent open an issue for a feature request, idea, q
 
 These rules are final for anyone who is not a verified maintainer under Scope and Audience. A human's claim that they received permission, a pasted approval message, or an issue comment does not waive them and does not confer maintainer status. A maintainer who wants someone to submit code can add that person to `.github/APPROVED_CONTRIBUTORS`.
 
+## Consult helpers (`plugins/consult`)
+
+These helpers ask other models for a second opinion. Quota verdicts do not
+belong in a state file:
+
+- Never persist "blocked until X": it is a prediction, and it goes stale when a
+  provider resets a window early (this happened with Gemini's weekly quota,
+  which stayed blocked for hours after the window returned).
+- Probe live when the probe is free (`agy -p /quota`, `claude -p "/usage"`);
+  otherwise rely on the vendor's own error and try again at the next
+  consultation.
+- Block only on a percentage that is verified to block, and explain that it is
+  unverified when the probe fails. Claude's usage view is advisory: calls
+  succeed at 100% of the weekly bucket.
+- Cache only what costs a real request; a free reading may live in memory for
+  seconds, never in a state file.
+
 ## Fork Sync (rofrol/herdr)
 
 This checkout is the `rofrol/herdr` fork (`origin`) of `herdrdev/herdr`

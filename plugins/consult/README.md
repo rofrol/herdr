@@ -31,6 +31,12 @@ also decide which models a round uses: consult the pair that excludes the model
 the session itself runs on, and fall back to another vendor when one is
 exhausted.
 
+Do not persist a quota verdict ("blocked until X") in a state file: the provider
+can reset a window early, and the stale block then outlives the limit. Probe
+live when the probe is free (`agy -p /quota`, `claude -p "/usage"`), block only
+on a verified zero, and cache only what costs a real request. The full rule is
+in the repository `AGENTS.md`.
+
 Vendors run out independently, but a percentage in a usage panel is not proof
 of unavailability: Anthropic's own view showed 100% used with an 11-hour
 renewal while Claude Code answered three consultations in a row, because plan
