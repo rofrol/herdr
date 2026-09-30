@@ -34,6 +34,26 @@
   - [ ] Maki (`maki`)
   - [ ] Muse (`muse`)
 
+- [ ] Regression (reported 2026-09-30 16:05): closing a tab moved focus to
+  the last herdr-job tab instead of a tab at the same nesting level.
+  Hypothesis before the consult: `Workspace::close_tab` (`src/workspace.rs`)
+  keeps the closed tab's flat index when the closed tab is the active one
+  (`active_tab` stays, clamped to the new last tab), and
+  `normalize_tab_groups` keeps each parent's children right after it, so
+  that slot can hold a nested child. In `[agent, job₁…jobₙ, last main
+  tab]` the last main tab's index is `n+1`; once it is removed
+  `active_tab` clamps to `n`, the last job tab. herdr-job nests every job
+  tab under the pane's tab (`herdr tab parent` in `plugins/job/herdr-job`),
+  and `parse_tab_id` maps a tab id to its flat index, so the close uses
+  that index. Closing a parent tab would land on its first job tab the same
+  way. Verify first: which tab was closed, which job it jumped to, and what
+  close does for a parent with children and for a middle main tab. Rule to
+  decide: the nearest tab at the same level (previous sibling, else the
+  next one, else the row's parent) instead of the flat index. Consider
+  `Alt-1…9` numbering, the sidebar's squares, and spaces whose only tabs
+  are job tabs. Not verified, not implemented.
+  - Consulted Claude Sonnet 5.5 2026-09-30 (user's request):
+
 - [ ] Add easily accessible advisor checkboxes in Herdr so it injects
   `Consult with <selected agents>` into coding-agent requests. Let the user
   select advisors (for example DeepSeek) and disable the instruction easily.
