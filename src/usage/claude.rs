@@ -21,6 +21,12 @@ use crate::api::schema::{ProviderUsage, UsageWindow};
 const USAGE_URL: &str = "https://api.anthropic.com/api/oauth/usage";
 const OAUTH_BETA: &str = "oauth-2025-04-20";
 const KEYCHAIN_SERVICE: &str = "Claude Code-credentials";
+/// Model-scoped limits[] buckets are shown in the detailed overlay only from
+/// here: below it they are noise for a plan that includes models the user does
+/// not touch, above it they warn that something consumed that model's own
+/// allowance. They never reach the compact footer, which picks windows by id.
+const SCOPED_WINDOW_MIN_PERCENT: u8 = 50;
+
 const EXPIRED_LOGIN: &str = "Claude login expired; run Claude Code to renew it";
 
 #[derive(Deserialize)]
@@ -195,6 +201,10 @@ fn parse(body: &str) -> Result<ProviderUsage, String> {
             unreadable_scoped += 1;
             continue;
         };
+        let used_percent = scale.to_percent(percent);
+        if used_percent < SCOPED_WINDOW_MIN_PERCENT {
+            continue;
+        }
         let label = format!("{name} week");
         if usage
             .windows
@@ -206,7 +216,7 @@ fn parse(body: &str) -> Result<ProviderUsage, String> {
         usage.windows.push(UsageWindow {
             id: format!("scoped:{}", name.to_ascii_lowercase()),
             label,
-            used_percent: scale.to_percent(percent),
+            used_percent,
             resets_at: entry.resets_at.as_deref().and_then(parse_timestamp),
         });
     }
@@ -326,7 +336,7 @@ mod tests {
                 "limits":[
                   {"kind":"session","group":"session","percent":0,"severity":"normal"},
                   {"kind":"weekly_all","group":"weekly","percent":100,"severity":"critical"},
-                  {"kind":"weekly_scoped","group":"weekly","percent":1,"severity":"normal",
+                  {"kind":"weekly_scoped","group":"weekly","percent":60,"severity":"normal",
                    "resets_at":"2026-10-01T23:59:59+00:00","scope":{"model":{"display_name":"Fable"}}}
                 ]}"#,
         )
@@ -344,7 +354,7 @@ mod tests {
             vec![
                 ("five_hour", "5h", 0),
                 ("weekly", "week", 100),
-                ("scoped:fable", "Fable week", 1),
+                ("scoped:fable", "Fable week", 60),
             ]
         );
         assert_eq!(usage.windows[2].resets_at, Some(1_790_899_199));
@@ -385,7 +395,7 @@ mod tests {
         let usage = parse(
             r#"{"seven_day_sonnet":{"utilization":40.0},
                 "limits":[
-                  {"kind":"weekly_scoped","percent":40,"scope":{"model":{"display_name":"Sonnet"}}},
+                  {"kind":"weekly_scoped","percent":80,"scope":{"model":{"display_name":"Sonnet"}}},
                   {"kind":"weekly_scoped","percent":7,"scope":{"model":{"display_name":"  "}}},
                   {"kind":"weekly_scoped","scope":null}
                 ]}"#,
@@ -402,10 +412,20 @@ mod tests {
     }
 
     #[test]
+    fn hides_scoped_windows_below_the_threshold() {
+        let usage = parse(
+            r#"{"limits":[{"kind":"weekly_scoped","percent":1,"scope":{"model":{"display_name":"Fable"}}}]}"#,
+        )
+        .unwrap();
+        assert!(usage.windows.is_empty());
+        assert!(usage.notes.is_empty());
+    }
+
+    #[test]
     fn notes_scoped_entries_without_a_percentage() {
         let usage = parse(
             r#"{"limits":[{"kind":"weekly_scoped","scope":{"model":{"display_name":"Fable"}}},
-                 {"kind":"weekly_scoped","percent":3,"scope":{"model":{"display_name":"Sonnet"}}}]}"#,
+                 {"kind":"weekly_scoped","percent":80,"scope":{"model":{"display_name":"Sonnet"}}}]}"#,
         )
         .unwrap();
         assert_eq!(usage.windows.len(), 1);
@@ -418,7 +438,7 @@ mod tests {
     #[test]
     fn falls_back_to_the_model_id_when_there_is_no_display_name() {
         let usage = parse(
-            r#"{"limits":[{"kind":"weekly_scoped","percent":12,
+            r#"{"limits":[{"kind":"weekly_scoped","percent":72,
                  "scope":{"model":{"id":"haiku"}}}]}"#,
         )
         .unwrap();
@@ -432,7 +452,7 @@ mod tests {
                     window.used_percent
                 ))
                 .collect::<Vec<_>>(),
-            vec![("scoped:haiku", "haiku week", 12)]
+            vec![("scoped:haiku", "haiku week", 72)]
         );
     }
 }

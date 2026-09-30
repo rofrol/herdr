@@ -22,13 +22,20 @@ esac
 # weekly window early, which a remembered "exhausted until" timestamp misses) and
 # a wasted attempt costs one tab.
 if [ -z "${CONSULT_IN_JOB:-}" ]; then
+  # agy reports what is LEFT; the widget and the messages speak what is USED, so
+  # convert here and compare numbers, never the printed percentage.
   line=$(timeout 10 agy -p /quota 2>/dev/null |
     awk -F'\t' '$1 == "Gemini Models" && $2 ~ /Weekly Limit Remaining/ { print $3 "\t" $4; exit }') || line=""
   IFS=$'\t' read -r left reset <<<"$line" || true
-  if [[ $left == 0% && $reset > $(date -u +%Y-%m-%dT%H:%M:%SZ) ]]; then
-    echo "Gemini weekly quota exhausted (0% remaining) until $reset (UTC); do not call Gemini until then" >&2; exit 3
+  remaining=${left%\%}
+  if [[ $remaining =~ ^[0-9]+$ ]]; then
+    consumed=$((100 - remaining))
+    if [[ $consumed -ge 100 && $reset > $(date -u +%Y-%m-%dT%H:%M:%SZ) ]]; then
+      echo "Gemini weekly quota exhausted (100% used) until $reset (UTC); do not call Gemini until then" >&2; exit 3
+    fi
+  else
+    echo "warning: could not read the Gemini quota from agy; trying the call anyway" >&2
   fi
-  [[ $left == 0% || $left =~ ^[0-9]+%$ ]] || echo "warning: could not read the Gemini quota from agy; trying the call anyway" >&2
 fi
 if [ -z "${CONSULT_IN_JOB:-}" ] && [ -n "${HERDR_SOCKET_PATH:-}" ] && command -v herdr-job >/dev/null; then
   exec "$consult_dir"/in_herdr_job.sh "gemini ${model#gemini-}" "$0" ${orig[@]+"${orig[@]}"}  # watch it in its own herdr tab
