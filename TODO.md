@@ -48,21 +48,36 @@
   that index. Closing a parent tab at index 0 focuses its first promoted
   job tab the same way (recorded hypothesis corrected by the consult: at a
   later index the flat-previous is the previous main tab's last child, so
-  the landing tab differs, but it is still a nested child). Verify first:
-  which tab was closed, which job it jumped to, and what
-  close does for a parent with children and for a middle main tab. Rule to
-  decide: the nearest tab at the same level (previous sibling, else the
+  the landing tab differs, but it is still a nested child; the server
+  refuses to close a tab that still has children, so that path is
+  unreachable from a client — see the reproduction below). Rule to decide:
+  the nearest tab at the same level (previous sibling, else the
   next one, else the row's parent) instead of the flat index. Consider
   `Alt-1…9` numbering, the sidebar's squares, and spaces whose only tabs
-  are job tabs. Not verified, not implemented.
+  are job tabs. Reproduced, not implemented.
+  - Reproduced 2026-09-30 16:10 in a throwaway session
+    (`herdr-throwaway-repro`, herdr 0.9.1, no agent tokens): tabs
+    `[A, job1, job2, mainB]`, both jobs nested under A with
+    `herdr tab parent`, `mainB` focused. `herdr tab close mainB` focused
+    `job2`, the last job tab. Second layout `[X, x1, A]`, `x1` nested
+    under X, `A` focused at index 2: closing `A` focused `x1`, a child of
+    the previous main tab, not a tab at A's own level. Closing a tab that
+    still has children is refused by the server (`tab_has_children`,
+    `src/app/api/tabs.rs:233`) and the TUI closes a parent's children
+    first (`request_parent_tab_close`), so the parent-promotion variant
+    cannot be reached through the API; only `Workspace::close_tab` called
+    directly, as `closing_a_parent_leaves_its_children_top_level` does,
+    leaves that state. Session stopped, deleted, outer pane closed, no
+    artifacts left.
   - Consulted Claude Sonnet 5.5 2026-09-30 at the user's request (consult
     id `fe6e9760`): the clamp explains the report only if the closed tab
-    was the active one after a job group, so the exact case stays
-    unconfirmed until reproduced. It corrected the recorded hypothesis: a
-    parent closed at
-    index 0 moves focus to its first promoted job tab, but at a later
-    index the flat-previous is the previous main tab's last child (checked
-    in `close_tab`, still a nested child). Recommended rule, server-side in
+    was the active one after a job group; the reproduction above confirms
+    it. It corrected the recorded hypothesis: a parent closed at index 0
+    moves focus to its first promoted job tab, but at a later index the
+    flat-previous is the previous main tab's last child (checked in
+    `close_tab`, still a nested child; that parent case is unreachable
+    through the API, see the reproduction above). Recommended rule,
+    server-side in
     `Workspace::close_tab`: focus changes only when the closed tab was
     active; a main tab without children -> previous main tab, else the next
     main tab, never a child; a child -> previous sibling, else the next
