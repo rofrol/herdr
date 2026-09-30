@@ -389,6 +389,17 @@ such as `src/`, `build.rs`, `Cargo.toml`, `Cargo.lock`; not `TODO.md` or other
 notes) that are not yours, ask the user whether to work in a worktree instead,
 because those changes would end up in your build and your commit.
 
+Commit your own notes (`TODO.md`, planning notes) as soon as you write them,
+not at the end of the session: a session that stops early leaves unattributed
+edits that another session may sweep into its commit or discard. Check that
+`git diff -- <paths>` shows only your hunks first (another session can edit the
+same shared file), then `git commit -m "<message>" -- <paths>`; `git add
+<path>` first when the file is new. Notes commits keep concise messages of
+their own and do not need the message alignment that code commits need, and no
+notes commit is pushed on its own. Never end a session with your own edits
+left uncommitted: commit them or say in your final message that they are
+there.
+
 ### Installing a fix into the running Herdr
 
 After a user-facing fix passes its tests, build it on top of current
