@@ -635,6 +635,33 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     Opus is better than Sonnet:
     https://www.reddit.com/r/Anthropic/comments/1wso4lj/silly_question_if_sonnet_opus_55_is_better_than/
     https://x.com/BalegaNorbert/status/2102451570608853211
+  - Additional sources read in the browser on 2026-10-01, including their
+    attached images (claims not independently reproduced):
+    https://x.com/BalegaNorbert/status/2102280368909111497 compares dated
+    MiMo V2.6 Command Code/OpenCode promotions, including 72-hour / one-week
+    windows. Track plan, provider, expiry, actual quotas, overage and normal
+    non-promotional pricing; an offer multiplier is not a quality score.
+    https://x.com/BalegaNorbert/status/2102055662087786534 claims Qwen 27B
+    reproduces an earlier proprietary frontier about six months later.
+    Its chart attributes scores to Artificial Analysis Intelligence Index
+    v4.3, with current re-evaluations plotted against original release dates
+    and roughly 4-bit models in the single-24GB class. Verify the primary
+    model pages, index methodology, model/version and deployment details.
+    Neither score differences nor parameter counts establish the post's
+    "1000x" claim or parity for coding consultations.
+  - Keep quality, total cost and delivery route separate. Tag CLI subscription,
+    hosted API and local weights distinctly; provider wrappers can alter
+    harnesses, privacy terms and quotas. For local candidates record hardware,
+    quantization, memory/context headroom, latency and throughput; local
+    serving is not cost-free merely because there is no API invoice.
+    Evaluate read-only consultations separately from tool-using coding
+    agents. No purchases, default switches or new provider integration based
+    solely on these posts. Verify offers again at decision time.
+  - Consulted DeepSeek and Gemini (low/medium/high), 2026-10-01: distinguish
+    temporary promotion value from quality; verify primary benchmark data
+    and local consultation usefulness, with delivery/privacy constraints.
+    Do not treat a screenshot, composite chart or marketing multiplier as
+    a reproducible result.
   - Before switching a skill default, verify the exact model through its
     subscribed CLI and run a small representative local evaluation. Compare
     accepted/unique findings, incorrect advice, latency and quota consumption
