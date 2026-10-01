@@ -1839,6 +1839,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     them upstream instead.
 - [ ] Refresh the README's "Fork changes" so it says how the fork differs
   now, with a small looping animation under each change.
+  - Text part done 2026-10-01 (committed): the README now lists tab-line
+    drag, the spaces filter, the animated glyphs (the hourglass is gone), the
+    fork build's refusal of upstream updates and the `pi-title` plugin; the
+    demo scripts say `consult` instead of `oracle` (the plugin was renamed;
+    `record.sh` linked a `plugins/oracle` that no longer exists). Still
+    open: the looping clips (animated WebP pilot), which need a recording
+    session in a real terminal and browser.
   - Audit first (vertical tabs, the disclosure triangle and
     `show_agents_panel` are in the README since 2026-09-28);
     `scripts/fork_demo/README.md` still

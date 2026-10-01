@@ -377,7 +377,7 @@ def note_fonts():
 
 
 def scenes(rec, args):
-    rec.caption("herdr fork: usage widget, middle-click close, notifications, job tabs, oracle stats")
+    rec.caption("herdr fork: usage widget, middle-click close, notifications, job tabs, consult stats")
     time.sleep(2.4)
 
     rec.caption("Click the usage footer to see limits and reset times")
@@ -437,12 +437,12 @@ def scenes(rec, args):
     rec.move_to(jy + 1, jx)
     time.sleep(2.8)
 
-    rec.caption("The herdr menu opens oracle stats: which second-opinion models helped")
+    rec.caption("The herdr menu opens consult stats: which second-opinion models helped")
     my, mx = rec.find(lambda y, line: (y, line.index("menu") + 1) if "menu" in line[:26] else None)
     rec.move_to(my, mx)
     time.sleep(0.4)
     rec.click()
-    oy, ox = rec.find(lambda y, line: (y, line.index("oracle stats") + 2) if "oracle stats" in line else None)
+    oy, ox = rec.find(lambda y, line: (y, line.index("consult stats") + 2) if "consult stats" in line else None)
     rec.move_to(oy, ox)
     time.sleep(0.4)
     rec.click()
