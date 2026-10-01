@@ -52,6 +52,20 @@ const SQUARE_WIDTH: u16 = 3;
 const SQUARE_GAP: u16 = 1;
 /// Squares start where the tab line's fill starts, past its state icon.
 const SQUARES_INDENT: u16 = 5;
+/// Columns a worktree space's tab lines move right, so they sit under the
+/// worktree's name (after its `   └─ ` tree prefix) and not level with the
+/// parent space's tab lines.
+const WORKTREE_TAB_INDENT: u16 = 5;
+
+/// The columns an entry's tab lines are indented by; callers take them off
+/// the width they lay squares out in.
+pub(super) fn tab_indent(indented: bool) -> u16 {
+    if indented {
+        WORKTREE_TAB_INDENT
+    } else {
+        0
+    }
+}
 impl SpaceTabLine {
     /// Rows the line takes: its own and, while unfolded, its squares'.
     /// Unfolded squares are followed by an empty row, so they do not run
@@ -394,11 +408,14 @@ pub(super) fn render_space_tab_lines(
     // Columns right of `area` the tab fill continues into: the scrollbar's,
     // whose thin glyph then sits on the fill instead of a white gap.
     fill_past: u16,
+    // Columns the lines move right of `area` (see [`tab_indent`]); a line's
+    // click rect still starts at `area`, so the gutter selects its tab.
+    indent: u16,
     config: &ClientShellConfig,
 ) -> SpaceTabHits {
     let palette = &config.palette;
     let fills = TabLineFills::new(palette);
-    let x = area.x.saturating_add(3);
+    let x = area.x.saturating_add(3 + indent);
     // A column of the panel background between the icon and the fill.
     let fill_x = x.saturating_add(2);
     // To the right edge, level with the `+` on the space name lines.
@@ -524,7 +541,7 @@ pub(super) fn render_space_tab_lines(
                 if y >= area.bottom() {
                     break;
                 }
-                let mut square_x = area.x.saturating_add(SQUARES_INDENT);
+                let mut square_x = area.x.saturating_add(SQUARES_INDENT + indent);
                 for square in row {
                     let rect = Rect::new(square_x, y, SQUARE_WIDTH, 1).intersection(area);
                     render_square(buffer, rect, square, &fills, palette);

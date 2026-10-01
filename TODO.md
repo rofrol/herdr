@@ -271,7 +271,7 @@
     Verify font rendering, baseline and cell width (including CJK), and
     retain a static fallback when motion is disabled. No variant chosen.
 
-- [ ] Indent vertical tab rows under nested worktree spaces (screenshot,
+- [x] Indent vertical tab rows under nested worktree spaces (screenshot,
   2026-09-30 00:49). The `Job client footer` worktree header is indented,
   but its `zsh` tab aligns with the parent space's `pi - herdr` tab and
   appears to be a sibling rather than a child. Propagate the worktree
@@ -285,6 +285,13 @@
   hits and tooltip anchors together. Test wrap boundaries with/without the
   scrollbar, narrow widths, partial rows and scroll anchoring. Decide gutter
   click behavior explicitly; do not create zero-width tooltip targets.
+  - Done 2026-10-01 (committed, not yet installed): tab lines, fills, fold
+    hits, tooltips and squares of an indented space move 5 columns right
+    (`space_tabs::tab_indent`), and the width squares wrap in shrinks by the
+    same amount in the measure, render and focus-reveal paths of both
+    sidebars. A click in the gutter in front of the line still selects its
+    tab. One scalar per entry, no new work per pane, so no scaling
+    benchmark was run. `just check` passes.
 
 - [ ] Pi does not change its title to the task name as Claude CLI does:
   concurrent sidebar entries remain `π - herdr` (screenshot, 2026-09-29

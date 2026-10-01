@@ -439,10 +439,15 @@ pub(crate) fn render_sidebar(
                         )
                         .len()
                         .max(1);
-                        let tab_rows = tab_lines
-                            .iter()
-                            .map(|line| usize::from(line.height(squares_width)))
-                            .sum::<usize>();
+                        let tab_rows =
+                            tab_lines
+                                .iter()
+                                .map(|line| {
+                                    usize::from(line.height(squares_width.saturating_sub(
+                                        super::space_tabs::tab_indent(entry.indented),
+                                    )))
+                                })
+                                .sum::<usize>();
                         (rows + tab_rows).min(u16::MAX as usize) as u16
                     })
                     .unwrap_or(1)
@@ -720,9 +725,10 @@ pub(crate) fn render_sidebar(
             ),
             &tab_lines,
             workspace.focused,
-            squares_width,
+            squares_width.saturating_sub(super::space_tabs::tab_indent(entry.indented)),
             state.hovered_square,
             u16::from(show_scrollbar),
+            super::space_tabs::tab_indent(entry.indented),
             config,
         );
         block_hits.space_tabs.extend(tab_hits.lines);
@@ -1380,6 +1386,7 @@ fn focus_depth(
     )
     .len()
     .max(1);
+    let squares_width = squares_width.saturating_sub(super::space_tabs::tab_indent(entry.indented));
     let mut depth = own_rows;
     for line in &tab_lines {
         if line.active {
