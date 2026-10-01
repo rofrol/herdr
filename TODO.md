@@ -854,7 +854,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   is left), and the cancelled confirmation leaves the space selected or
   highlighted. Reproduce, check whether it predates the vertical tabs, and
   consult (GPT-6 Astra, DeepSeek) on what closing the last tab should do.
-- [ ] Disable upstream binary update notifications in fork builds
+- [x] Disable upstream binary update notifications in fork builds
   (reported 2026-09-29, confirmed 2026-09-30). The fork is installed with
   `scripts/herdr_live.sh`; upstream `herdr update` would replace it.
   Screenshot `Screenshot 2026-09-30 at 12.58.09.png` shows "Herdr v0.9.3
@@ -878,6 +878,20 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Consulted DeepSeek 2026-09-30: agreed on fork-specific suppression,
     explicit updater protection, stale-state handling and informational
     activation. This remains unimplemented; no build or install performed.
+  - Done 2026-10-01 (committed, not installed; `just check` passes), except
+    the targetless notification activation: `HERDR_FORK_BUILD=1` in
+    `.cargo/config.toml` marks builds from this checkout
+    (`build_info::upstream_updates_disabled`; unit tests always behave like
+    upstream). A fork build starts no background version check, ignores a
+    restored upstream `update_available` (the saved release notes stay
+    readable) and `herdr update` refuses with a pointer to
+    `scripts/herdr_live.sh`. Agent manifest updates keep running. Untested
+    live; an already open session keeps its current badge until the server
+    is restarted by the install.
+  - [ ] Still open: clicking a notification-history entry without a target
+    (an old "update available" entry) still closes silently; show the full
+    title and body with the existing UI patterns, never run commands from
+    the text.
 - [ ] Dragging a space does not show where it will land (screenshot
   2026-09-26, dragging `herdr`). The dragged space keeps a grey background
   much like the selected row, so two grey blocks are on screen; the drop
