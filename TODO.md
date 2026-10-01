@@ -2704,6 +2704,35 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   the effects in `receive_notification`; server skips its sound and toast in
   `forward_agent_notification_delivery`; history still records it).
 
+- [ ] Compact the fork's history before the upstream rebase (user,
+  2026-10-01: "maybe compact the history so rebases are easier? we went one
+  way, then another, and then conflicts"). State: 315 fork commits (132 docs/
+  notes, 113 feat, 59 fix) on a base 47 upstream commits behind; `git
+  merge-tree` shows 14 conflicting files; the hot ones (`state.rs`, `mouse.rs`,
+  `sidebar.rs`) were rewritten by 35-44 fork commits each, upstream touched
+  them 1-2 times; a per-commit rebase would stop on the same hunks again and
+  again.
+  - Consulted DeepSeek, Opus and GPT 2026-10-01 (all agree): do not resolve
+    315 commits one by one and do not squash into one commit; compact to ~15-25
+    dependency-ordered feature commits (docs/TODO notes folded into the feature
+    or one trailing `docs: fork notes`), then rebase those on `upstream/master`
+    (each conflicting hunk is resolved once). Opus's way: `git reset --mixed
+    <merge-base>` and re-commit from the final tree with `git add -p`, so the
+    wandering (feature, change, revert) never replays; the check is that `git
+    diff <backup> HEAD` is empty before the rebase. Safety: tag the old master
+    (`archive/pre-sync-20261001`) and push the tag, `git config rerere.enabled
+    true`, push with an explicit lease `--force-with-lease=refs/heads/master:
+    <SHA of origin/master>`, tests before the push, other clones `git fetch &&
+    git reset --hard origin/master`. Cost: bisecting inside a feature is lost
+    (the archive tag keeps the old history); SHAs quoted in notes stop being on
+    master.
+  - Going forward: sync weekly and at once when upstream touches a hot file;
+    fix an existing feature with `git commit --fixup=<sha>` and `rebase -i
+    --autosquash` before each sync; send generic features upstream so the
+    permanent delta shrinks.
+  - Done: nothing yet; waiting for the user's go (it rewrites `master`, and
+    other sessions commit there).
+
 - [ ] The flaky `federated_client_starts_without_local_and_survives_its_restart`
   fails more often now (2026-10-01): three full `just check` runs in a row
   at about 07:00 failed it ("recovered Local must be selectable", after
