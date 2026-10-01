@@ -317,6 +317,32 @@
     frame is only a prototype starting point, not a measured result.
     Verify font rendering, baseline and cell width (including CJK), and
     retain a static fallback when motion is disabled. No variant chosen.
+  - User follow-up 2026-10-01 (screenshots): `◐` for a working agent does
+    not animate today, and the hourglass `⧖` should become an animated half
+    circle everywhere it appears. Where it appears now (from the code): the
+    tab line's state icon when the tab waits on a job (`AgentMark::WaitsOnJob`,
+    mauve, `src/client/shell.rs`); the running count `⧖ 1` next to `!6` and
+    `✓2` in tab lines and space rows (`tab_groups.rs`, `ui/sidebar.rs`); a
+    running job's square (`tab_groups.rs`); the job pane footer
+    (`job_footer.rs`); the tab bar; the context menu item `⧖ N`.
+  - Consulted DeepSeek, Claude Opus 5.5, GPT sol 6.1 and Gemini (low/high),
+    2026-10-01. Agreed: one family of half circles; one shared client timer
+    whose deadline is `None` when no animated glyph is drawn (collapsed
+    sidebar, unfocused client, `ui.animations = false`); frame from the
+    monotonic clock (`(now / period) % 4`) so all glyphs stay in step and
+    missed frames are skipped; the glyph is one cell in every frame, so
+    counts, columns and hit rects do not move; blocked, idle and done stay
+    static; no server requests. Proposed frames (not decided): working
+    `◐ ◓ ◑ ◒` clockwise at 125-200 ms in the working colour; waiting on a
+    job and running-job counts `◐ ◒ ◑ ◓` counter-clockwise at 250-400 ms in
+    mauve (Opus, GPT, Gemini low). DeepSeek instead: ping-pong `◐ ↔ ◑` at
+    400 ms. Gemini high: quadrant circles `◴ ◵ ◶ ◷` for jobs, which the
+    others reject (weaker font coverage, reads as 25%). Static fallback when
+    `ui.animations = false`: working `◐`, job `◑` in mauve. Risks: `◐◑` are
+    East Asian Ambiguous width (wide in CJK terminals), screen readers, ssh
+    and tmux bandwidth (diff only). GPT: direction and colour alone are weak
+    cues, so keep text labels in details. First step: a Python demo of both
+    loops side by side, monochrome and reduced motion.
 
 - [x] Indent vertical tab rows under nested worktree spaces (screenshot,
   2026-09-30 00:49). The `Job client footer` worktree header is indented,
