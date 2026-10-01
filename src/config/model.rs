@@ -883,6 +883,18 @@ pub enum TabLabelConfig {
     Title,
 }
 
+/// Which top-level tab gets focus when the active one is closed. A closed
+/// child tab always returns to its parent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum FocusAfterTabCloseConfig {
+    /// The next top-level tab to the right, else the previous one.
+    #[default]
+    Next,
+    /// The previous top-level tab to the left, else the next one.
+    Previous,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PaneBordersConfig {
     #[default]
@@ -994,6 +1006,9 @@ pub struct UiConfig {
     /// What an unnamed tab shows: its number, or the task title its agent
     /// sets as the terminal title (the number until it sets one). Default: number.
     pub tab_label: TabLabelConfig,
+    /// Which top-level tab is focused after the active one is closed:
+    /// "next" or "previous". Default: "next".
+    pub focus_after_tab_close: FocusAfterTabCloseConfig,
     /// Ordered entries shown at the right edge of the desktop tab row. Empty by default.
     pub tab_bar_right: Vec<TabBarRightEntryConfig>,
     /// Text inserted between visible right-side tab bar entries. Default: one space.
@@ -1236,6 +1251,7 @@ impl Default for UiConfig {
             hide_tab_bar_when_single_tab: false,
             tab_bar_position: TabBarPositionConfig::Top,
             tab_label: TabLabelConfig::Number,
+            focus_after_tab_close: FocusAfterTabCloseConfig::Next,
             tab_bar_right: Vec::new(),
             tab_bar_right_separator: " ".into(),
             window_title: super::window_title::default_window_title(),

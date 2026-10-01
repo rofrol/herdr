@@ -245,6 +245,11 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
 # Maximum sidebar width when expanded (columns)
 # sidebar_max_width = 44
 
+# Which top-level tab gets focus when the active one is closed: "next" (the one to
+# the right, else the previous) or "previous". A closed child tab, such as a
+# finished job, always returns to its parent.
+# focus_after_tab_close = "next"
+
 # Start with the sidebar collapsed. Changes take effect on the next launch.
 # sidebar_start_collapsed = false
 

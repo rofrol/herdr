@@ -1128,6 +1128,16 @@
           ]
         },
         {
+          "key": "ui.focus_after_tab_close",
+          "type": "enum",
+          "default": "\"next\"",
+          "description": "Which top-level tab gets focus when the active one is closed: the next one to the right (then the previous), or the previous one (then the next). A closed child tab, such as a finished job, always returns to its parent.",
+          "values": [
+            "next",
+            "previous"
+          ]
+        },
+        {
           "key": "ui.tab_bar_right",
           "type": "array",
           "default": "[]",

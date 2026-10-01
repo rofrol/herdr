@@ -1591,7 +1591,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Alternative to weigh (mine, not consulted): keep a closed tab's
     processes alive for a few seconds with an "undo" toast, which restores
     them exactly.
-- [ ] Which tab gets focus after closing the active one (child -> parent done 2026-10-01; top-level direction still open): should it be the
+- [x] Which tab gets focus after closing the active one (done 2026-10-01; the user said to decide, so see the last bullet): should it be the
   next one (right) instead of the previous one (left), or should that be
   configurable? Today `Workspace::close_tab` focuses the previous tab (the
   new last one when the last tab closes).
@@ -1615,6 +1615,16 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     All four: closing or exiting an inactive tab never moves focus (true
     today); closing a parent closes its children first and the focus goes to
     a surviving top-level tab.
+  - Decided by me 2026-10-01 ("rób jak uważasz", the user may change it):
+    `ui.focus_after_tab_close = "next" | "previous"`, default `next`
+    (committed, not installed): the user asked in this item whether the next
+    tab (right) should win, the consulted models split 2:2, and both sides
+    allowed this one option. `next` takes the next top-level tab (skipping
+    the closed tab's own jobs), else the previous; `previous` the reverse. A
+    closed child always returns to its parent. The choice is process-wide
+    (`workspace::set_focus_next_after_close`, set at server start and on
+    config reload); unit tests keep `previous`. A `last_used` mode waits for
+    a tab history.
     `cross_area_detach_and_reattach_preserves_state` failed once in a full
     `just check` ("workspace with matching label should exist") and passed
     twice alone and on rerun: another flaky integration test.
