@@ -2485,6 +2485,42 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     right pane; the 100-entry bound.
   - Done 2026-10-01: nothing yet (scoping the change in the server first).
 
+- [ ] Too many notifications while the agent keeps working (user, 2026-10-01,
+  screenshot of the history: `14:19 claude finished` and `14:19 claude needs
+  attention` for the same pane): "what do I need this notification for, if
+  the agent keeps working anyway?" For one Claude Code pane the history shows
+  finished / needs attention / finished / needs attention x2 / finished within
+  two minutes.
+  - Cause (from the code, not reproduced): the in-app toast path waits
+    `ui.toast.delay_seconds` (default 1 s) and notifies only if the pane is
+    still in the same state (`pending_agent_notifications`), but the path that
+    feeds client shells, the history list, system notifications and sounds
+    (`forward_semantic_agent_transition`, `src/server/headless/notifications.rs`)
+    sends and records at the transition itself, with no delay and no same-state
+    check, and does not dedupe repeats.
+  - Consulted DeepSeek, Opus 5.5, GPT sol 6.1 and Gemini high 2026-10-01; they
+    agree on: one eligibility policy before every channel (history, shell,
+    system notification, sound, toast), one pending notification per pane that
+    any state change replaces and a return to `working` cancels; a settle delay
+    (needs attention 3-5 s, awaiting reply 1-2 s, idle/turn ended 10-30 s);
+    dedupe a repeated needs-attention for the pane until the user interacts or
+    the agent worked for about 5 s; suppress when the pane is visible and the
+    client focused (not merely the active tab); history keeps only delivered
+    notifications (superseded ones, if kept at all, in a separate diagnostic
+    log); name the kinds honestly: "Reply needed" (awaiting reply), "Needs
+    approval" (blocked), "Turn ended" (idle after a turn), and keep "Finished"
+    for a trustworthy end (process exit, explicit completion); positively named
+    options (`attention_delay_seconds`, `reply_delay_seconds`,
+    `idle_delay_seconds`, `notify_while_viewing`, ...); the existing
+    `ui.toast.delay_seconds` stays as an alias.
+  - Tests (fake clock, a pure `NotificationPolicy` state machine): the user's
+    14:17-14:19 sequence yields at most one notification; blocked then working
+    after 1 s yields none and no history row; a blocked state held 4 s yields
+    one; a repeat without interaction yields none; interaction rearms; awaiting
+    reply is immediate; focus and visibility suppress; panes are independent;
+    toast, shell and history get the same stream.
+  - Done: nothing yet. Related: the entry above about what the history rows say.
+
 - [ ] The flaky `federated_client_starts_without_local_and_survives_its_restart`
   fails more often now (2026-10-01): three full `just check` runs in a row
   at about 07:00 failed it ("recovered Local must be selectable", after
