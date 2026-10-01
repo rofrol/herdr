@@ -1777,7 +1777,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Next, only if misses continue: a narrow Stop-hook backstop (terminal
     `?` or an imperative aimed at the user, and no mark set; ask herdr for
     the mark rather than parsing the transcript), one block at most.
-- [ ] Awaiting reply for agents other than Claude, the same way as their
+- [ ] Awaiting reply for agents other than Claude (pi done 2026-10-01; the rest open), the same way as their
   integrations (user, 2026-09-28): each integration that can add session
   context (a session-start hook, an extension, a plugin) injects the same
   instruction, and where the agent has a command allowlist the install
@@ -1786,6 +1786,16 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   cursor, devin, droid, grok, hermes, kilo, kimi, letta, mastracode, omp,
   opencode, pi, qodercli, qwen. Check per agent what it offers; bump each
   changed integration's version once; try each live.
+  - Pi done 2026-10-01 (committed; linked into `~/.pi/agent/extensions/` by
+    `plugins/pi-title/install`, active after `/reload` or a new session):
+    `pi-awaiting-reply.ts` adds the instruction as a named system-prompt
+    section in Herdr's TUI mode, since Pi has no command allowlist to edit and
+    the managed `herdr-agent-state.ts` is overwritten on reinstall (an
+    integration-version bump would also drift from upstream's numbering).
+    Not verified in a live Pi session. The other integrations (antigravity,
+    codex, copilot, cursor, devin, droid, grok, hermes, kilo, kimi, letta,
+    mastracode, omp, opencode, qodercli, qwen) are untouched: each needs its
+    own live check, which I cannot do here.
 - [x] Consult stats log DeepSeek under the alias it was called with
   (`deepseek-flash`, now V4.1), so when the alias moves to a new model the
   stats of both merge and we cannot tell which was which.
