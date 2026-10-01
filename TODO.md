@@ -1154,7 +1154,8 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
        redundant).
     Shared: `no change` dims the highlight and sends nothing; Esc or a drop
     outside restores the order and may flash `cancelled`.
-  - Proposal 1 done 2026-10-01 (committed; `just check` passes; the
+  - Proposal 1 done 2026-10-01 and confirmed by the user on the installed
+    build `45cadf68` ("działa ok") (committed; `just check` passes; the
     flaky `federated_client_starts_without_local…` failed once and passed on
     rerun): the dragged block is drawn at its landing slot with the drag
     background and accent text, the `▸`/`▾` markers are gone, the header says
