@@ -128,9 +128,28 @@
   - [ ] Why is `zsh` after the worktree group not indented like the other
     tabs? Check whether it is a child of the group or a top-level tab drawn
     at the wrong depth.
-  - Not investigated yet: read the real parent ids with `herdr` API output
-    before judging render versus model. Consult models before changing the
-    tree rendering.
+  - Findings from `herdr tab list --workspace wR` and the code (2026-10-01):
+    - Q1: both `ask claude` (`wR:tZ7`) and `ask gemini` (`wR:t07`) ARE
+      herdr-job tabs (they carry `job`), but have no `parent_tab_id`.
+      `herdr-job` nests a job under its owner's tab with `herdr tab parent`
+      and ignores a failure (`herdr_ok`, `plugins/job/herdr-job`). Nesting
+      is one level only (`Workspace::set_tab_parent`: "the parent must be a
+      top-level tab"). `ask gemini` ran from pane `wR:p0M`, which now lives
+      in job tab `wR:t03` (itself a child of `wR:tVM`), so the parent
+      request was refused: the likely cause. `ask claude` ran from pane
+      `wR:pZP`, which no longer exists (its tab was closed, and a closed
+      parent leaves the child top-level): unverified for the exact close.
+      Fix idea to consider: nest under the owner's top-level ancestor, and
+      log a refused `tab parent` instead of ignoring it.
+    - Q2-Q4: `Pi compact job act…` is not a tab: it is the separate
+      workspace `w1B` (linked worktree of `herdr`), drawn as a child of the
+      repo workspace, and `zsh` is that workspace's only tab (`w1B:t1`).
+      Not investigated: why its tabs are not indented below the worktree
+      header, and why the `└─` stub starts under `ask gemini` (the last
+      row of the parent workspace's tabs). Read the sidebar renderer
+      (`src/ui`) for worktree-workspace rows before judging.
+  - Consulted DeepSeek (generic hypotheses, nothing the data above did not
+    settle better); GPT sol hit the Plus usage limit this round.
 
 - [ ] Compact Pi activity rows with click-through to herdr-job details.
   - User request and screenshot, 2026-10-01:
