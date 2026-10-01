@@ -252,6 +252,9 @@ pub(super) struct ClientTabPress {
     /// Pressed in the main row, not the second row (where a parent also has
     /// its own entry).
     pub(super) main_row: bool,
+    /// Pressed on a tab line in the sidebar's spaces list, not in the tab
+    /// bar: the click opens the tab on release, a drag reorders it there.
+    pub(super) sidebar_line: bool,
     pub(super) start_column: u16,
     pub(super) start_row: u16,
 }
@@ -280,6 +283,14 @@ pub(super) enum ClientChromeDrag {
     Tab {
         tab_id: String,
         workspace_id: String,
+        insert_index: Option<usize>,
+    },
+    /// A tab line dragged in the sidebar's spaces list, within its space.
+    TabLine {
+        tab_id: String,
+        workspace_id: String,
+        /// Where the tab would land among its space's top-level tabs (counting
+        /// the dragged one), or none while the pointer is outside them.
         insert_index: Option<usize>,
     },
     Workspace {

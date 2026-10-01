@@ -126,10 +126,45 @@ fn focus_tab(state: &mut ClientShellState, tab_id: &str) {
     state.set_snapshot(Box::new(projected));
 }
 
+fn mouse_at(
+    state: &mut ClientShellState,
+    kind: crossterm::event::MouseEventKind,
+    (column, row): (u16, u16),
+) -> ClientShellInput {
+    state.handle_raw_events(vec![crate::raw_input::RawInputEvent::Mouse(MouseEvent {
+        kind,
+        column,
+        row,
+        modifiers: KeyModifiers::empty(),
+    })])
+}
+
+fn left_release(state: &mut ClientShellState, at: (u16, u16)) -> ClientShellInput {
+    mouse_at(
+        state,
+        crossterm::event::MouseEventKind::Up(crossterm::event::MouseButton::Left),
+        at,
+    )
+}
+
+fn left_drag(state: &mut ClientShellState, at: (u16, u16)) -> ClientShellInput {
+    mouse_at(
+        state,
+        crossterm::event::MouseEventKind::Drag(crossterm::event::MouseButton::Left),
+        at,
+    )
+}
+
+/// A click on the first tab line: the tab opens when the button is released.
 fn click_tab_line(state: &mut ClientShellState) -> ClientShellInput {
     state.compose(106, 30).unwrap();
     let (rect, _) = state.hits.space_tabs[0];
-    left_click(state, (rect.x + 6, rect.y))
+    let at = (rect.x + 6, rect.y);
+    assert!(
+        left_click(state, at).actions.is_empty(),
+        "waits for release"
+    );
+    left_release(state, at)
 }
 
 /// Clicks the first tab line's disclosure triangle.
@@ -1253,4 +1288,138 @@ fn the_tab_menu_closes_its_jobs_by_state_from_chips() {
     let mut outcome = ClientShellInput::default();
     state.accept_close_confirmation(&mut outcome);
     assert_eq!(closes(&outcome), ["job_run"]);
+}
+
+/// Three top-level tabs in `ws_1`: `tab_1`, `tab_2`, `tab_3`.
+fn state_with_three_tabs() -> ClientShellState {
+    let mut state = state_with_tabs(true);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    for id in ["tab_2", "tab_3"] {
+        let mut tab = projected.tabs[0].clone();
+        tab.tab_id = id.into();
+        tab.focused = false;
+        projected.tabs.push(tab);
+    }
+    state.set_snapshot(Box::new(projected));
+    state.compose(106, 30).unwrap();
+    state
+}
+
+fn line_row(state: &ClientShellState, tab_id: &str) -> (u16, u16) {
+    let (rect, _) = state
+        .hits
+        .space_tabs
+        .iter()
+        .find(|(_, id)| id == tab_id)
+        .expect("tab line");
+    (rect.x + 6, rect.y)
+}
+
+fn tab_moves(outcome: &ClientShellInput) -> Vec<(String, usize)> {
+    outcome
+        .actions
+        .iter()
+        .filter_map(|action| match action {
+            ClientShellAction::Endpoint { request, .. } => match &request.method {
+                crate::api::schema::Method::TabMove(params) => {
+                    Some((params.tab_id.clone(), params.insert_index))
+                }
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_tab_line_dragged_down_past_the_others_moves_to_the_end() {
+    let mut state = state_with_three_tabs();
+    let (first, third) = (line_row(&state, "tab_1"), line_row(&state, "tab_3"));
+    assert!(left_click(&mut state, first).actions.is_empty());
+    left_drag(&mut state, third);
+    assert!(matches!(
+        state.chrome_drag,
+        Some(ClientChromeDrag::TabLine {
+            insert_index: Some(3),
+            ..
+        })
+    ));
+    // The marker sits under the last line, where the tab would land.
+    let frame = state.compose(106, 30).unwrap();
+    assert!(frame.cells.iter().any(|cell| cell.symbol == "▾"));
+    let released = left_release(&mut state, third);
+    assert_eq!(tab_moves(&released), [("tab_1".to_string(), 3)]);
+    assert!(!focuses(&released, "tab_1"), "a drop does not also click");
+}
+
+#[test]
+fn a_tab_line_dragged_up_lands_before_the_line_under_the_pointer() {
+    let mut state = state_with_three_tabs();
+    let (second, third) = (line_row(&state, "tab_2"), line_row(&state, "tab_3"));
+    left_click(&mut state, third);
+    left_drag(&mut state, second);
+    assert!(matches!(
+        state.chrome_drag,
+        Some(ClientChromeDrag::TabLine {
+            insert_index: Some(1),
+            ..
+        })
+    ));
+    let frame = state.compose(106, 30).unwrap();
+    assert!(frame.cells.iter().any(|cell| cell.symbol == "▸"));
+    assert_eq!(
+        tab_moves(&left_release(&mut state, second)),
+        [("tab_3".to_string(), 1)]
+    );
+}
+
+#[test]
+fn a_tab_line_dropped_at_its_own_place_sends_nothing() {
+    let mut state = state_with_three_tabs();
+    let (second, third) = (line_row(&state, "tab_2"), line_row(&state, "tab_3"));
+    left_click(&mut state, second);
+    left_drag(&mut state, third);
+    left_drag(&mut state, second);
+    let released = left_release(&mut state, second);
+    assert!(tab_moves(&released).is_empty());
+    assert!(state.chrome_drag.is_none());
+}
+
+#[test]
+fn sideways_movement_alone_does_not_start_a_tab_line_drag() {
+    let mut state = state_with_three_tabs();
+    let first = line_row(&state, "tab_1");
+    left_click(&mut state, first);
+    left_drag(&mut state, (first.0 + 4, first.1));
+    assert!(state.chrome_drag.is_none());
+    // Still a click: the tab opens on release.
+    assert!(focuses(
+        &left_release(&mut state, (first.0 + 4, first.1)),
+        "tab_1"
+    ));
+}
+
+#[test]
+fn escape_cancels_a_tab_line_drag_and_the_pointer_outside_the_space_says_so() {
+    let mut state = state_with_three_tabs();
+    let (first, third) = (line_row(&state, "tab_1"), line_row(&state, "tab_3"));
+    left_click(&mut state, first);
+    left_drag(&mut state, third);
+    // Above the space's first line: nothing to land on, nothing clamped.
+    left_drag(&mut state, (first.0, 0));
+    assert!(matches!(
+        state.chrome_drag,
+        Some(ClientChromeDrag::TabLine {
+            insert_index: None,
+            ..
+        })
+    ));
+    state.handle_input_bytes(b"\x1b");
+    assert!(state.chrome_drag.is_none());
+    assert!(tab_moves(&left_release(&mut state, third)).is_empty());
+    // A drag released outside the space cancels too.
+    left_click(&mut state, first);
+    left_drag(&mut state, third);
+    left_drag(&mut state, (first.0, 0));
+    assert!(tab_moves(&left_release(&mut state, (first.0, 0))).is_empty());
 }

@@ -177,8 +177,8 @@
     overwrite the user's existing clipboard without permission; use a
     disposable synthetic reproduction. No upstream issue without reproduction.
 
-- [ ] Dragging tabs in the spaces list does not work (2026-10-01, reported
-  again): pressing a tab line and moving starts no drag. The earlier entry
+- [x] Dragging tabs in the spaces list does not work (2026-10-01, reported
+  again; v1 done, see the entry below): pressing a tab line and moving starts no drag. The earlier entry
   "Dragging tabs in the spaces list does not work (2026-09-29)" below holds
   the design and the consultations; this one only records that the user
   still sees it and wants it done.
@@ -1047,7 +1047,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     Then, also at my request: one colour, accent blue, while pressed and
     while dragged (mauve read as a git branch; a darker grey and a darker
     blue were tried and dropped).
-- [ ] Dragging tabs in the spaces list does not work (2026-09-29): pressing
+- [x] Dragging tabs in the spaces list does not work (2026-09-29): pressing
   a tab line and moving starts no drag. Only the top tab bar reorders tabs
   (`tab_press` comes from `hits.tabs`, the bar), with a thin insertion
   marker, and only in the focused space. It should work like dragging a
@@ -1082,6 +1082,22 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     read as the space moving, and a target space id in the move API now.
     Astra: the top bar may keep its marker for now, but the same order,
     cancel and child-tab rules.
+  - v1 done 2026-10-01 (committed, not installed; `just check` passes): a
+    press on a tab line (not its triangle, counts or squares) now opens the
+    tab on release; one row of vertical movement starts a drag (sideways
+    alone never does). The drop slot is the one nearest the dragged line's
+    top among the slots the others leave (as for spaces), within its own
+    space and also in a space that is not focused; the pointer above the
+    first line or below the space cancels (header `release cancels · Esc`,
+    nothing clamped); Esc cancels; a drop at its own place sends nothing;
+    children follow their parent (server normalises). Sends `tab.move` with
+    the flat index of that space's tabs. Differences from the design above:
+    the line does not move live; the lifted line takes `drag_bg` and accent
+    text and a `▸` (before a line) or `▾` (after the last line) marks the
+    slot in the gutter. Still open: live movement of the block, auto-scroll
+    while dragging near the list's edge, the drag look for themes without
+    `drag_bg`, a short tab dragged past a tall unfolded one (the lifted
+    height is computed but untested), and a live check in a real terminal.
 - [ ] "Restart agents…": restart agent CLIs (Claude, pi) after they update,
   resuming their sessions, e.g. when Claude reports that a new version is
   available. Should herdr tell the instances to restart once they finish

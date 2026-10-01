@@ -350,9 +350,18 @@ pub(crate) fn render_sidebar(
             }
             None => Some((None, Some("release cancels · Esc"))),
         });
-    let header_hint = drag.as_ref().and_then(|(_, hint)| *hint).or(state
-        .workspace_drag_refusal
-        .map(super::WorkspaceDragRefusal::hint));
+    let header_hint = drag
+        .as_ref()
+        .and_then(|(_, hint)| *hint)
+        .or_else(|| {
+            state
+                .tab_line_drag
+                .filter(|(_, insert_index)| insert_index.is_none())
+                .map(|_| "release cancels · Esc")
+        })
+        .or(state
+            .workspace_drag_refusal
+            .map(super::WorkspaceDragRefusal::hint));
     match header_hint {
         Some(hint) => put_text(
             buffer,
@@ -729,6 +738,7 @@ pub(crate) fn render_sidebar(
             state.hovered_square,
             u16::from(show_scrollbar),
             super::space_tabs::tab_indent(entry.indented),
+            state.tab_line_drag,
             config,
         );
         block_hits.space_tabs.extend(tab_hits.lines);

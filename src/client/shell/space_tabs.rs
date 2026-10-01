@@ -411,6 +411,9 @@ pub(super) fn render_space_tab_lines(
     // Columns the lines move right of `area` (see [`tab_indent`]); a line's
     // click rect still starts at `area`, so the gutter selects its tab.
     indent: u16,
+    // The tab dragged from one of these lines and where it would land among
+    // them (see [`ClientChromeDrag::TabLine`]); ignored for other spaces.
+    tab_drag: Option<(&str, Option<usize>)>,
     config: &ClientShellConfig,
 ) -> SpaceTabHits {
     let palette = &config.palette;
@@ -425,7 +428,16 @@ pub(super) fn render_space_tab_lines(
     let right = fill_right.saturating_sub(1);
     let mut hits = SpaceTabHits::default();
     let mut y = area.y;
-    for line in lines {
+    // The dragged line's place, and the slot it would land in unless that
+    // changes nothing.
+    let dragged =
+        tab_drag.and_then(|(tab_id, _)| lines.iter().position(|line| line.tab_id == tab_id));
+    let drop_slot = dragged.and_then(|source| {
+        tab_drag?
+            .1
+            .filter(|slot| *slot != source && *slot != source + 1)
+    });
+    for (position, line) in lines.iter().enumerate() {
         if y >= area.bottom() {
             break;
         }
@@ -446,6 +458,21 @@ pub(super) fn render_space_tab_lines(
             (true, false, _) => (fills.active, active_text),
             (false, ..) => (fills.inactive, Style::default().fg(palette.overlay1)),
         };
+        // The lifted line takes the drag background (themes without one rely
+        // on its accent text) and the marker shows where it would land.
+        let lifted = dragged == Some(position);
+        let (bg, text_style) = if lifted {
+            (
+                Some(palette.drag_bg)
+                    .filter(|drag_bg| *drag_bg != Color::Reset)
+                    .unwrap_or(bg),
+                Style::default()
+                    .fg(palette.accent)
+                    .add_modifier(Modifier::BOLD),
+            )
+        } else {
+            (bg, text_style)
+        };
         buffer.set_style(
             Rect::new(
                 fill_x,
@@ -456,6 +483,25 @@ pub(super) fn render_space_tab_lines(
             .intersection(buffer.area),
             Style::default().bg(bg),
         );
+        // `▸` in front of the line the tab would land before; `▾` on the last
+        // line when it would land after it.
+        let marker = match drop_slot {
+            Some(slot) if slot == position => Some("▸"),
+            Some(slot) if slot == lines.len() && position + 1 == lines.len() => Some("▾"),
+            _ => None,
+        };
+        if let Some(marker) = marker {
+            super::render::put_text(
+                buffer,
+                area.x.saturating_add(1 + indent),
+                y,
+                1,
+                marker,
+                Style::default()
+                    .fg(palette.accent)
+                    .add_modifier(Modifier::BOLD),
+            );
+        }
         // On the solid accent the job colours can vanish, so they take the
         // text colour, as on the tab bar.
         let on_accent = solid.then_some(text_style);

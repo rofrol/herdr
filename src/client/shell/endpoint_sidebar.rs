@@ -607,6 +607,7 @@ pub(super) fn render_expanded(
                     state.hovered_square.filter(|_| endpoint_active),
                     u16::from(show_scrollbar),
                     super::space_tabs::tab_indent(entry.indented),
+                    state.tab_line_drag.filter(|_| endpoint_active),
                     config,
                 );
                 // Only the active machine's tab lines and squares take clicks:
