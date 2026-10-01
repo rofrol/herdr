@@ -189,7 +189,24 @@
   branches, tab labels, agent names), the open/close key and mouse
   affordance, how a match is highlighted, what happens to folding and drag
   while a filter is active, what Enter selects, and where its state lives
-  (client-only presentation state, not server state). Models asked below.
+  (client-only presentation state, not server state).
+  - Consulted DeepSeek, Claude Opus 5.5 and Gemini (low/high) 2026-10-01;
+    GPT sol hit the Plus limit again. Unanimous recommendations, not an
+    approved design: match space name, branch, tab label and agent name
+    (not cwd) with fzf-style fuzzy subsequence and smart case (a crate such
+    as `nucleo-matcher`; Opus adds space-separated AND tokens and a `7/23`
+    match counter). Keep tree order; score only picks the default selection.
+    Keep the tree: a matching space shows all its tabs, a matching tab or
+    child worktree shows its ancestors dimmed; collapsed groups expand for
+    display only, without changing the stored fold state. Highlight matched
+    characters. Open by clicking the bar or a key (`/` only when the
+    sidebar has focus, or `prefix + /`; never steal printable keys from a
+    focused pane). Up/Down move a selection kept by id, Enter focuses it
+    and returns focus to the pane, Esc clears and then closes. Drag
+    reordering is disabled while a filter is active. State is client-only,
+    not persisted, no server requests; cache matches per
+    (query, snapshot generation). Not in v1: cwd or scrollback matching,
+    score ranking, fzf operator syntax, regex, saved queries, state filters.
 
 - [ ] Compact Pi activity rows with click-through to herdr-job details.
   - User request and screenshot, 2026-10-01:
