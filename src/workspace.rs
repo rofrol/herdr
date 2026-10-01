@@ -1859,6 +1859,72 @@ mod tests {
         assert_eq!(names(&ws), ["1", "a2", "a1", "b"]);
     }
 
+    /// Every drop slot of a sidebar tab line, with and without child tabs
+    /// under the dragged tab and under the ones it passes: the tab lands
+    /// before the top-level tab at the slot, as the client computes the flat
+    /// index (the n-th parentless tab, else the end).
+    #[test]
+    fn every_drop_slot_of_a_top_level_tab_lands_where_asked() {
+        // Child counts under top-level tabs a, b, c, d.
+        for children in [
+            [0, 0, 0, 0],
+            [2, 0, 0, 0],
+            [0, 2, 0, 1],
+            [1, 1, 1, 1],
+            [0, 0, 0, 3],
+        ] {
+            let names_of = ["a", "b", "c", "d"];
+            for source in 0..4 {
+                for slot in 0..=4usize {
+                    let mut ws = Workspace::test_new("test");
+                    ws.tabs[0].custom_name = Some("a".into());
+                    for name in &names_of[1..] {
+                        ws.test_add_tab(Some(name));
+                    }
+                    for (top, count) in children.iter().enumerate() {
+                        for n in 0..*count {
+                            let child = ws.test_add_tab(Some(&format!("{}{n}", names_of[top])));
+                            let parent = ws
+                                .tabs
+                                .iter()
+                                .position(|tab| tab.custom_name.as_deref() == Some(names_of[top]))
+                                .unwrap();
+                            ws.set_tab_parent(child, Some(parent)).unwrap();
+                        }
+                    }
+                    let flat_source = ws
+                        .tabs
+                        .iter()
+                        .position(|tab| tab.custom_name.as_deref() == Some(names_of[source]))
+                        .unwrap();
+                    let flat_insert = ws
+                        .tabs
+                        .iter()
+                        .enumerate()
+                        .filter(|(index, _)| ws.tab_parent_index(*index).is_none())
+                        .nth(slot)
+                        .map_or(ws.tabs.len(), |(index, _)| index);
+                    ws.move_tab(flat_source, flat_insert);
+                    let tops = ws
+                        .tabs
+                        .iter()
+                        .enumerate()
+                        .filter(|(index, _)| ws.tab_parent_index(*index).is_none())
+                        .map(|(_, tab)| tab.custom_name.clone().unwrap_or_default())
+                        .collect::<Vec<_>>();
+                    let mut expected = names_of.iter().map(|n| n.to_string()).collect::<Vec<_>>();
+                    let moved = expected.remove(source);
+                    expected.insert(if slot > source { slot - 1 } else { slot }, moved);
+                    assert_eq!(
+                        tops, expected,
+                        "children {children:?}, source {source}, slot {slot}"
+                    );
+                    ws.assert_invariants_for_test();
+                }
+            }
+        }
+    }
+
     #[test]
     fn nesting_is_one_level_deep() {
         let mut ws = Workspace::test_new("test");

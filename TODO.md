@@ -1125,6 +1125,35 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     while dragging near the list's edge, the drag look for themes without
     `drag_bg`, a short tab dragged past a tall unfolded one (the lifted
     height is computed but untested), and a live check in a real terminal.
+  - Reported 2026-10-01 after trying the installed build: dragging down, the
+    triangle looked like "two positions" but the tab moved one. Diagnosis: the
+    server is right (new test `every_drop_slot_of_a_top_level_tab_lands_where_asked`
+    checks every slot with and without child tabs, and the client computes the
+    marker and the drop with the same function). The marker `▸` on line k
+    means "before line k", but once the dragged tab leaves, line k moves up
+    one row, so a reader takes it as "ends up at k". The feedback is the bug;
+    the user also wants to see which tab moves and where, and live movement.
+  - Consulted DeepSeek, Claude Opus 5.5, GPT sol 6.1 and Gemini (low/high),
+    2026-10-01; all five rank the same first. Proposals, not decided:
+    1. Live splice preview (recommended for v2, as for spaces): the block
+       (tab line, its unfolded squares, its child tabs) is taken out of the
+       list and drawn at its landing slot, highlighted, with the original
+       slot dimmed or empty. Hit-test against geometry frozen at drag start
+       (never the reordered preview), change slots only after crossing the
+       neighbour's middle (hysteresis), apply server updates without changing
+       row counts. Header hint like spaces: `build: 2 → 4 · before review`,
+       `no change`, `release cancels · Esc`; numbers count top-level tabs after
+       the move. One pure `preview_order` function plus a small drag state;
+       logic shared with the space drag.
+    2. Cheap fix now: draw the marker between rows, a divider row or `──▸`
+       in the gutter, not a glyph on a line, plus the same header hint and
+       the source dimmed. Geometry stays frozen. Removes the off-by-one
+       reading without live movement.
+    3. Ghost: a one-row floating label at the pointer plus a gap at the
+       landing slot (Gemini low; Opus and DeepSeek call it costly or
+       redundant).
+    Shared: `no change` dims the highlight and sends nothing; Esc or a drop
+    outside restores the order and may flash `cancelled`.
 - [ ] "Restart agents…": restart agent CLIs (Claude, pi) after they update,
   resuming their sessions, e.g. when Claude reports that a new version is
   available. Should herdr tell the instances to restart once they finish
