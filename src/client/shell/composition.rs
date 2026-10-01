@@ -92,6 +92,7 @@ impl ClientShellState {
             sidebar_collapsed: false,
             sidebar_section_split: self.sidebar_section_split,
             tab_drag_insert_index: None,
+            space_filter: None,
             tab_line_drag: None,
             selected_workspace_id: self
                 .navigate_workspace_id
@@ -262,6 +263,23 @@ impl ClientShellState {
             .filter(|_| self.workspace_press.is_none() && self.chrome_drag.is_none())
             .filter(|_| self.space_sort.allows_drag());
         let notification_log_button = self.notification_log_button();
+        // Typing narrows the list; folded groups open for the view only.
+        let space_filter = self
+            .space_filter
+            .open
+            .then(|| super::space_filter::FilterRender {
+                query: self.space_filter.query.as_str(),
+                focused: self.space_filter.focused,
+                view: self.space_filter.active().then(|| {
+                    super::space_filter::FilterView::new(snapshot, &self.space_filter.query)
+                }),
+            });
+        let no_collapsed_groups = HashSet::new();
+        let collapsed_groups = if space_filter.as_ref().is_some_and(|f| f.view.is_some()) {
+            &no_collapsed_groups
+        } else {
+            &self.collapsed_groups
+        };
         let mut buffer = Buffer::empty(Rect::new(0, 0, cols, rows));
         self.hits = render::render_shell(
             &mut buffer,
@@ -274,7 +292,7 @@ impl ClientShellState {
                 active_endpoint_id: &self.active_endpoint_id,
                 usage: super::usage::active_report(&self.usage, &self.active_endpoint_id),
                 collapsed_endpoints: &self.collapsed_endpoints,
-                collapsed_groups: &self.collapsed_groups,
+                collapsed_groups,
                 remote_collapsed_groups: &self.remote_collapsed_groups,
                 unfolded_squares: self
                     .unfolded_squares
@@ -298,6 +316,7 @@ impl ClientShellState {
                 sidebar_collapsed: self.sidebar_collapsed,
                 sidebar_section_split: self.sidebar_section_split,
                 tab_drag_insert_index,
+                space_filter,
                 tab_line_drag,
                 selected_workspace_id: self
                     .navigate_workspace_id

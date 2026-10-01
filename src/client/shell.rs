@@ -34,6 +34,7 @@ mod preferences;
 mod render;
 mod scroll;
 mod settings;
+mod space_filter;
 mod space_sort;
 mod space_tabs;
 mod state;

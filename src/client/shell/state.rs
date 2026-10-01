@@ -156,6 +156,11 @@ pub(super) struct ShellHitMap {
     pub(super) global_menu_rows: Vec<(Rect, usize)>,
     /// The notification history button at the right of the spaces header.
     pub(super) notification_log_button: Rect,
+    /// The `/` button in the spaces header that opens the filter bar.
+    pub(super) space_filter_button: Rect,
+    /// The filter bar, and the `×` at its right end that closes it.
+    pub(super) space_filter_bar: Rect,
+    pub(super) space_filter_close: Rect,
     pub(super) notification_log_rows: Vec<(Rect, usize)>,
     pub(super) context_menu_rows: Vec<(Rect, usize)>,
     pub(super) overlay_primary: Rect,
@@ -234,6 +239,8 @@ pub(super) enum WorkspaceDragRefusal {
     LinkedWorktree,
     /// Spaces of another endpoint are not reordered from here.
     Remote,
+    /// A filtered list hides spaces, so a drop slot would be ambiguous.
+    Filtered,
 }
 
 impl WorkspaceDragRefusal {
@@ -242,6 +249,7 @@ impl WorkspaceDragRefusal {
             Self::Sort => "use manual to reorder",
             Self::LinkedWorktree => "moves with its parent",
             Self::Remote => "can't reorder here",
+            Self::Filtered => "clear the filter to reorder",
         }
     }
 }
@@ -1091,6 +1099,8 @@ pub(crate) struct ClientShellState {
     pub(super) hovered_square: Option<String>,
     pub(super) tooltip: Option<super::tooltip::Tooltip>,
     pub(super) tab_press: Option<ClientTabPress>,
+    /// The spaces filter bar (client-only).
+    pub(super) space_filter: super::space_filter::SpaceFilter,
     /// Last focused tab of each tab group, by endpoint and the group's
     /// top-level tab. Kept by this client, so one client's navigation never
     /// moves another's.
@@ -1285,6 +1295,7 @@ impl ClientShellState {
             hovered_square: None,
             tooltip: None,
             tab_press: None,
+            space_filter: Default::default(),
             last_group_tabs: HashMap::new(),
             collapsed_groups: preferences.collapsed_groups.into_iter().collect(),
             remote_collapsed_groups,

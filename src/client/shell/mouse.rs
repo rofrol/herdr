@@ -745,6 +745,10 @@ impl ClientShellState {
     /// A press on a tab line in the spaces list (not on its triangle, counts
     /// or squares). The tab opens on release, so a drag can start from it.
     fn space_tab_line_press(&self, mouse: &MouseEvent) -> Option<ClientTabPress> {
+        // A filtered list hides tabs: no drag slots, so a press just opens.
+        if self.space_filter.active() {
+            return None;
+        }
         let point = (mouse.column, mouse.row);
         let on =
             |hits: &[(Rect, String)]| hits.iter().any(|(rect, _)| super::contains(*rect, point));
@@ -1109,6 +1113,12 @@ impl ClientShellState {
         self.update_workspace_hover(mouse, outcome);
         self.update_tooltip(mouse, outcome);
         let point = (mouse.column, mouse.row);
+        // A press anywhere gives the keys back to the pane; the filter bar
+        // and its button take them again below.
+        if self.space_filter.focused && mouse.kind == MouseEventKind::Down(MouseButton::Left) {
+            self.space_filter.focused = false;
+            outcome.repaint = true;
+        }
         if self.mode == ClientShellMode::Navigate
             && self.workspace_preview_action_blocked()
             && self.overlay.is_none()
@@ -2651,6 +2661,27 @@ impl ClientShellState {
                 }
                 if super::contains(self.hits.notification_log_button, point) {
                     self.toggle_notification_log(outcome);
+                    outcome.repaint = true;
+                    return;
+                }
+                if super::contains(self.hits.space_filter_button, point) {
+                    // The button opens the bar for typing, or closes it.
+                    if self.space_filter.open {
+                        self.space_filter.close();
+                    } else {
+                        self.space_filter.open = true;
+                        self.space_filter.focused = true;
+                    }
+                    outcome.repaint = true;
+                    return;
+                }
+                if super::contains(self.hits.space_filter_close, point) {
+                    self.space_filter.close();
+                    outcome.repaint = true;
+                    return;
+                }
+                if super::contains(self.hits.space_filter_bar, point) {
+                    self.space_filter.focused = true;
                     outcome.repaint = true;
                     return;
                 }

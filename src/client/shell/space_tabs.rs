@@ -116,6 +116,28 @@ pub(super) fn space_tab_lines(
     held_squares: &HeldSquares,
     config: &ClientShellConfig,
 ) -> Vec<SpaceTabLine> {
+    space_tab_lines_filtered(
+        snapshot,
+        workspace,
+        collapsed_groups,
+        unfolded_squares,
+        held_squares,
+        None,
+        config,
+    )
+}
+
+/// [`space_tab_lines`] narrowed by the spaces filter: only the tabs the query
+/// shows (see [`super::space_filter::FilterView::shows_tab`]).
+pub(super) fn space_tab_lines_filtered(
+    snapshot: &ClientShellSnapshot,
+    workspace: &ClientShellWorkspace,
+    collapsed_groups: &HashSet<String>,
+    unfolded_squares: &HashSet<String>,
+    held_squares: &HeldSquares,
+    filter: Option<&super::space_filter::FilterView>,
+    config: &ClientShellConfig,
+) -> Vec<SpaceTabLine> {
     if !config.spaces.tabs
         || stands_for_a_group(snapshot, workspace, collapsed_groups)
         || collapsed_groups.contains(&tabs_collapse_key(&workspace.workspace_id))
@@ -128,6 +150,7 @@ pub(super) fn space_tab_lines(
         .find(|tab| tab.tab_id == workspace.active_tab_id)
         .map(|tab| tab.parent_tab_id.as_deref().unwrap_or(&tab.tab_id));
     top_level_tabs(snapshot, workspace)
+        .filter(|tab| filter.is_none_or(|view| view.shows_tab(workspace, &tab.tab_id)))
         .map(|tab| {
             let group = snapshot
                 .tabs

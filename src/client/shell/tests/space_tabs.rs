@@ -1493,3 +1493,116 @@ fn the_drag_hint_names_the_tab_and_where_it_lands() {
     let hint = |slot| crate::client::shell::space_tabs::tab_drag_hint(snapshot, "tab_1", slot);
     assert_eq!(hint(Some(2)), "1 → 2 · build · before review");
 }
+
+/// `state_with_three_tabs` with distinct tab labels: build, tests, review.
+fn state_with_named_tabs() -> ClientShellState {
+    let mut state = state_with_three_tabs();
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    for (tab, label) in projected.tabs.iter_mut().zip(["build", "tests", "review"]) {
+        tab.label = label.into();
+        tab.custom_label = true;
+    }
+    state.set_snapshot(Box::new(projected));
+    state
+}
+
+fn type_text(state: &mut ClientShellState, text: &str) {
+    state.handle_input_bytes(text.as_bytes());
+}
+
+fn shown_tabs(state: &mut ClientShellState) -> Vec<String> {
+    state.compose(106, 30).unwrap();
+    drawn_order(state)
+}
+
+#[test]
+fn the_filter_bar_opens_from_its_button_and_narrows_the_list_as_you_type() {
+    let mut state = state_with_named_tabs();
+    state.compose(106, 30).unwrap();
+    assert!(
+        !state.hits.space_filter_button.is_empty(),
+        "the header has a button"
+    );
+    let button = state.hits.space_filter_button;
+    left_click(&mut state, (button.x + 1, button.y));
+    assert!(state.space_filter.open && state.space_filter.focused);
+    // Nothing typed yet: every tab is listed.
+    assert_eq!(shown_tabs(&mut state), ["tab_1", "tab_2", "tab_3"]);
+    // `rev` fits only the review tab (the space and its branch do not match).
+    type_text(&mut state, "rev");
+    assert_eq!(state.space_filter.query, "rev");
+    assert_eq!(shown_tabs(&mut state), ["tab_3"]);
+    let rows = frame_rows(&state.compose(106, 30).unwrap());
+    assert!(rows.iter().any(|row| row.contains("/ rev")), "{rows:?}");
+    // The space's own name shows all its tabs.
+    state.space_filter.query = "client".into();
+    assert_eq!(shown_tabs(&mut state), ["tab_1", "tab_2", "tab_3"]);
+    // No match says so and lists nothing.
+    state.space_filter.query = "zzz".into();
+    let rows = frame_rows(&state.compose(106, 30).unwrap());
+    assert!(state.hits.space_tabs.is_empty());
+    assert!(rows.iter().any(|row| row.contains("no match")), "{rows:?}");
+}
+
+#[test]
+fn escape_clears_the_text_then_closes_and_enter_opens_the_first_match() {
+    let mut state = state_with_named_tabs();
+    state.space_filter.open = true;
+    state.space_filter.focused = true;
+    type_text(&mut state, "tes");
+    state.handle_input_bytes(b"\x1b");
+    assert!(state.space_filter.open && state.space_filter.query.is_empty());
+    state.handle_input_bytes(b"\x1b");
+    assert!(!state.space_filter.open);
+
+    state.space_filter.open = true;
+    state.space_filter.focused = true;
+    type_text(&mut state, "tes");
+    let outcome = state.handle_input_bytes(b"\r");
+    assert!(focuses(&outcome, "tab_2"), "the matching tab opens");
+    assert!(!state.space_filter.open, "choosing closes the bar");
+
+    // A query that matches the space opens the space.
+    state.space_filter.open = true;
+    state.space_filter.focused = true;
+    type_text(&mut state, "client");
+    let outcome = state.handle_input_bytes(b"\r");
+    assert!(outcome.actions.iter().any(|action| matches!(action,
+        ClientShellAction::Endpoint { request, .. }
+            if matches!(&request.method, crate::api::schema::Method::WorkspaceFocus(target)
+                if target.workspace_id == "ws_1"))));
+}
+
+#[test]
+fn a_blurred_filter_leaves_the_keys_to_the_pane_and_a_press_blurs_it() {
+    let mut state = state_with_named_tabs();
+    state.space_filter.open = true;
+    state.space_filter.focused = true;
+    state.compose(106, 30).unwrap();
+    // A click on a pane gives the keys back and leaves the filter on.
+    left_click(&mut state, (60, 10));
+    assert!(state.space_filter.open && !state.space_filter.focused);
+    type_text(&mut state, "x");
+    assert!(state.space_filter.query.is_empty(), "the pane got the key");
+    // The bar takes them again, and its cross closes it.
+    state.compose(106, 30).unwrap();
+    let bar = state.hits.space_filter_bar;
+    left_click(&mut state, (bar.x + 4, bar.y));
+    assert!(state.space_filter.focused);
+    state.compose(106, 30).unwrap();
+    let close = state.hits.space_filter_close;
+    left_click(&mut state, (close.x + 1, close.y));
+    assert!(!state.space_filter.open);
+}
+
+#[test]
+fn tabs_are_not_dragged_while_the_list_is_filtered() {
+    let mut state = state_with_named_tabs();
+    state.space_filter.open = true;
+    state.space_filter.query = "e".into();
+    state.compose(106, 30).unwrap();
+    let first = state.hits.space_tabs[0].0;
+    left_click(&mut state, (first.x + 6, first.y));
+    left_drag(&mut state, (first.x + 6, first.y + 1));
+    assert!(state.chrome_drag.is_none());
+}

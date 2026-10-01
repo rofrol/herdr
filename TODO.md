@@ -196,7 +196,7 @@
     `delivery = "system"` herdr's own toast shows only while the window is
     focused; the overlap checks above are still to do by eye.
 
-- [ ] Filter bar above the spaces list, like fzf (2026-10-01): a text field
+- [x] Filter bar above the spaces list, like fzf (2026-10-01; v1 done, see below): a text field
   at the top of the sidebar that narrows the visible spaces and tabs as the
   user types. Not designed yet: decide what it matches (space names,
   branches, tab labels, agent names), the open/close key and mouse
@@ -220,6 +220,26 @@
     not persisted, no server requests; cache matches per
     (query, snapshot generation). Not in v1: cwd or scrollback matching,
     score ranking, fzf operator syntax, regex, saved queries, state filters.
+  - v1 done 2026-10-01 (committed, not installed; `just check` passes):
+    the `/ filter` button sits in the bottom row between `new` and `menu`
+    (the header has no room at 26 columns) and opens a bar under the header,
+    `/ text▏ ×`. While it is focused, typed text (printable keys,
+    Backspace, Ctrl+U) goes to it; Esc clears the text, then closes; Enter
+    opens the first matching space, or its first matching tab when the
+    space itself does not match, and closes the bar. A click anywhere else
+    blurs it (the filter stays on and the pane gets the keys); a click on the
+    bar focuses it; `×` closes it. Matching is a smart-case subsequence
+    (`space_filter::matches`) against a space's name, branch and agents, and
+    a tab's label, its agents and the labels of the tabs nested under it. The
+    list keeps its order; a matching space shows all its tabs, one shown
+    for a tab only the matching tabs, a worktree parent stays for a
+    matching child, folded groups open for the view only, `no match` when
+    nothing fits. Space and tab drag are off while filtering (the header
+    says `clear the filter to reorder`). Client-only, not saved.
+  - Left for later: Up/Down selection, highlighting the matched characters,
+    a key to open the bar (needs a keybind action and its docs), AND tokens
+    and the `7/23` counter, the multi-machine sidebar (it ignores the
+    filter), the mobile layout, and a live check.
 
 - [ ] Compact Pi activity rows with click-through to herdr-job details.
   - User request and screenshot, 2026-10-01:
