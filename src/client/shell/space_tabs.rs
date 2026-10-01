@@ -192,6 +192,47 @@ pub(super) fn space_tab_lines(
         .collect()
 }
 
+/// The header text while a tab line is dragged: which tab moves and where it
+/// lands among its space's top-level tabs, as `2 → 4 · build · before review`.
+pub(super) fn tab_drag_hint(
+    snapshot: &ClientShellSnapshot,
+    tab_id: &str,
+    insert_index: Option<usize>,
+) -> String {
+    let Some(insert_index) = insert_index else {
+        return "release cancels · Esc".into();
+    };
+    let Some(tab) = snapshot.tabs.iter().find(|tab| tab.tab_id == tab_id) else {
+        return "release cancels · Esc".into();
+    };
+    let tops = snapshot
+        .tabs
+        .iter()
+        .filter(|other| other.workspace_id == tab.workspace_id && other.parent_tab_id.is_none())
+        .collect::<Vec<_>>();
+    let Some(source) = tops.iter().position(|other| other.tab_id == tab_id) else {
+        return "release cancels · Esc".into();
+    };
+    if insert_index == source || insert_index == source + 1 {
+        return format!("no change · {} · Esc", tab.label);
+    }
+    let landing = if insert_index > source {
+        insert_index - 1
+    } else {
+        insert_index
+    };
+    let others = tops
+        .iter()
+        .filter(|other| other.tab_id != tab_id)
+        .collect::<Vec<_>>();
+    let place = match others.get(landing) {
+        Some(next) => format!("before {}", next.label),
+        None => "at the end".into(),
+    };
+    // Positions first: a narrow sidebar cuts the text from the right.
+    format!("{} → {} · {} · {place}", source + 1, landing + 1, tab.label)
+}
+
 /// The key that hides a space's tab lines, kept with the collapsed worktree
 /// groups (keyed by repository path, so they cannot clash) and saved with them.
 pub(super) fn tabs_collapse_key(workspace_id: &str) -> String {
@@ -428,16 +469,19 @@ pub(super) fn render_space_tab_lines(
     let right = fill_right.saturating_sub(1);
     let mut hits = SpaceTabHits::default();
     let mut y = area.y;
-    // The dragged line's place, and the slot it would land in unless that
-    // changes nothing.
+    // While a tab is dragged, its block is drawn at the slot it would land
+    // in; the hits follow what is drawn, so the drop is measured against the
+    // geometry frozen at the drag start (see `ClientChromeDrag::TabLine`).
     let dragged =
         tab_drag.and_then(|(tab_id, _)| lines.iter().position(|line| line.tab_id == tab_id));
-    let drop_slot = dragged.and_then(|source| {
-        tab_drag?
-            .1
-            .filter(|slot| *slot != source && *slot != source + 1)
-    });
-    for (position, line) in lines.iter().enumerate() {
+    let mut order = (0..lines.len()).collect::<Vec<_>>();
+    if let Some((source, slot)) = dragged.zip(tab_drag.and_then(|(_, slot)| slot)) {
+        let landing = if slot > source { slot - 1 } else { slot };
+        order.remove(source);
+        order.insert(landing.min(order.len()), source);
+    }
+    for line_index in order {
+        let line = &lines[line_index];
         if y >= area.bottom() {
             break;
         }
@@ -458,9 +502,9 @@ pub(super) fn render_space_tab_lines(
             (true, false, _) => (fills.active, active_text),
             (false, ..) => (fills.inactive, Style::default().fg(palette.overlay1)),
         };
-        // The lifted line takes the drag background (themes without one rely
-        // on its accent text) and the marker shows where it would land.
-        let lifted = dragged == Some(position);
+        // The lifted line takes the drag background; themes without one rely
+        // on its accent text.
+        let lifted = dragged == Some(line_index);
         let (bg, text_style) = if lifted {
             (
                 Some(palette.drag_bg)
@@ -483,25 +527,6 @@ pub(super) fn render_space_tab_lines(
             .intersection(buffer.area),
             Style::default().bg(bg),
         );
-        // `▸` in front of the line the tab would land before; `▾` on the last
-        // line when it would land after it.
-        let marker = match drop_slot {
-            Some(slot) if slot == position => Some("▸"),
-            Some(slot) if slot == lines.len() && position + 1 == lines.len() => Some("▾"),
-            _ => None,
-        };
-        if let Some(marker) = marker {
-            super::render::put_text(
-                buffer,
-                area.x.saturating_add(1 + indent),
-                y,
-                1,
-                marker,
-                Style::default()
-                    .fg(palette.accent)
-                    .add_modifier(Modifier::BOLD),
-            );
-        }
         // On the solid accent the job colours can vanish, so they take the
         // text colour, as on the tab bar.
         let on_accent = solid.then_some(text_style);

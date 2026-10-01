@@ -1154,6 +1154,16 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
        redundant).
     Shared: `no change` dims the highlight and sends nothing; Esc or a drop
     outside restores the order and may flash `cancelled`.
+  - Proposal 1 done 2026-10-01 (committed; `just check` passes; the
+    flaky `federated_client_starts_without_local…` failed once and passed on
+    rerun): the dragged block is drawn at its landing slot with the drag
+    background and accent text, the `▸`/`▾` markers are gone, the header says
+    `2 → 4 · build · before review`, `no change · build · Esc` or
+    `release cancels · Esc`. The drop is measured against the rows frozen at
+    the drag start (`TabLineGeometry`), so the slot depends on the pointer
+    alone and cannot flicker. Not done: the same header hint in the
+    multi-machine sidebar, auto-scroll at the list's edge, scrolling the list
+    with the wheel during a drag (the frozen rows would be stale), a live check.
 - [ ] "Restart agents…": restart agent CLIs (Claude, pi) after they update,
   resuming their sessions, e.g. when Claude reports that a new version is
   available. Should herdr tell the instances to restart once they finish

@@ -775,18 +775,8 @@ impl ClientShellState {
         })
     }
 
-    /// Where a dragged tab line would land among its space's top-level tabs
-    /// (counting the dragged one): the slot nearest to the dragged line's top,
-    /// among the slots the others leave once it is lifted, as for a dragged
-    /// space. None while the pointer is above the first drawn line or below
-    /// the space: the drag then cancels on release and never clamps to the
-    /// first or last slot.
-    fn tab_line_drop_index_at(
-        &self,
-        point: (u16, u16),
-        workspace_id: &str,
-        tab_id: &str,
-    ) -> Option<usize> {
+    /// The drawn tab lines of a space and the row below its block.
+    fn tab_line_geometry(&self, workspace_id: &str) -> Option<TabLineGeometry> {
         let snapshot = self.snapshot.as_deref()?;
         let top_level = snapshot
             .tabs
@@ -794,7 +784,6 @@ impl ClientShellState {
             .filter(|tab| tab.workspace_id == workspace_id && tab.parent_tab_id.is_none())
             .map(|tab| tab.tab_id.as_str())
             .collect::<Vec<_>>();
-        // (index among the top-level tabs, first row) of the drawn lines.
         let lines = self
             .hits
             .space_tabs
@@ -804,15 +793,41 @@ impl ClientShellState {
                 Some((index, i32::from(rect.y)))
             })
             .collect::<Vec<_>>();
-        let (first_index, first_row) = *lines.first()?;
-        let (last_index, last_row) = *lines.last()?;
-        let row = i32::from(point.1);
+        let last_row = lines.last()?.1;
         let bottom = self
             .hits
             .workspace_layout
             .iter()
             .find(|layout| layout.workspace_id == workspace_id)
             .map_or(last_row + 1, |layout| layout.bottom.max(last_row + 1));
+        Some(TabLineGeometry { lines, bottom })
+    }
+
+    /// Where a dragged tab line would land among its space's top-level tabs
+    /// (counting the dragged one): the slot nearest to the dragged line's top,
+    /// among the slots the others leave once it is lifted, as for a dragged
+    /// space. `geometry` is the lines' rows when the drag started. None while
+    /// the pointer is above the first drawn line or below the space: the drag
+    /// then cancels on release and never clamps to the first or last slot.
+    fn tab_line_drop_index_at(
+        &self,
+        point: (u16, u16),
+        workspace_id: &str,
+        tab_id: &str,
+        geometry: &TabLineGeometry,
+    ) -> Option<usize> {
+        let snapshot = self.snapshot.as_deref()?;
+        let top_level = snapshot
+            .tabs
+            .iter()
+            .filter(|tab| tab.workspace_id == workspace_id && tab.parent_tab_id.is_none())
+            .map(|tab| tab.tab_id.as_str())
+            .collect::<Vec<_>>();
+        let TabLineGeometry { lines, bottom } = geometry;
+        let bottom = *bottom;
+        let (first_index, first_row) = *lines.first()?;
+        let (last_index, _) = *lines.last()?;
+        let row = i32::from(point.1);
         let at_the_end = last_index + 1 == top_level.len();
         if row < first_row || (at_the_end && row >= bottom) {
             return None;
@@ -1618,10 +1633,13 @@ impl ClientShellState {
                 Some(ClientChromeDrag::TabLine {
                     workspace_id,
                     tab_id,
+                    geometry,
                     ..
                 }) => {
-                    let (workspace_id, tab_id) = (workspace_id.clone(), tab_id.clone());
-                    let insert_index = self.tab_line_drop_index_at(point, &workspace_id, &tab_id);
+                    let (workspace_id, tab_id, geometry) =
+                        (workspace_id.clone(), tab_id.clone(), geometry.clone());
+                    let insert_index =
+                        self.tab_line_drop_index_at(point, &workspace_id, &tab_id, &geometry);
                     if let Some(ClientChromeDrag::TabLine {
                         insert_index: current,
                         ..
@@ -1710,13 +1728,17 @@ impl ClientShellState {
                 // of vertical movement starts the drag, not a click's jitter.
                 if mouse.row.abs_diff(press.start_row) >= 1 {
                     let (tab_id, workspace_id) = (press.tab_id.clone(), press.workspace_id.clone());
-                    if let Some(insert_index) =
-                        self.tab_line_drop_index_at(point, &workspace_id, &tab_id)
-                    {
+                    let started = self.tab_line_geometry(&workspace_id).and_then(|geometry| {
+                        let index =
+                            self.tab_line_drop_index_at(point, &workspace_id, &tab_id, &geometry)?;
+                        Some((geometry, index))
+                    });
+                    if let Some((geometry, insert_index)) = started {
                         self.chrome_drag = Some(ClientChromeDrag::TabLine {
                             tab_id,
                             workspace_id,
                             insert_index: Some(insert_index),
+                            geometry,
                         });
                         outcome.repaint = true;
                     }
@@ -1784,10 +1806,11 @@ impl ClientShellState {
                     ClientChromeDrag::TabLine {
                         tab_id,
                         workspace_id,
+                        geometry,
                         ..
                     } => {
                         let insert_index =
-                            self.tab_line_drop_index_at(point, &workspace_id, &tab_id);
+                            self.tab_line_drop_index_at(point, &workspace_id, &tab_id, &geometry);
                         let method = self.snapshot.as_deref().and_then(|snapshot| {
                             let top_level = snapshot
                                 .tabs

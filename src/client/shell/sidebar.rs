@@ -350,15 +350,13 @@ pub(crate) fn render_sidebar(
             }
             None => Some((None, Some("release cancels · Esc"))),
         });
+    let tab_drag_hint = state.tab_line_drag.map(|(tab_id, insert_index)| {
+        super::space_tabs::tab_drag_hint(snapshot, tab_id, insert_index)
+    });
     let header_hint = drag
         .as_ref()
         .and_then(|(_, hint)| *hint)
-        .or_else(|| {
-            state
-                .tab_line_drag
-                .filter(|(_, insert_index)| insert_index.is_none())
-                .map(|_| "release cancels · Esc")
-        })
+        .or(tab_drag_hint.as_deref())
         .or(state
             .workspace_drag_refusal
             .map(super::WorkspaceDragRefusal::hint));

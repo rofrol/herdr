@@ -1315,6 +1315,13 @@ fn line_row(state: &ClientShellState, tab_id: &str) -> (u16, u16) {
     (rect.x + 6, rect.y)
 }
 
+/// The tab lines' ids from the top row down, as drawn.
+fn drawn_order(state: &ClientShellState) -> Vec<String> {
+    let mut lines = state.hits.space_tabs.clone();
+    lines.sort_by_key(|(rect, _)| rect.y);
+    lines.into_iter().map(|(_, id)| id).collect()
+}
+
 fn tab_moves(outcome: &ClientShellInput) -> Vec<(String, usize)> {
     outcome
         .actions
@@ -1344,9 +1351,16 @@ fn a_tab_line_dragged_down_past_the_others_moves_to_the_end() {
             ..
         })
     ));
-    // The marker sits under the last line, where the tab would land.
+    // The list already shows the tab where it would land, and the header
+    // says which tab moves and where.
     let frame = state.compose(106, 30).unwrap();
-    assert!(frame.cells.iter().any(|cell| cell.symbol == "▾"));
+    assert_eq!(drawn_order(&state), ["tab_2", "tab_3", "tab_1"]);
+    let rows = frame_rows(&frame);
+    assert!(
+        rows.iter()
+            .any(|row| row.contains("1 → 3 · agent tab · at")),
+        "{rows:?}"
+    );
     let released = left_release(&mut state, third);
     assert_eq!(tab_moves(&released), [("tab_1".to_string(), 3)]);
     assert!(!focuses(&released, "tab_1"), "a drop does not also click");
@@ -1366,7 +1380,14 @@ fn a_tab_line_dragged_up_lands_before_the_line_under_the_pointer() {
         })
     ));
     let frame = state.compose(106, 30).unwrap();
-    assert!(frame.cells.iter().any(|cell| cell.symbol == "▸"));
+    assert_eq!(drawn_order(&state), ["tab_1", "tab_3", "tab_2"]);
+    assert!(
+        frame_rows(&frame)
+            .iter()
+            .any(|row| row.contains("3 → 2 · agent tab")),
+        "{:?}",
+        frame_rows(&frame)
+    );
     assert_eq!(
         tab_moves(&left_release(&mut state, second)),
         [("tab_3".to_string(), 1)]
@@ -1422,4 +1443,53 @@ fn escape_cancels_a_tab_line_drag_and_the_pointer_outside_the_space_says_so() {
     left_drag(&mut state, third);
     left_drag(&mut state, (first.0, 0));
     assert!(tab_moves(&left_release(&mut state, (first.0, 0))).is_empty());
+}
+
+#[test]
+fn the_drop_slot_is_measured_against_the_rows_frozen_at_the_drag_start() {
+    let mut state = state_with_three_tabs();
+    let first = line_row(&state, "tab_1");
+    left_click(&mut state, first);
+    // Walk down past every line and back up: the slot depends on the pointer
+    // alone, so it never flickers although the drawn list reorders.
+    let mut down = Vec::new();
+    for step in 1..=2u16 {
+        left_drag(&mut state, (first.0, first.1 + step));
+        state.compose(106, 30).unwrap();
+        down.push(slot(&state));
+    }
+    let mut up = Vec::new();
+    for step in (0..=1u16).rev() {
+        left_drag(&mut state, (first.0, first.1 + step));
+        state.compose(106, 30).unwrap();
+        up.push(slot(&state));
+    }
+    assert_eq!(down, [Some(2), Some(3)]);
+    assert_eq!(up, [Some(2), Some(0)]);
+}
+
+fn slot(state: &ClientShellState) -> Option<usize> {
+    match &state.chrome_drag {
+        Some(ClientChromeDrag::TabLine { insert_index, .. }) => *insert_index,
+        _ => None,
+    }
+}
+
+#[test]
+fn the_drag_hint_names_the_tab_and_where_it_lands() {
+    let mut state = state_with_three_tabs();
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    for (tab, label) in projected.tabs.iter_mut().zip(["build", "tests", "review"]) {
+        tab.label = label.into();
+    }
+    state.set_snapshot(Box::new(projected));
+    let snapshot = state.snapshot.as_deref().expect("snapshot");
+    let hint = |slot| crate::client::shell::space_tabs::tab_drag_hint(snapshot, "tab_2", slot);
+    assert_eq!(hint(None), "release cancels · Esc");
+    assert_eq!(hint(Some(1)), "no change · tests · Esc");
+    assert_eq!(hint(Some(2)), "no change · tests · Esc");
+    assert_eq!(hint(Some(0)), "2 → 1 · tests · before build");
+    assert_eq!(hint(Some(3)), "2 → 3 · tests · at the end");
+    let hint = |slot| crate::client::shell::space_tabs::tab_drag_hint(snapshot, "tab_1", slot);
+    assert_eq!(hint(Some(2)), "1 → 2 · build · before review");
 }
