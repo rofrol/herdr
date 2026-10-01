@@ -177,6 +177,20 @@
     overwrite the user's existing clipboard without permission; use a
     disposable synthetic reproduction. No upstream issue without reproduction.
 
+- [ ] Dragging tabs in the spaces list does not work (2026-10-01, reported
+  again): pressing a tab line and moving starts no drag. The earlier entry
+  "Dragging tabs in the spaces list does not work (2026-09-29)" below holds
+  the design and the consultations; this one only records that the user
+  still sees it and wants it done.
+
+- [ ] Filter bar above the spaces list, like fzf (2026-10-01): a text field
+  at the top of the sidebar that narrows the visible spaces and tabs as the
+  user types. Not designed yet: decide what it matches (space names,
+  branches, tab labels, agent names), the open/close key and mouse
+  affordance, how a match is highlighted, what happens to folding and drag
+  while a filter is active, what Enter selects, and where its state lives
+  (client-only presentation state, not server state). Models asked below.
+
 - [ ] Compact Pi activity rows with click-through to herdr-job details.
   - User request and screenshot, 2026-10-01:
     `/Users/romanfrolow/Screenshots/Screenshot 2026-10-01 at 01.12.20.png`.
@@ -296,7 +310,7 @@
     tab. One scalar per entry, no new work per pane, so no scaling
     benchmark was run. `just check` passes.
 
-- [ ] Pi does not change its title to the task name as Claude CLI does:
+- [x] Pi does not change its title to the task name as Claude CLI does:
   concurrent sidebar entries remain `π - herdr` (screenshot, 2026-09-29
   23:56). Investigate Pi's emitted terminal titles (OSC 0/2), available
   task/session metadata, and Herdr's title precedence before assigning a
@@ -307,6 +321,21 @@
   Preserve explicit user names and avoid per-token title churn. Verify
   that two Pi sessions with different tasks have distinct labels, unknown
   tasks retain a fallback, and Claude's labels remain unchanged.
+  - Root cause (verified 2026-10-01): Pi emits `π - <session name> - <cwd>`
+    only once a session has a name, and never names one itself (only `/name`
+    or an extension calling `pi.setSessionName`). The pane's
+    `terminal_title` stayed `π - herdr` for the whole session; the label
+    changed only after Pi exited because the shell then set its own title.
+    Consulted DeepSeek and Gemini (low/high; medium returned nothing): all
+    recommend a small Pi extension that names the session once from the first
+    prompt, deterministic and without an LLM call.
+  - Fixed (committed, not yet reloaded in a running Pi): `plugins/pi-title/`
+    names the session once from the first interactive prompt (one line,
+    controls and bidi removed, 48 graphemes), skips slash commands and keeps
+    a name from `/name` or a resumed session. `plugins/pi-title/install`
+    links it into `~/.pi/agent/extensions/`; run `/reload` in Pi. Unknown:
+    whether Pi follows a symlinked extension file (checked only by unit
+    tests with a mocked `pi`, not by a live Pi run).
 
 - [ ] Consider adding a subtle gradient in the empty space between the job
   indicators and the next tab in the sidebar (screenshot, 2026-09-29 23:53).
