@@ -193,19 +193,25 @@ if __name__ == "__main__":
 class OpenJobTests(unittest.TestCase):
     JOB = "20261001-124548-1827"
 
-    def run_open(self, args, env_url=None, tabs=None, meta=None, exists=True):
+    def run_open(self, args, env_url=None, tab=None, meta=None, exists=True):
         cmd_open = JOB["cmd_open"]
         focused = []
         base = Path(tempfile.mkdtemp())
         path = base / self.JOB
         if exists:
             path.mkdir()
+        def herdr(*a, **k):
+            if a[:2] == ("tab", "get"):
+                if tab is None:
+                    return json.dumps({"result": {"tab": {"job": {"id": self.JOB}}}})
+                return tab
+            focused.append(a)
+            return "{}"
+
         patches = {
             "job_dir": lambda job_id: base / job_id,
             "read_meta": lambda _path: meta or {"tab_id": "w:t5"},
-            "list_tabs": lambda: tabs if tabs is not None else [{"tab_id": "w:t5"}],
-            "job_tabs": lambda tab_map: {"w:t5": (path, {})} if "w:t5" in tab_map else {},
-            "herdr": lambda *a, **k: focused.append(a) or "{}",
+            "herdr": herdr,
         }
         env = {"HERDR_PLUGIN_CLICKED_URL": env_url} if env_url is not None else {}
         with patch.dict(cmd_open.__globals__, patches), patch.dict(os.environ, env):
@@ -235,6 +241,9 @@ class OpenJobTests(unittest.TestCase):
         focused, error = self.run_open(args, exists=False)
         self.assertEqual(focused, [])
         self.assertIn("no such job", error)
-        focused, error = self.run_open(args, tabs=[])
-        self.assertEqual(focused, [])
-        self.assertIn("is gone", error)
+        # The tab is gone (no answer), or another job holds its id now.
+        for answer in ("", json.dumps({"result": {"tab": {"job": {"id": "20260101-000000-abcd"}}}}),
+                       json.dumps({"result": {"tab": {}}})):
+            focused, error = self.run_open(args, tab=answer)
+            self.assertEqual(focused, [], answer)
+            self.assertIn("is gone", error, answer)

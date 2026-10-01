@@ -309,6 +309,16 @@
     built-in `codemode` switched off in `~/.pi/agent/settings.json`
     (`-builtin:codemode`; the extension now registers `codemode` even outside
     Herdr, so it is not lost there).
+  - Follow-up from the user's first try (2026-10-01): (1) only the tail
+    `open job (ctrl+click)` was clickable: the whole row is the link now
+    (checked at the badge, the middle and the tail; past the end is not);
+    (2) after the jump the sidebar did not show where you are: focusing a job
+    now unfolds its parent's squares once per focus change
+    (`unfold_focused_job`; folding by hand sticks); (3) a delay between click
+    and focus: `herdr-job open` scanned all 1209 stored jobs (0.2-0.35 s) and
+    now asks `tab get` for the one tab and checks its job id (0.1 s); from the
+    API call to the focus change measured 0.12-0.25 s. The physical
+    Ctrl+click on macOS is still the user's to confirm.
 - [ ] Add easily accessible advisor checkboxes in Herdr so it injects
   `Consult with <selected agents>` into coding-agent requests. Let the user
   select advisors (for example DeepSeek) and disable the instruction easily.

@@ -676,11 +676,15 @@ def cmd_open(args):
         job_id = args.id or ""
     if not re.fullmatch(r"\d{8}-\d{6}-[0-9a-f]{4}", job_id) or not job_dir(job_id).is_dir():
         raise SystemExit(f"herdr-job: no such job {job_id!r}")
-    path = job_dir(job_id)
-    tab_id = read_meta(path).get("tab_id")
-    owned = job_tabs({tab["tab_id"]: tab for tab in list_tabs()})
-    # A closed tab, or a tab id that now belongs to another job, is not this job's.
-    if tab_id not in owned or owned[tab_id][0] != path:
+    tab_id = read_meta(job_dir(job_id)).get("tab_id")
+    # One lookup of the tab itself (a click should feel instant, and the list
+    # of all jobs grows): the tab must still carry this job's metadata, so a
+    # closed tab, or a tab id another job now holds, is not focused.
+    try:
+        tab = json.loads(herdr("tab", "get", tab_id, check=False) or "{}")["result"]["tab"]
+    except (KeyError, TypeError, ValueError):
+        tab = {}
+    if (tab.get("job") or {}).get("id") != job_id:
         raise SystemExit(f"herdr-job: the tab of {job_id} is gone")
     herdr("tab", "focus", tab_id)
 

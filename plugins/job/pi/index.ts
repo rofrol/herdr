@@ -63,11 +63,11 @@ export default function (pi: ExtensionAPI) {
         read: "Read file", edit: "Edit file", write: "Write file",
         bash: this.activity.jobs.size ? "Wait/start job" : "Shell command", codemode: "Tool batch",
       };
-      // A row that started or waited on a job also links to it: Ctrl+click.
+      // A row that started or waited on a job links to it as a whole: Ctrl+click.
       const job = [...this.activity.jobs].pop();
-      const tail = job ? ` · ${jobLink(job, "open job (ctrl+click)")}` : "";
-      const label = `${badge(phase, Date.now(), process.env.HERDR_ACTIVITY_REDUCED_MOTION === "1")} ${plain(this.activity.name)} — ${descriptions[this.activity.name] ?? "Tool operation"}: ${phase} · details${tail}`;
-      return [truncateToWidth(this.theme.fg(color, label), Math.max(0, width))];
+      const text = `${badge(phase, Date.now(), process.env.HERDR_ACTIVITY_REDUCED_MOTION === "1")} ${plain(this.activity.name)} — ${descriptions[this.activity.name] ?? "Tool operation"}: ${phase} · details${job ? " · ctrl+click opens job" : ""}`;
+      const row = this.theme.fg(color, text);
+      return [truncateToWidth(job ? jobLink(job, row) : row, Math.max(0, width))];
     }
     invalidate() {}
     handleMouse(event: TuiMouseEvent) {

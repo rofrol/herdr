@@ -42,8 +42,8 @@ or link is added.
 
 - Each executing tool shows a half-circle animation and a short, generic summary.
   The summary deliberately excludes command arguments and file contents.
-- A row that started or waited on a job ends in `open job (ctrl+click)`, an
-  OSC 8 link to `herdr-job://<id>`. **Ctrl+click** it and Herdr's job plugin
+- A row that started or waited on a job ends in `ctrl+click opens job`, and the
+  whole row is an OSC 8 link to `herdr-job://<id>`. **Ctrl+click** it and Herdr's job plugin
   (`[[link_handlers]]` in `plugins/job/herdr-plugin.toml`, `herdr-job open
   --from-click`) focuses that job's tab. This works in regular Pi, which never
   receives mouse clicks. The plugin must be installed or linked.
