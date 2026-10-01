@@ -2435,6 +2435,24 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     by hand, stop and report when the guard refuses) and "Waiting for a job"
     (the compact `herdr-job wait`).
 
+- [x] Independent review of the day's client changes (2026-10-01): GPT sol 6.1
+  (repo mode) and Opus 5.5 (diff) found real bugs, fixed and committed: (1)
+  `prefix+u` with an unusable newest entry dropped the whole history; entries
+  of another machine and a missing snapshot are now kept, only entries of a
+  vanished space of this machine are dropped; (2) the footer countdown could
+  be six columns (`23h59m`), now `23h`/`12d` once the first unit has two
+  digits; (3) the filter bar took the key after a pending prefix (`prefix`
+  then `u` typed into the bar) and did not take pasted text, key repeats or
+  composed text (they reached the pane): it now only captures in terminal
+  mode and handles paste, text commits and repeats; (4) `prefix+/` opened an
+  invisible filter with several machines: it now says the filter is not
+  available there; (5) a tab-line drag now cancels when the space's
+  top-level tabs change under it; (6) a reopen's move is skipped when the
+  active machine changed. Rejected: the stale `tab_press` after a drop (the
+  release path clears it) and the changed click path for tab lines (no
+  evidence). Not fixed: the filter's Up/Down order ignores the held sort
+  order (minor). DeepSeek's answer came back empty.
+
 - [ ] The flaky `federated_client_starts_without_local_and_survives_its_restart`
   fails more often now (2026-10-01): three full `just check` runs in a row
   at about 07:00 failed it ("recovered Local must be selectable", after
