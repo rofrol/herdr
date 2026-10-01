@@ -109,6 +109,29 @@
     treats such a child as top-level; the client sends no `tab.focus` of
     its own after a close in the paths checked. It did not run anything.
 
+- [ ] Diagnose four sidebar tab-tree oddities (2026-10-01).
+  - Screenshot: `/Users/romanfrolow/Screenshots/Screenshot 2026-10-01 at 01.41.46.png`
+    (workspace `herdr`, branch `master`). Rows in order: `lazygit`,
+    `Zakładki poziome n…`, `Anthropic limit wyczerp…`, `π - herdr`,
+    `ask claude claude-opus-…`, `ask gemini 3.8-flash-lo…`, then a worktree
+    group `▼ Pi compact job act…` with a `└─` connector, then `zsh`.
+  - [ ] Why are `ask claude` and `ask gemini` (consult helpers) shown as
+    ordinary top-level tabs instead of inside the herdr-job group? They are
+    presumably launched by `plugins/consult` outside `herdr-job run`; check
+    whether they should go through it (see `herdr-job` in the global rules).
+  - [ ] Why does the worktree group look like this (a bare `▼ name  +` row
+    with a `└─` stub, unlike the tab rows above it)? Check which parent
+    link and row kind the renderer uses for a worktree group.
+  - [ ] Why does the worktree's `└─` connector hang under `ask gemini`, as
+    if it were its child? Verify the real parent ids (`tab_parent_index`)
+    versus a purely visual artefact of the connector drawing.
+  - [ ] Why is `zsh` after the worktree group not indented like the other
+    tabs? Check whether it is a child of the group or a top-level tab drawn
+    at the wrong depth.
+  - Not investigated yet: read the real parent ids with `herdr` API output
+    before judging render versus model. Consult models before changing the
+    tree rendering.
+
 - [ ] Compact Pi activity rows with click-through to herdr-job details.
   - User request and screenshot, 2026-10-01:
     `/Users/romanfrolow/Screenshots/Screenshot 2026-10-01 at 01.12.20.png`.
