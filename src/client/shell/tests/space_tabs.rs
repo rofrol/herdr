@@ -1658,3 +1658,35 @@ fn nothing_turns_without_a_working_agent_or_a_running_job() {
         std::time::Duration::from_millis(100)
     );
 }
+
+#[test]
+fn the_waiting_icon_and_the_job_count_turn_in_step() {
+    let mut state = state_with_tabs(true);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    for agent in &mut projected.agents {
+        agent.agent_status = AgentStatus::Idle;
+    }
+    projected.tabs[0].agent_status = AgentStatus::Idle;
+    state.set_snapshot(Box::new(projected));
+    with_job(&mut state, "job_1", TabStatus::Running);
+    state.compose(106, 30).unwrap();
+    assert!(state.motion_active);
+    let mut seen = Vec::new();
+    for ms in [0u64, 160, 320, 480, 640] {
+        state.tick_motion(state.motion_epoch + std::time::Duration::from_millis(ms + 5));
+        let frame = state.compose(106, 30).unwrap();
+        let row = frame_rows(&frame)[state.hits.space_tabs[0].0.y as usize].clone();
+        let glyphs = row
+            .chars()
+            .filter(|c| "◐◓◑◒".contains(*c))
+            .collect::<String>();
+        seen.push(glyphs);
+    }
+    // Icon first, count last; the same glyph in both at every instant.
+    for glyphs in &seen {
+        let chars = glyphs.chars().collect::<Vec<_>>();
+        assert_eq!(chars.first(), chars.last(), "{seen:?}");
+    }
+    assert_eq!(seen[0].chars().next(), Some('◐'));
+    assert_eq!(seen[2].chars().next(), Some('◒'));
+}

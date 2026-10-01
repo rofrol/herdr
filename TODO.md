@@ -305,6 +305,18 @@
   flicker, output-driven churn and per-render process-tree polling. Check
   many-pane idle overhead if fallback detection is added. No root cause
   verified and no implementation approved yet.
+  - Probable cause found 2026-10-01 (not reproduced live): the tab label comes
+    from the program leading the pane's foreground group (`TerminalState::
+    running_label`), and `ForegroundProgramTracker` looks that name up once
+    per new group. A command like `env VAR=1 brew upgrade` starts as `env`,
+    which then execs the real program inside the same group, so the group
+    kept the name `env`. Mitigation committed (not installed): wrappers
+    (`env`, `command`, `exec`, `nice`, `nohup`, `time`, `timeout`, `sudo`,
+    `doas`) are looked up again for up to six ticks per group, then believed.
+    Bounded extra work, only for panes running a wrapper. Not done: the rest
+    of this item (a title or foreground-command fallback beyond the program
+    name, OSC title precedence), and the user should say whether `env` still
+    appears after the next install.
 
 - [ ] Explore a subtle animated indicator while an agent instance is working,
   instead of a static status glyph (screenshots, 2026-09-30 01:09). The
