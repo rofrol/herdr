@@ -250,7 +250,7 @@
   - Left for later: highlighting matches in space names and AND tokens, the multi-machine sidebar (it ignores the
     filter), the mobile layout, and a live check.
 
-- [ ] Compact Pi activity rows with click-through to herdr-job details.
+- [ ] Compact Pi activity rows with click-through to herdr-job details. (implemented and merged 2026-10-01, opt-in, not activated: see the last bullet)
   - User request and screenshot, 2026-10-01:
     `/Users/romanfrolow/Screenshots/Screenshot 2026-10-01 at 01.12.20.png`.
     The main Pi transcript should show successive short status rows, each
@@ -285,6 +285,15 @@
     tool-call/job mappings, not an assumed universal one-to-one relationship.
     Gemini low was rejected for exhausted capacity (reported reset 0s);
     no retry was made and no answer is attributed to that attempt.
+  - Merged to `master` 2026-10-01 as `430f8b13` (rebased, fast-forward; the
+    `task/pi-job-activity` branch and its worktree stay until you have tried
+    it): `plugins/job/pi/` is an opt-in Pi extension (README there), with its
+    tests in `just pi-activity-test` (part of `just check`) against a mocked
+    Pi, plus a smoke run against the installed Pi SDK. It is NOT linked into
+    Pi: try it with `pi -e ./plugins/job/pi/index.ts`, or link the
+    directory into `~/.pi/agent/extensions/herdr-activity` and `/reload`.
+    Not verified in a live Pi session: the compact rows, the click and
+    `/activity` navigation, the detail-viewer job.
 - [ ] Add easily accessible advisor checkboxes in Herdr so it injects
   `Consult with <selected agents>` into coding-agent requests. Let the user
   select advisors (for example DeepSeek) and disable the instruction easily.
