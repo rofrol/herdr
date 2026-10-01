@@ -478,6 +478,12 @@
        Consider skipping footer-end click mappings on the alternate screen:
        a full-screen program such as vim or less could otherwise be closed
        by a click intended for its own bottom row.
+       Done 2026-10-01 for the legacy PTY footer (committed): its end
+       buttons are ignored while the job's pane is on the alternate screen.
+       The client-chrome footer is a reserved row outside the pane, so a
+       full-screen program never shares it and needed no change. Still open:
+       the long-term client-chrome row with `--why` and the job id in a new
+       codec.
   2. Done: points 8-14 walked through and accepted by the user on
      2026-09-29/30. Job square tooltips now share the 450 ms dwell
      (`df8cf902`), installed and user-confirmed. Original walkthrough:
@@ -1578,7 +1584,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Alternative to weigh (mine, not consulted): keep a closed tab's
     processes alive for a few seconds with an "undo" toast, which restores
     them exactly.
-- [ ] Which tab gets focus after closing the active one: should it be the
+- [ ] Which tab gets focus after closing the active one (child -> parent done 2026-10-01; top-level direction still open): should it be the
   next one (right) instead of the previous one (left), or should that be
   configurable? Today `Workspace::close_tab` focuses the previous tab (the
   new last one when the last tab closes).
@@ -1591,6 +1597,20 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     Chrome and Firefox go right because their tabs are flat. Both: tmux
     returns to the previously used window, VS Code to the recently used
     editor (Astra, not verified).
+  - Consulted again 2026-10-01 (DeepSeek, Opus 5.5, GPT sol 6.1, Gemini high):
+    all four say closing the active child tab goes to its parent, always.
+    Done and committed (not installed): `Workspace::tab_number_to_focus_
+    after_close` returns the parent for any child, so closing a middle or
+    last job no longer lands on a sibling job. Top-level direction: DeepSeek
+    and Gemini want "next top-level, else previous" (Chrome); Opus and GPT
+    want to keep "previous, else next" because a closed tab's own children
+    follow it in the list. Split 2:2, so unchanged; it is the user's call.
+    All four: closing or exiting an inactive tab never moves focus (true
+    today); closing a parent closes its children first and the focus goes to
+    a surviving top-level tab.
+    `cross_area_detach_and_reattach_preserves_state` failed once in a full
+    `just check` ("workspace with matching label should exist") and passed
+    twice alone and on rerun: another flaky integration test.
   - Both: no speculative option matrix; if added,
     `focus_after_tab_close = "previous" | "next"`, and `"last_used"` only
     once there is an MRU history of tabs. Child to parent should be

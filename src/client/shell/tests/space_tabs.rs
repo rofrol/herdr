@@ -366,6 +366,13 @@ fn the_job_footers_ends_go_back_and_close() {
         &left_click(&mut state, (pane.x + 10, footer_y)),
         "tab_1"
     ));
+    // A full-screen program owns the last row: its click is not the footer's.
+    state.pane_surface.as_mut().expect("surface").panes[0].alternate_screen_active = true;
+    state.compose(106, 30).unwrap();
+    assert!(!focuses(
+        &left_click(&mut state, (pane.x + 1, footer_y)),
+        "tab_1"
+    ));
 }
 
 #[test]

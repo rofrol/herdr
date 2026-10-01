@@ -91,10 +91,21 @@ impl ClientShellState {
             }
             self.hits.job_footer
         } else {
+            // The footer is drawn into the job's last row, which a full-screen
+            // program (vim, less) uses itself: its click is the program's.
+            let alternate_screen = |pane_id: &str| {
+                self.pane_surface.as_ref().is_some_and(|surface| {
+                    surface
+                        .panes
+                        .iter()
+                        .any(|pane| pane.pane_id == pane_id && pane.alternate_screen_active)
+                })
+            };
             let Some(hit) = self.hits.panes.iter().find(|hit| {
                 !hit.popup
                     && point.1 == hit.inner_rect.bottom().saturating_sub(1)
                     && super::contains(hit.inner_rect, point)
+                    && !alternate_screen(&hit.pane_id)
                     && snapshot
                         .panes
                         .iter()

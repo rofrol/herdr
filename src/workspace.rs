@@ -665,6 +665,11 @@ impl Workspace {
             return self.active_tab().map(|tab| tab.number);
         }
         let parent = self.tab_parent_index(idx);
+        // A closed child, such as a finished job, goes back to the tab that
+        // started it, not to a sibling.
+        if let Some(parent_tab) = parent.and_then(|parent| self.tabs.get(parent)) {
+            return Some(parent_tab.number);
+        }
         let sibling = (0..idx)
             .rev()
             .find(|&candidate| self.tab_parent_index(candidate) == parent)
@@ -1946,7 +1951,7 @@ mod tests {
     }
 
     #[test]
-    fn closing_tabs_selects_same_level_neighbors_and_preserves_inactive_focus() {
+    fn closing_tabs_returns_children_to_their_parent_and_keeps_inactive_focus() {
         // Parent indices, active index, closed index, expected survivor's original index.
         type CloseCase<'a> = (&'a str, &'a [Option<usize>], usize, usize, usize);
         let cases: &[CloseCase<'_>] = &[
@@ -1973,18 +1978,25 @@ mod tests {
             ),
             ("first flat tab", &[None, None], 0, 0, 1),
             (
-                "previous child",
+                "middle child returns to its parent",
                 &[None, Some(0), Some(0), Some(0)],
                 2,
                 2,
-                1,
+                0,
             ),
             (
-                "first child prefers sibling",
+                "first child returns to its parent",
                 &[None, Some(0), Some(0)],
                 1,
                 1,
-                2,
+                0,
+            ),
+            (
+                "last child returns to its parent",
+                &[None, Some(0), Some(0), Some(0)],
+                3,
+                3,
+                0,
             ),
             (
                 "only child returns to parent",
