@@ -2314,3 +2314,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   `ask_gemini.sh`, `ask_deepseek.py`). Decide whether it is deliberate (the
   verb an agent runs vs. the feature name) or should be unified, and on
   which name; consult the agents (DeepSeek, GPT-6 Astra) before renaming.
+
+- [ ] The flaky `federated_client_starts_without_local_and_survives_its_restart`
+  fails more often now (2026-10-01): three full `just check` runs in a row
+  at about 07:00 failed it ("recovered Local must be selectable", after
+  about 25 s) while the machine had a load average of 18-31 (Chrome helpers
+  at 100% CPU), and it passed on all 8 runs of the file or the test alone
+  (about 15 s). Everything else passed (3836 tests, lint, docs). Likely a
+  timing limit under load rather than a regression, but unproven: rerun on a
+  quiet machine, and consider a longer wait or a deterministic wait in the
+  test.
