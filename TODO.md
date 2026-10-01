@@ -1818,6 +1818,12 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     `<1m`, expired `now`. Floor units and omit zero secondary units;
     `24h 30m` therefore shows `1d`. Check footer width and boundary tests
     (23h 59m, 24h, 34h, 48h). Presentation only; no provider/API changes.
+  - Countdown format done 2026-10-01 (committed, not installed): the
+    footer shows `1d10h`, `2h15m`, `45m`, `<1m`, `now` without inner spaces so
+    a cell keeps five columns (cells start at columns 4 and 14); the modal
+    shows `1d 10h`, `2h 15m`. Boundary tests cover 59s, 24h, 24h30m, 34h,
+    48h and 23h59m. The two bullets below (reset entitlement research,
+    redeemable resets, credits) are still open.
   - [ ] Investigate whether Anthropic offers a reset entitlement comparable
     to the user's ChatGPT Plus `Full reset (Weekly + 5 hr)` observation, and
     whether it could explain successful Sonnet calls at weekly 100%.
