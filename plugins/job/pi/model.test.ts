@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Activities, badge, plain, waitJob, launchedJob } from "./model.ts";
+import { Activities, badge, plain, waitJob, launchedJob, jobLink } from "./model.ts";
 import { focusJob, matchesJob } from "./navigation.ts";
 
 const id = "20261001-012400-abcd";
@@ -59,4 +59,13 @@ describe("compact activity", () => {
       expect(requests).toEqual([]);
     } finally { await rm(root, { recursive: true }); }
   });
+});
+
+test("a job id becomes a herdr-job link, anything else stays plain text", () => {
+  expect(jobLink("20261001-124548-1827", "open job")).toBe(
+    "\x1b]8;;herdr-job://20261001-124548-1827\x1b\\open job\x1b]8;;\x1b\\",
+  );
+  for (const bad of ["", "../../etc", "20261001-124548-1827/x", "x\x1b]8;;http://evil\x1b\\"]) {
+    expect(jobLink(bad, "open job")).toBe("open job");
+  }
 });

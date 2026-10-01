@@ -3,7 +3,7 @@ import { createBashToolDefinition, createReadToolDefinition, createEditToolDefin
   createWriteToolDefinition, createCodemodeExtension } from "@earendil-works/pi-coding-agent";
 import { Text, truncateToWidth, type Component, type TuiMouseEvent } from "@earendil-works/pi-tui";
 import { fileURLToPath } from "node:url";
-import { Activities, badge, plain, waitJob, launchedJob, type Activity, type Phase } from "./model.ts";
+import { Activities, badge, plain, waitJob, launchedJob, jobLink, type Activity, type Phase } from "./model.ts";
 import { command, focusJob } from "./navigation.ts";
 
 type ToolRenderContext = Parameters<NonNullable<ToolDefinition["renderCall"]>>[2];
@@ -11,7 +11,12 @@ const empty: Component = { render: () => [], invalidate() {} };
 const viewer = fileURLToPath(new URL("./viewer.py", import.meta.url));
 
 export default function (pi: ExtensionAPI) {
-  if (!process.env.HERDR_SOCKET_PATH || !process.env.HERDR_PANE_ID) return;
+  if (!process.env.HERDR_SOCKET_PATH || !process.env.HERDR_PANE_ID) {
+    // Outside Herdr: ordinary rendering, but keep `codemode`, so the built-in
+    // one can stay switched off (`-builtin:codemode`) without losing it.
+    createCodemodeExtension()(pi);
+    return;
+  }
   const owner = process.env.HERDR_PANE_ID;
   const activities = new Activities();
   let context: ExtensionContext | undefined;
@@ -58,7 +63,10 @@ export default function (pi: ExtensionAPI) {
         read: "Read file", edit: "Edit file", write: "Write file",
         bash: this.activity.jobs.size ? "Wait/start job" : "Shell command", codemode: "Tool batch",
       };
-      const label = `${badge(phase, Date.now(), process.env.HERDR_ACTIVITY_REDUCED_MOTION === "1")} ${plain(this.activity.name)} — ${descriptions[this.activity.name] ?? "Tool operation"}: ${phase} · details`;
+      // A row that started or waited on a job also links to it: Ctrl+click.
+      const job = [...this.activity.jobs].pop();
+      const tail = job ? ` · ${jobLink(job, "open job (ctrl+click)")}` : "";
+      const label = `${badge(phase, Date.now(), process.env.HERDR_ACTIVITY_REDUCED_MOTION === "1")} ${plain(this.activity.name)} — ${descriptions[this.activity.name] ?? "Tool operation"}: ${phase} · details${tail}`;
       return [truncateToWidth(this.theme.fg(color, label), Math.max(0, width))];
     }
     invalidate() {}

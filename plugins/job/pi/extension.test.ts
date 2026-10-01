@@ -40,9 +40,14 @@ function restore() {
   if (prior.pane === undefined) delete process.env.HERDR_PANE_ID; else process.env.HERDR_PANE_ID = prior.pane;
 }
 
-test("outside Herdr no overrides or commands are registered", () => {
+test("outside Herdr only the built-in codemode is registered, undecorated, with no commands", () => {
   delete process.env.HERDR_SOCKET_PATH;
-  try { expect(setup().tools.size).toBe(0); } finally { restore(); }
+  try {
+    const { tools, commands } = setup();
+    expect([...tools.keys()]).toEqual(["codemode"]);
+    expect(tools.get("codemode").renderShell).toBeUndefined();
+    expect(commands.size).toBe(0);
+  } finally { restore(); }
 });
 
 test("schemas, results, signal, context and codemode loadout preserved", async () => {

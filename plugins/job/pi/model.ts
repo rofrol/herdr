@@ -21,6 +21,16 @@ export function badge(phase: Phase, now = Date.now(), reducedMotion = false): st
   return { done: "✓", failed: "!", cancelled: "○", saved: "·" }[phase];
 }
 
+/**
+ * `text` as an OSC 8 hyperlink to `herdr-job://<id>`. Herdr's job plugin turns
+ * a Ctrl+click on it into focusing that job's tab (a regular Pi session
+ * never receives mouse clicks). Anything but a well-formed job id is plain text.
+ */
+export function jobLink(id: string, text: string): string {
+  if (!JOB_ID.test(id)) return text;
+  return `\x1b]8;;herdr-job://${id}\x1b\\${text}\x1b]8;;\x1b\\`;
+}
+
 export function waitJob(command: unknown): string | undefined {
   if (typeof command !== "string") return undefined;
   // Only recognise a literal standalone wait, never evaluate shell syntax.

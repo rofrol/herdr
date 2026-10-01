@@ -292,8 +292,23 @@
     Pi, plus a smoke run against the installed Pi SDK. It is NOT linked into
     Pi: try it with `pi -e ./plugins/job/pi/index.ts`, or link the
     directory into `~/.pi/agent/extensions/herdr-activity` and `/reload`.
-    Not verified in a live Pi session: the compact rows, the click and
-    `/activity` navigation, the detail-viewer job.
+    Not verified in a live Pi session: `/activity` navigation and the
+    detail-viewer job.
+  - Tried live 2026-10-01 in a Pi tab (deepseek-flash): rows, the turning
+    half circle and the finished `✓` work. A plain click on a row did nothing
+    (regular Pi gets no mouse reports). Fixed the same day: a row with a job
+    now ends in `open job (ctrl+click)`, an OSC 8 link `herdr-job://<id>`
+    handled by a Herdr plugin link handler in `plugins/job/herdr-plugin.toml`
+    (`herdr-job open --from-click`; strict id check, only `tab focus`, refuses
+    gone or reused tabs). Verified end to end through `pane.link.activate` on
+    the demo pane (`handled: true`, the job tab got focus); the physical
+    Ctrl+click on macOS is not verified. Consulted DeepSeek, Opus, GPT and
+    Gemini: all chose the link; a plain-click handler in Herdr itself
+    (a `herdr-tab:` scheme resolved in `pane.link.activate`) is the later
+    option. Linked into `~/.pi/agent/extensions/herdr-activity` and the
+    built-in `codemode` switched off in `~/.pi/agent/settings.json`
+    (`-builtin:codemode`; the extension now registers `codemode` even outside
+    Herdr, so it is not lost there).
 - [ ] Add easily accessible advisor checkboxes in Herdr so it injects
   `Consult with <selected agents>` into coding-agent requests. Let the user
   select advisors (for example DeepSeek) and disable the instruction easily.

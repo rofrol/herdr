@@ -23,14 +23,30 @@ ln -s /path/to/herdr/plugins/job/pi ~/.pi/agent/extensions/herdr-activity
 ```
 
 Then use `/reload` in Pi. Do not overwrite an existing extension of that name.
-Removing the link and reloading restores normal rendering. Outside Herdr the
-extension registers nothing. RPC and print preserve ordinary rendering and do
-not emit compact UI updates.
+Removing the link and reloading restores normal rendering. RPC and print
+preserve ordinary rendering and do not emit compact UI updates.
+
+The extension also provides `codemode` (it wraps the built-in one), so Pi warns
+that the built-in `codemode` was not loaded. Silence it by switching the
+built-in off in `~/.pi/agent/settings.json`:
+
+```json
+{ "extensions": ["-builtin:codemode"] }
+```
+
+Outside Herdr the extension then registers only the unchanged `codemode`, so
+nothing is lost; read, bash, edit and write stay Pi's own and no row, command
+or link is added.
 
 ## Interaction
 
 - Each executing tool shows a half-circle animation and a short, generic summary.
   The summary deliberately excludes command arguments and file contents.
+- A row that started or waited on a job ends in `open job (ctrl+click)`, an
+  OSC 8 link to `herdr-job://<id>`. **Ctrl+click** it and Herdr's job plugin
+  (`[[link_handlers]]` in `plugins/job/herdr-plugin.toml`, `herdr-job open
+  --from-click`) focuses that job's tab. This works in regular Pi, which never
+  receives mouse clicks. The plugin must be installed or linked.
 - Fullscreen Pi: click the row to open details. Regular Pi leaves mouse input
   to the terminal: use `/activity` to select a row instead.
 - Ctrl+O still expands original input/output locally. Failures retain the
