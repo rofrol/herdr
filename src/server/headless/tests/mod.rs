@@ -7491,41 +7491,6 @@ fn a_notification_the_agent_undoes_within_the_delay_reaches_nobody_and_the_histo
 }
 
 #[test]
-fn a_finished_notification_may_wait_longer_than_a_needs_attention_one() {
-    use protocol::SemanticNotificationKind::{Finished, NeedsAttention};
-
-    let (writer, control_rx, _render_rx) = test_client_writer();
-    let (mut server, pane_id) = completion_guard_server(writer);
-    server.app.state.toast_config.delay_seconds = 1;
-    server.app.state.toast_config.finished_delay_seconds = Some(30);
-    server.handle_internal_event_with_forwarding(AppEvent::AgentProcessDetected {
-        pane_id,
-        agent: crate::detect::Agent::Pi,
-        observed_at: Instant::now(),
-    });
-    let public = server.app.public_pane_id(0, pane_id).unwrap();
-    report_pane_state(
-        &mut server,
-        &public,
-        api::schema::PaneAgentState::Working,
-        1,
-    );
-    report_pane_state(&mut server, &public, api::schema::PaneAgentState::Idle, 2);
-    let start = Instant::now();
-    deliver_due_notifications(&mut server, start + Duration::from_secs(5));
-    assert!(
-        completion_guard_notifications(&mut server, &control_rx).is_empty(),
-        "finished waits 30 s, not 1 s"
-    );
-    deliver_due_notifications(&mut server, start + Duration::from_secs(40));
-    let sent = completion_guard_notifications(&mut server, &control_rx);
-    assert!(
-        sent.contains(&Finished) && !sent.contains(&NeedsAttention),
-        "{sent:?}"
-    );
-}
-
-#[test]
 fn completion_guard_api_startup_blocker_respects_suppression() {
     use protocol::SemanticNotificationKind::{Finished, NeedsAttention};
 

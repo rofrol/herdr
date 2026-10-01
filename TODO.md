@@ -2524,14 +2524,29 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     notification and the history row are sent when the delay has run out and
     the pane is still in the same state (`forward_agent_notification_delivery`),
     so `blocked` then `working` within the delay leaves no notification and no
-    history row. New option `ui.toast.finished_delay_seconds` (a finished one
-    may wait longer); fork defaults `delay_seconds` 3 (upstream 1) and
-    `finished_delay_seconds` 10; `delay_seconds = 0` is still instant for
-    everything. Tests: `a_notification_the_agent_undoes_within_the_delay_...`
-    and `a_finished_notification_may_wait_longer_...`. Not done from the list:
-    dedupe of a repeated needs-attention until the user interacts, suppression
-    by pane visibility plus client focus (still by active tab), honest kind
-    names ("Reply needed", "Needs approval", "Turn ended"), the diagnostic log.
+    history row. One wait for every kind, `delay_seconds`, default 3 (upstream
+    1); `delay_seconds = 0` is still instant. (A separate
+    `finished_delay_seconds` was added and removed the same day: the user did
+    not understand two numbers, and the models say to have one internal
+    stability check.) Test:
+    `a_notification_the_agent_undoes_within_the_delay_reaches_nobody_...`. Not
+    done from the list: dedupe of a repeated needs-attention until the user
+    interacts, suppression by pane visibility plus client focus (still by
+    active tab), honest kind names ("Reply needed", "Needs approval", "Turn
+    ended"), the diagnostic log.
+  - The user's question (2026-10-01): "I do not understand the 3 s / 10 s logic.
+    Is it that something needs my attention, or that something finished but
+    does not need me?" Consulted DeepSeek, Opus, GPT and Gemini: they agree on
+    a model of three words: Needs you (a permission/approval prompt, an
+    awaiting-reply question or a failure: one category, alert and keep the row
+    until answered), Done (a turn or task ended without a question: quiet,
+    history and a dot, no system notification or sound while the user is at the
+    computer), Error (immediate). A turn that ends with a question is only
+    Needs you, never a Finished/Needs-attention pair. Merge blocked and
+    awaiting-reply. One internal ~3 s stability check, not a setting (if
+    shown: "Only alert if it still waits for me after 3 seconds"). History:
+    one row per agent episode, updated in place; a "Needs me" filter on top.
+    Open decision for the user: should "finished" alert at all?
     Related: the entry above about what the history rows say.
 
 - [ ] The flaky `federated_client_starts_without_local_and_survives_its_restart`

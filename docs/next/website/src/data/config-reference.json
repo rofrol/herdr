@@ -1268,12 +1268,6 @@
           "description": "Seconds to wait before sending finished or needs-input agent notifications. Herdr notifies only if the pane is still in the same state when the delay expires. 0 is instant; valid values are 0 through 3600."
         },
         {
-          "key": "ui.toast.finished_delay_seconds",
-          "type": "integer",
-          "default": "10",
-          "description": "Seconds to wait before a finished notification, when it should wait longer than needs-input ones because the agent often starts its next turn at once. Herdr notifies only if the pane is still in the same state when the delay expires. Ignored when ui.toast.delay_seconds is 0; valid values are 0 through 3600."
-        },
-        {
           "key": "ui.toast.herdr.position",
           "type": "enum",
           "default": "\"bottom-right\"",

@@ -395,9 +395,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
 # terminal = ask the outer terminal to show a desktop notification
 # system = ask the OS notification service directly
 # delivery = "off"
+# Seconds to wait, then notify only if the agent is still in the same state
+# (it often carries on by itself). 0 notifies at once.
 # delay_seconds = 3
-# A finished notification can wait longer than needs-input ones (unset: the same).
-# finished_delay_seconds = 10
 
 [ui.toast.herdr]
 # position = "bottom-right"
