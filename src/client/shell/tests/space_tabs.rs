@@ -2122,3 +2122,38 @@ fn history_rows_say_what_finished_and_in_which_space() {
         "herdr updated · 0.9.4"
     );
 }
+
+#[test]
+fn the_notification_list_shows_the_highlighted_rows_whole_text_below() {
+    let mut state = state_with_tabs(true);
+    state.notification_log_received(Some("tab_9"));
+    state.compose(106, 30).unwrap();
+    let button = state.hits.notification_log_button;
+    left_click(&mut state, (button.x + 1, button.y));
+    state.complete_notification_list(
+        ClientEndpointId::Local,
+        Ok(crate::api::schema::ResponseResult::NotificationList {
+            notifications: vec![crate::api::schema::NotificationRecord {
+                id: 1,
+                unix_ms: 1_790_633_100_000,
+                kind: "finished".into(),
+                title: "claude finished".into(),
+                body: None,
+                agent: Some("claude".into()),
+                workspace_id: Some("ws_1".into()),
+                tab_id: Some("tab_9".into()),
+                pane_id: None,
+                task: Some(
+                    "Rewrite the whole notification history so every row names its task and nothing else"
+                        .into(),
+                ),
+                repeats: Some(2),
+            }],
+        }),
+    );
+    let frame = state.compose(106, 30).unwrap();
+    let text = frame_rows(&frame).join("\n");
+    // The row is cut to one line; the footer carries the tail.
+    assert!(text.contains("nothing else"), "{text}");
+    assert!(text.contains("×2"), "{text}");
+}

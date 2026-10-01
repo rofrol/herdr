@@ -2632,6 +2632,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     the `request` field (the agent's own message), the detail footer for the
     highlighted row, marking a row read or resolved in place, the badge rule for
     merged rows, a closed-pane note.
+  - Done 2026-10-01 (second part): the list shows the highlighted row's whole
+    text, wrapped to at most 3 lines, under a rule below the rows
+    (`wrap_detail` in overlays.rs). Still not done: the `request` field.
 
 - [x] A close confirmation when nothing is happening (user, 2026-10-01,
   screenshot): closing the tab "ask gemini 3.8-flash-low: Des…" asked `Close
