@@ -2604,7 +2604,27 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     workspace position or auto tab number. Closed pane: keep the row, note it,
     click opens the tab or says so. Memory only. Tests as in the two entries
     above.
-  - Done: nothing yet.
+  - The user's rule (2026-10-01): in the displayed tab, seeing the agent's
+    question, no toast is needed; but a sound from an inactive tab without a
+    list entry is wrong. Consulted again: every sound, toast or system
+    notification must have a matching list entry (one-way: an entry may exist
+    without an alert); a needs-attention in the active tab is recorded too
+    and counts as read at once (no badge); a finished in the active, focused
+    tab makes no alert and so no entry. With the delayed path the entry is
+    created exactly when the alert is delivered (`forward_agent_notification_
+    delivery`), which keeps that invariant; the installed build still records
+    at the state change.
+  - Done 2026-10-01 (committed, not installed): `NotificationRecord` has two
+    optional fields, `task` (the pane's cleaned terminal title when it fired;
+    none for a shell or agent name, a path or an empty title; one line, 80
+    characters) and `repeats`; a pane's newest entry of the same kind gives way
+    to a new one that counts it (`x3`), a different kind stays separate; rows
+    read `✓ Fix the login test · claude · herdr x3` (`?` for needs attention),
+    without the workspace position or the tab number
+    (`notification_row_text`); the generated API schema is updated. Not done:
+    the `request` field (the agent's own message), the detail footer for the
+    highlighted row, marking a row read or resolved in place, the badge rule for
+    merged rows, a closed-pane note.
 
 - [x] A close confirmation when nothing is happening (user, 2026-10-01,
   screenshot): closing the tab "ask gemini 3.8-flash-low: Des…" asked `Close

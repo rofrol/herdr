@@ -1145,6 +1145,8 @@ fn the_notification_history_lists_and_opens_past_notifications() {
         workspace_id: Some("ws_1".into()),
         tab_id: Some(tab.into()),
         pane_id: None,
+        task: None,
+        repeats: None,
     };
     // The shown tab's notification is read at once, another tab's counts.
     state.notification_log_received(Some("tab_1"));
@@ -2070,4 +2072,53 @@ fn a_tab_line_drag_cancels_when_the_spaces_tabs_change_under_it() {
     left_drag(&mut state, third);
     assert_eq!(slot(&state), None, "rows no longer match the tabs");
     assert!(tab_moves(&left_release(&mut state, third)).is_empty());
+}
+
+#[test]
+fn history_rows_say_what_finished_and_in_which_space() {
+    let state = state_with_tabs(true);
+    let record = |kind: &str, task: Option<&str>, repeats: Option<u32>| {
+        crate::api::schema::NotificationRecord {
+            id: 1,
+            unix_ms: 0,
+            kind: kind.into(),
+            title: format!(
+                "claude {}",
+                if kind == "finished" {
+                    "finished"
+                } else {
+                    "needs attention"
+                }
+            ),
+            body: Some("client-shell · 1 · 3".into()),
+            agent: Some("claude".into()),
+            workspace_id: Some("ws_1".into()),
+            tab_id: Some("tab_1".into()),
+            pane_id: Some("pane_1".into()),
+            task: task.map(str::to_owned),
+            repeats,
+        }
+    };
+    // The task first, then the agent and the space; no position, no tab number.
+    assert_eq!(
+        state.notification_row_text(&record("finished", Some("Fix the login test"), Some(3))),
+        "✓ Fix the login test · claude · client-shell ×3"
+    );
+    assert_eq!(
+        state.notification_row_text(&record("needs_attention", Some("Fix the login test"), None)),
+        "? Fix the login test · claude · client-shell"
+    );
+    // Without a task the row names the event.
+    assert_eq!(
+        state.notification_row_text(&record("finished", None, None)),
+        "✓ claude finished · client-shell"
+    );
+    // Other kinds keep their title and body.
+    let mut update = record("update_installed", None, None);
+    update.title = "herdr updated".into();
+    update.body = Some("0.9.4".into());
+    assert_eq!(
+        state.notification_row_text(&update),
+        "herdr updated · 0.9.4"
+    );
 }
