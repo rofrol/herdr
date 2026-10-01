@@ -478,6 +478,8 @@ pub(super) fn render_space_tab_lines(
     // The tab dragged from one of these lines and where it would land among
     // them (see [`ClientChromeDrag::TabLine`]); ignored for other spaces.
     tab_drag: Option<(&str, Option<usize>)>,
+    // The spaces filter query: its matched characters in a label stand out.
+    highlight: Option<&str>,
     config: &ClientShellConfig,
 ) -> SpaceTabHits {
     let palette = &config.palette;
@@ -591,6 +593,24 @@ pub(super) fn render_space_tab_lines(
             });
         }
         super::render::put_text(buffer, text_x, y, label_width, &label, text_style);
+        if let Some(positions) =
+            highlight.and_then(|query| super::space_filter::match_positions(query, &label))
+        {
+            let chars = label.chars().collect::<Vec<_>>();
+            let mut column = 0u16;
+            for (at, c) in chars.iter().enumerate() {
+                let width = unicode_width::UnicodeWidthChar::width(*c).unwrap_or(0) as u16;
+                if positions.contains(&at) && column + width <= label_width {
+                    buffer.set_style(
+                        Rect::new(text_x + column, y, width.max(1), 1).intersection(buffer.area),
+                        Style::default()
+                            .fg(palette.accent)
+                            .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
+                    );
+                }
+                column += width;
+            }
+        }
         if fold_width > 0 {
             let fold_x = right.saturating_sub(fold_width);
             super::render::put_text(

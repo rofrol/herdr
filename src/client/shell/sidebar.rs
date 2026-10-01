@@ -338,6 +338,7 @@ pub(crate) fn render_sidebar(
     }
     hits.space_order = super::space_sort::root_ids(snapshot, &entries);
     // The filter bar narrows the list; the order held above stays whole.
+    let total_spaces = entries.len();
     if let Some(view) = state
         .space_filter
         .as_ref()
@@ -345,6 +346,7 @@ pub(crate) fn render_sidebar(
     {
         entries = view.filter_entries(snapshot, entries);
     }
+    let shown_spaces = entries.len();
     // While a space is dragged the list shows where it would land; the
     // header keeps its sort buttons. With the pointer outside the list the
     // order stays, the block stays lifted and the header says a release
@@ -427,6 +429,7 @@ pub(crate) fn render_sidebar(
             bar,
             filter.query,
             filter.focused,
+            filter.view.as_ref().map(|_| (shown_spaces, total_spaces)),
             palette,
         );
         hits.space_filter_bar = bar;
@@ -786,6 +789,11 @@ pub(crate) fn render_sidebar(
             u16::from(show_scrollbar),
             super::space_tabs::tab_indent(entry.indented),
             state.tab_line_drag,
+            state
+                .space_filter
+                .as_ref()
+                .filter(|filter| filter.view.is_some())
+                .map(|filter| filter.query),
             config,
         );
         block_hits.space_tabs.extend(tab_hits.lines);

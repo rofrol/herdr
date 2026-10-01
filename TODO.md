@@ -244,8 +244,10 @@
   - Key done 2026-10-01 (committed, not installed): `keys.filter_spaces`
     (default `prefix+/`, documented in the sample config and the config
     reference) opens the bar for typing and shows a collapsed sidebar.
-  - Left for later: highlighting the matched characters, AND tokens
-    and the `7/23` counter, the multi-machine sidebar (it ignores the
+  - Done 2026-10-01 (committed): the bar shows `shown/total` spaces while a
+    query is on, and the matched characters of a tab label are bold and
+    underlined (`match_positions`).
+  - Left for later: highlighting matches in space names and AND tokens, the multi-machine sidebar (it ignores the
     filter), the mobile layout, and a live check.
 
 - [ ] Compact Pi activity rows with click-through to herdr-job details.

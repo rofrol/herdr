@@ -47,6 +47,30 @@ impl SpaceFilter {
     }
 }
 
+/// The character positions of the smart-case subsequence match of `query` in
+/// `text` (the first fit, from the left), or none when it does not match.
+pub(super) fn match_positions(query: &str, text: &str) -> Option<Vec<usize>> {
+    let query = query.trim();
+    let exact = query.chars().any(char::is_uppercase);
+    let mut wanted = query.chars().filter(|c| !c.is_whitespace()).peekable();
+    let mut found = Vec::new();
+    for (at, c) in text.chars().enumerate() {
+        let Some(&want) = wanted.peek() else {
+            break;
+        };
+        let same = if exact {
+            c == want
+        } else {
+            c.to_lowercase().eq(want.to_lowercase())
+        };
+        if same {
+            found.push(at);
+            wanted.next();
+        }
+    }
+    wanted.peek().is_none().then_some(found)
+}
+
 /// What the sidebar draws for the bar: the text, whether it takes keys, and
 /// what the query shows (none while the text is empty).
 pub(super) struct FilterRender<'a> {
@@ -385,13 +409,14 @@ pub(super) fn render_filter_button(
     Rect::new(x.saturating_sub(1), room.y, width + 2, 1)
 }
 
-/// Draws the bar: `/ query▏` and a `×` at the right. Returns the bar's rect
-/// and the close button's.
+/// Draws the bar: `/ query▏`, the `shown/total` spaces count while a query is
+/// on, and a `×` at the right. Returns the bar's rect and the close button's.
 pub(super) fn render_filter_bar(
     buffer: &mut Buffer,
     area: Rect,
     query: &str,
     focused: bool,
+    count: Option<(usize, usize)>,
     palette: &Palette,
 ) -> (Rect, Rect) {
     if area.width < 6 || area.height == 0 {
@@ -408,7 +433,27 @@ pub(super) fn render_filter_bar(
         "×",
         Style::default().fg(palette.overlay1),
     );
-    let room = usize::from(close.x.saturating_sub(area.x + 3));
+    // The count sits left of the cross, when the text leaves room for it.
+    let count_text = count.map(|(shown, total)| format!("{shown}/{total}"));
+    let count_width = count_text
+        .as_ref()
+        .map_or(0, |text| text.chars().count() as u16 + 1);
+    let text_end = if close.x.saturating_sub(area.x + 3) > count_width + 4 {
+        if let Some(text) = count_text.as_ref() {
+            put_text(
+                buffer,
+                close.x - count_width + 1,
+                area.y,
+                count_width - 1,
+                text,
+                Style::default().fg(palette.overlay0),
+            );
+        }
+        close.x - count_width
+    } else {
+        close.x
+    };
+    let room = usize::from(text_end.saturating_sub(area.x + 3));
     let shown = if query.chars().count() + 1 > room {
         // The end of the text stays visible, where the cursor is.
         let skip = query.chars().count() + 1 - room;
@@ -428,7 +473,7 @@ pub(super) fn render_filter_bar(
         buffer,
         area.x.saturating_add(3),
         area.y,
-        close.x.saturating_sub(area.x + 3),
+        text_end.saturating_sub(area.x + 3),
         &text,
         style,
     );
@@ -449,6 +494,14 @@ mod tests {
         assert!(!matches("rdh", "herdr"), "order matters");
         assert!(matches("a b", "ab"), "spaces in the query are ignored");
         assert!(!matches("x", "herdr"));
+    }
+
+    #[test]
+    fn match_positions_name_the_characters_a_query_fits() {
+        assert_eq!(match_positions("hrd", "herdr"), Some(vec![0, 2, 3]));
+        assert_eq!(match_positions("", "herdr"), Some(vec![]));
+        assert_eq!(match_positions("Hd", "herdr"), None, "uppercase is exact");
+        assert_eq!(match_positions("zz", "herdr"), None);
     }
 
     /// A repo space with two worktrees, `feature` and `fix`, plus a lone space.

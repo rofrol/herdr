@@ -1541,6 +1541,22 @@ fn the_filter_bar_opens_from_its_button_and_narrows_the_list_as_you_type() {
     assert_eq!(shown_tabs(&mut state), ["tab_3"]);
     let rows = frame_rows(&state.compose(106, 30).unwrap());
     assert!(rows.iter().any(|row| row.contains("/ rev")), "{rows:?}");
+    assert!(
+        rows.iter().any(|row| row.contains("1/1")),
+        "the count: {rows:?}"
+    );
+    // The matched characters of the label are underlined, the others not.
+    let frame = state.compose(106, 30).unwrap();
+    let line = state.hits.space_tabs[0].0;
+    let row =
+        &frame.cells[usize::from(line.y) * usize::from(frame.width)..][..usize::from(frame.width)];
+    let underlined = |symbol: &str| {
+        row.iter()
+            .find(|cell| cell.symbol == symbol)
+            .map(|cell| cell.modifier & ratatui::style::Modifier::UNDERLINED.bits() != 0)
+    };
+    assert_eq!(underlined("r"), Some(true));
+    assert_eq!(underlined("i"), Some(false));
     // The space's own name shows all its tabs.
     state.space_filter.query = "client".into();
     assert_eq!(shown_tabs(&mut state), ["tab_1", "tab_2", "tab_3"]);
