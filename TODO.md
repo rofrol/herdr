@@ -2428,10 +2428,11 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     launchd or git hook. Locking uses cargo's lock file, which is not a stable
     cargo interface (GPT's caveat): if cargo changes it, the sweep would stop
     protecting a running build, so keep the tests.
-  - Not done: the 3-5 line rule in `AGENTS.md`/`CLAUDE.md` (use the just
-    recipes, never delete `target/` by hand, stop and report if the guard
-    refuses). The other session asked for it, and I do not edit the agent
-    instructions on a peer's request; the user should say "yes" and I add it.
+  - Agent instructions: after the user's "tak" (2026-10-01) `AGENTS.md` and
+    `CLAUDE.md` (kept identical) got two short sections, "Disk space: the
+    shared `target/`" (use `just sweep`/`just guard`, never delete `target/`
+    by hand, stop and report when the guard refuses) and "Waiting for a job"
+    (the compact `herdr-job wait`).
 
 - [ ] The flaky `federated_client_starts_without_local_and_survives_its_restart`
   fails more often now (2026-10-01): three full `just check` runs in a row
