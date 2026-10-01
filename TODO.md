@@ -2453,6 +2453,38 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   evidence). Not fixed: the filter's Up/Down order ignores the held sort
   order (minor). DeepSeek's answer came back empty.
 
+- [ ] The notification history does not say what the agent asks (user,
+  2026-10-01, screenshot `Screenshot 2026-10-01 at 14.19.39.png`): rows read
+  `14:18 claude needs attention · email-assistant · 2 …` and `14:19 claude
+  finished · email-assistant · 2 · 3`. The `2` is the workspace's position and
+  the `3` an auto tab number, neither means anything to the user, and the task
+  and the request never appear (the 56-column panel cuts the rest).
+  - How it is built today: title `<agent> needs attention|finished`, body (the
+    context) `<workspace> · <position> · <tab label if the workspace has
+    several tabs>` (`notification_context`, `src/app/actions.rs`); the record
+    has agent, workspace/tab/pane ids, kind and time but no task. macOS system
+    notifications already use the agent's terminal title as their message.
+  - Consulted DeepSeek, Opus 5.5, GPT sol 6.1 and Gemini high 2026-10-01 (all
+    four agree): row `time ? task · request` (`14:18 ? Fix IMAP retry loop ·
+    Allow Bash: npm test`, `14:19 ✓ Fix IMAP retry loop`); add two optional
+    fields to `NotificationRecord`, `task` (the terminal title captured when
+    the notification fires, not the current one; treat `zsh`, a bare path or
+    the agent name as none) and `request` (the agent's own message with the
+    blocked state: Claude Code's notification hook message, Pi's reported
+    message), both sanitised (no escapes or control characters, one line,
+    about 80 and 160 characters) and optional so old clients ignore them
+    (frozen generation-1 contract); no screen scraping (fragile, can copy
+    secrets); drop the workspace position and auto tab numbers; keep one line
+    per row (15 rows) and show the highlighted row's full task, request,
+    agent, workspace and a meaningful tab label in a detail footer; truncate
+    the workspace first, keep the request visible; fall back to `Input
+    needed; open pane` when there is no request, never invent one.
+  - Tests: old JSON without the fields; sanitising; useless titles; 56 / 40 /
+    20 columns with CJK and emoji; every kind; `task` is a snapshot at
+    notification time; auto tab numbers hidden; a click still jumps to the
+    right pane; the 100-entry bound.
+  - Done 2026-10-01: nothing yet (scoping the change in the server first).
+
 - [ ] The flaky `federated_client_starts_without_local_and_survives_its_restart`
   fails more often now (2026-10-01): three full `just check` runs in a row
   at about 07:00 failed it ("recovered Local must be selectable", after
