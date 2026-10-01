@@ -152,6 +152,28 @@
   - Consulted DeepSeek (generic hypotheses, nothing the data above did not
     settle better); GPT sol hit the Plus usage limit this round.
 
+- [ ] Diagnose multiline copy in Pi versus Claude CLI (2026-10-01).
+  - User reports Claude CLI selection copies as expected, whereas Pi inserts
+    newline characters into copied multiline text. Determine whether these
+    are extra breaks at visual wraps rather than intentional paragraph/code
+    breaks. No exact reproduction or clipboard-byte comparison yet.
+  - Installed Pi 0.99.1 fullscreen `getActiveSelectionText()` reads rendered
+    rows and joins them with `\n` in `pi-tui/dist/tui-alt-screen.js`.
+    This is a plausible mechanism in fullscreen, not proof for regular mode.
+    Global settings currently omit `tuiMode` (default regular); CLI/project
+    overrides and the user's actual gesture remain unknown. Do not assume
+    Claude's selection implementation without inspecting/reproducing it.
+  - Consulted DeepSeek and Gemini (low/medium/high): compare the same
+    synthetic paragraph, real-newline code block, unwrapped control and
+    Unicode text at 80/120 columns, in Pi regular/fullscreen and Claude CLI.
+    Record terminal/version, resize geometry, mouse modifiers and whether
+    copying uses terminal selection, Pi copy-on-select or OSC 52/native
+    clipboard. Compare exact LF/CRLF bytes, not just pasted appearance.
+    Preserve real newlines, indentation, graphemes and trailing spaces;
+    never fix this by blindly joining every selected row. Do not inspect or
+    overwrite the user's existing clipboard without permission; use a
+    disposable synthetic reproduction. No upstream issue without reproduction.
+
 - [ ] Compact Pi activity rows with click-through to herdr-job details.
   - User request and screenshot, 2026-10-01:
     `/Users/romanfrolow/Screenshots/Screenshot 2026-10-01 at 01.12.20.png`.
