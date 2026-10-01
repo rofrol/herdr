@@ -2649,6 +2649,42 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     `close_impact.rs`; an agent that is idle with `awaiting_reply` reads
     `waiting for a reply`. Not done: the dialog wording.
 
+- [ ] "What do I do with this update?" (user, 2026-10-01, screenshot): Claude
+  Code shows `✓ Update installed · Restart to update` under its input box.
+  - What it is: Claude Code updated its own binary in the background; the
+    running session keeps the old version until it is restarted. Nothing is
+    lost by waiting (the old version runs on); restarting picks up fixes and
+    features, costs the process state (background tasks, an unsent draft) and
+    a warm prompt cache, and the conversation comes back with `claude
+    --resume <id>`.
+  - What to do now (consulted DeepSeek, Opus, GPT and Gemini 2026-10-01, all
+    agree): finish the current exchange, then, with the agent idle and the
+    input box empty, run the `restart` plugin's menu action "Restart agent in
+    this pane" (or "Restart idle agents in this workspace" for several); it
+    sends SIGTERM, waits for the shell and runs the same command line again
+    with `--resume <id>`, skipping working or blocked agents and a pane with
+    unsent text. It is not urgent.
+  - What Herdr should do (this extends the "Restart agents..." entry): detect
+    the pending update from the version, not the screen text: record `claude
+    --version` when the pane starts and compare it with the binary on disk
+    (re-check when the file's mtime or the symlink target changes); use the
+    "Update installed" text only as a hint to verify; no Claude hook reports an
+    update. Default: a quiet "update pending" mark on the pane and its sidebar
+    row plus a one-click restart and a preview/picker for a workspace; cleared
+    only after the new version is confirmed. Automatic restart of idle agents
+    is opt-in, never the default. Batches: one pane at a time, re-check
+    "idle, empty input, not focused, no key in the last ~5 s" just before each
+    SIGTERM, keep the exact argv, cwd and environment, replace conflicting
+    resume arguments, never replay a prompt, stop the batch on the first
+    failure and keep the pane, its scrollback and the session id; if resume
+    fails, never start a fresh session silently.
+  - Tests: version bump and mtime or symlink change set the mark, the same
+    version does not; busy, blocked, draft and typing panes are skipped; the
+    state changing between the check and the SIGTERM; flags survive; an
+    unknown session id is an error, not a new session; a 10-pane batch runs
+    in order and stops at the first failure.
+  - Done: nothing yet (the plugin's stage 1 exists).
+
 - [ ] The flaky `federated_client_starts_without_local_and_survives_its_restart`
   fails more often now (2026-10-01): three full `just check` runs in a row
   at about 07:00 failed it ("recovered Local must be selectable", after
