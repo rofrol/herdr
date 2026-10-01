@@ -1510,7 +1510,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     untested there (Claude may run commands through PowerShell).
   - Local: `cargo install xwin --locked`, then `just setup-windows-cross`
     (the user accepts Microsoft's SDK license), and prove a full
-    `just check` passes before the fork section of CLAUDE.md requires it.
+    `just check` passes before the fork section of AGENTS.md requires it.
     Cross-clippy only catches compile and lint errors in `cfg(windows)`
     code; it runs no Windows tests.
   - CI: activate Actions in the fork's Actions tab and verify that a push
@@ -2428,8 +2428,9 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     launchd or git hook. Locking uses cargo's lock file, which is not a stable
     cargo interface (GPT's caveat): if cargo changes it, the sweep would stop
     protecting a running build, so keep the tests.
-  - Agent instructions: after the user's "tak" (2026-10-01) `AGENTS.md` and
-    `CLAUDE.md` (kept identical) got two short sections, "Disk space: the
+  - Agent instructions: after the user's "tak" (2026-10-01) `AGENTS.md` got two short
+    sections (`CLAUDE.md` was removed the same day: Claude Code reads
+    `AGENTS.md`), "Disk space: the
     shared `target/`" (use `just sweep`/`just guard`, never delete `target/`
     by hand, stop and report when the guard refuses) and "Waiting for a job"
     (the compact `herdr-job wait`).
