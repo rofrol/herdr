@@ -932,6 +932,12 @@
           "description": "Toggle sidebar collapse."
         },
         {
+          "key": "keys.filter_spaces",
+          "type": "keybinding",
+          "default": "\"prefix+/\"",
+          "description": "Open the spaces filter bar: type to narrow the spaces list to the spaces and tabs that match; Enter opens the first match or the one chosen with Up and Down, Esc clears and then closes."
+        },
+        {
           "key": "keys.indexed.tabs",
           "type": "string",
           "default": "unset",

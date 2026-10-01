@@ -241,8 +241,10 @@
     selection and scrolls to it, no wrap), typing selects the first shown
     space again, and Enter opens the selected space, or its first matching
     tab when the space itself does not match.
-  - Left for later: highlighting the matched characters,
-    a key to open the bar (needs a keybind action and its docs), AND tokens
+  - Key done 2026-10-01 (committed, not installed): `keys.filter_spaces`
+    (default `prefix+/`, documented in the sample config and the config
+    reference) opens the bar for typing and shows a collapsed sidebar.
+  - Left for later: highlighting the matched characters, AND tokens
     and the `7/23` counter, the multi-machine sidebar (it ignores the
     filter), the mobile layout, and a live check.
 

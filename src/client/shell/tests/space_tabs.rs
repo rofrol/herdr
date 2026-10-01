@@ -1734,3 +1734,22 @@ fn arrows_move_the_filter_selection_and_enter_opens_the_selected_space() {
                 if target.workspace_id == "ws_3"))));
     assert!(!state.space_filter.open);
 }
+
+#[test]
+fn the_filter_spaces_key_opens_the_bar_even_with_the_sidebar_collapsed() {
+    let mut state = state_with_named_tabs();
+    state.sidebar_collapsed = true;
+    let mut outcome = ClientShellInput::default();
+    state.record_binding(
+        crate::input::KeybindMatch::Action(crate::input::KeybindAction::FilterSpaces),
+        &mut outcome,
+    );
+    assert!(state.space_filter.open && state.space_filter.focused);
+    assert!(!state.sidebar_collapsed);
+    assert!(outcome.repaint && outcome.resize);
+    // The resize dropped the pane surface; the next one brings it back.
+    state.set_pane_surface(surface());
+    type_text(&mut state, "rev");
+    assert_eq!(state.space_filter.query, "rev");
+    assert_eq!(shown_tabs(&mut state), ["tab_3"]);
+}
