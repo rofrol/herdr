@@ -52,6 +52,35 @@ impl HeadlessServer {
         else {
             return false;
         };
+        let Some(agent_label) = agent_label.or(previous_agent_label) else {
+            return false;
+        };
+        // With a delay the notification goes out later, once the delay has run
+        // out and the pane is still in this state (see
+        // `forward_agent_notification_delivery`): a burst of changes that the
+        // agent undoes within the delay reaches no client and no history.
+        if self.app.state.toast_config.delay_seconds != 0 {
+            return false;
+        }
+        self.send_semantic_agent_notification(
+            ws_idx,
+            pane_id,
+            kind,
+            agent_label.to_owned(),
+            known_agent,
+        )
+    }
+
+    /// The semantic notification for a client shell, which also enters the
+    /// history list.
+    pub(super) fn send_semantic_agent_notification(
+        &mut self,
+        ws_idx: usize,
+        pane_id: crate::layout::PaneId,
+        kind: crate::app::state::ToastKind,
+        agent_label: String,
+        known_agent: Option<crate::detect::Agent>,
+    ) -> bool {
         let Some(workspace) = self.app.state.workspaces.get(ws_idx) else {
             return false;
         };
@@ -62,9 +91,6 @@ impl HeadlessServer {
             return false;
         };
         let Some(public_pane_id) = self.app.public_pane_id(ws_idx, pane_id) else {
-            return false;
-        };
-        let Some(agent_label) = agent_label.or(previous_agent_label) else {
             return false;
         };
         let (semantic_kind, event_text, sound) = match kind {
@@ -177,6 +203,24 @@ impl HeadlessServer {
         &mut self,
         delivery: &crate::app::state::AgentNotificationDelivery,
     ) {
+        // The delayed counterpart of `forward_semantic_agent_transition`: the
+        // delay ran out with the pane still in the state, so tell the client
+        // shells (and the history).
+        if let Some(ws_idx) = self
+            .app
+            .state
+            .workspaces
+            .iter()
+            .position(|ws| ws.id == delivery.workspace_id)
+        {
+            self.send_semantic_agent_notification(
+                ws_idx,
+                delivery.pane_id,
+                delivery.kind,
+                delivery.agent_label.clone(),
+                delivery.known_agent,
+            );
+        }
         if let Some(sound) = delivery.sound {
             self.send_notify_to_foreground_client(
                 protocol::NotifyKind::Sound,

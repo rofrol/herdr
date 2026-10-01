@@ -203,6 +203,11 @@ fn parse_right_click_passthrough_modifier(value: &str) -> Option<Option<KeyModif
 pub struct ToastConfig {
     pub delivery: ToastDelivery,
     pub delay_seconds: u64,
+    /// Seconds before a "finished" notification, when it should wait longer
+    /// than `delay_seconds` (the agent often starts its next turn at once).
+    /// Default 10; None: the same as `delay_seconds`. `delay_seconds = 0`
+    /// still means instant for every kind.
+    pub finished_delay_seconds: Option<u64>,
     pub herdr: HerdrToastConfig,
     pub clipboard: ClipboardToastConfig,
 }
@@ -1290,7 +1295,8 @@ impl Default for ToastConfig {
     fn default() -> Self {
         Self {
             delivery: ToastDelivery::Off,
-            delay_seconds: 1,
+            delay_seconds: 3,
+            finished_delay_seconds: Some(10),
             herdr: HerdrToastConfig::default(),
             clipboard: ClipboardToastConfig::default(),
         }
@@ -1325,6 +1331,7 @@ impl<'de> Deserialize<'de> for ToastConfig {
             delivery: Option<ToastDelivery>,
             enabled: Option<bool>,
             delay_seconds: Option<u64>,
+            finished_delay_seconds: Option<u64>,
             herdr: HerdrToastConfig,
             clipboard: ClipboardToastConfig,
         }
@@ -1342,9 +1349,18 @@ impl<'de> Deserialize<'de> for ToastConfig {
                 "ui.toast.delay_seconds must be between 0 and {MAX_TOAST_DELAY_SECONDS}"
             )));
         }
+        if raw
+            .finished_delay_seconds
+            .is_some_and(|seconds| seconds > MAX_TOAST_DELAY_SECONDS)
+        {
+            return Err(de::Error::custom(format!(
+                "ui.toast.finished_delay_seconds must be between 0 and {MAX_TOAST_DELAY_SECONDS}"
+            )));
+        }
         Ok(Self {
             delivery,
             delay_seconds,
+            finished_delay_seconds: raw.finished_delay_seconds,
             herdr: raw.herdr,
             clipboard: raw.clipboard,
         })
@@ -1941,7 +1957,10 @@ position = "top-center"
     fn toast_config_defaults_preserve_existing_behavior_with_delay() {
         let config = Config::default();
         assert_eq!(config.ui.toast.delivery, ToastDelivery::Off);
-        assert_eq!(config.ui.toast.delay_seconds, 1);
+        // The fork waits 3 s for needs-input and 10 s for finished, since the
+        // agent often carries on at once (upstream's default is 1 s for both).
+        assert_eq!(config.ui.toast.delay_seconds, 3);
+        assert_eq!(config.ui.toast.finished_delay_seconds, Some(10));
         assert_eq!(
             config.ui.toast.herdr.position,
             ToastHerdrPosition::BottomRight

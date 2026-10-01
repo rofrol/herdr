@@ -7410,6 +7410,121 @@ fn completion_guard_notifications(
     }
 }
 
+/// Reports `state` for the pane through the API, as an agent hook does.
+fn report_pane_state(
+    server: &mut HeadlessServer,
+    public_pane_id: &str,
+    state: api::schema::PaneAgentState,
+    seq: u64,
+) {
+    completion_guard_api_report(
+        server,
+        api::schema::Method::PaneReportAgent(api::schema::PaneReportAgentParams {
+            pane_id: public_pane_id.to_owned(),
+            source: "custom:pi".into(),
+            agent: "pi".into(),
+            state,
+            message: None,
+            seq: Some(seq),
+            agent_session_id: None,
+            agent_session_path: None,
+        }),
+    );
+}
+
+/// Delivers the notifications whose delay has run out, as the server tick does.
+fn deliver_due_notifications(server: &mut HeadlessServer, now: Instant) {
+    for delivery in server.app.state.drain_due_agent_notifications(now) {
+        server.forward_agent_notification_delivery(&delivery);
+    }
+}
+
+#[test]
+fn a_notification_the_agent_undoes_within_the_delay_reaches_nobody_and_the_history() {
+    use protocol::SemanticNotificationKind::NeedsAttention;
+
+    let (writer, control_rx, _render_rx) = test_client_writer();
+    let (mut server, pane_id) = completion_guard_server(writer);
+    server.app.state.toast_config.delay_seconds = 3;
+    server.handle_internal_event_with_forwarding(AppEvent::AgentProcessDetected {
+        pane_id,
+        agent: crate::detect::Agent::Pi,
+        observed_at: Instant::now(),
+    });
+    let public = server.app.public_pane_id(0, pane_id).unwrap();
+
+    // Blocked, then working again before the delay ends: nothing is sent.
+    report_pane_state(
+        &mut server,
+        &public,
+        api::schema::PaneAgentState::Blocked,
+        1,
+    );
+    report_pane_state(
+        &mut server,
+        &public,
+        api::schema::PaneAgentState::Working,
+        2,
+    );
+    let later = Instant::now() + Duration::from_secs(10);
+    deliver_due_notifications(&mut server, later);
+    assert!(completion_guard_notifications(&mut server, &control_rx).is_empty());
+    assert!(server.notification_history.is_empty());
+
+    // Blocked and staying so: one notification once the delay has run out,
+    // and not before.
+    report_pane_state(
+        &mut server,
+        &public,
+        api::schema::PaneAgentState::Blocked,
+        3,
+    );
+    deliver_due_notifications(&mut server, Instant::now());
+    assert!(completion_guard_notifications(&mut server, &control_rx).is_empty());
+    deliver_due_notifications(&mut server, Instant::now() + Duration::from_secs(10));
+    assert_eq!(
+        completion_guard_notifications(&mut server, &control_rx),
+        [NeedsAttention]
+    );
+    assert_eq!(server.notification_history.len(), 1);
+    assert_eq!(server.notification_history[0].kind, "needs_attention");
+}
+
+#[test]
+fn a_finished_notification_may_wait_longer_than_a_needs_attention_one() {
+    use protocol::SemanticNotificationKind::{Finished, NeedsAttention};
+
+    let (writer, control_rx, _render_rx) = test_client_writer();
+    let (mut server, pane_id) = completion_guard_server(writer);
+    server.app.state.toast_config.delay_seconds = 1;
+    server.app.state.toast_config.finished_delay_seconds = Some(30);
+    server.handle_internal_event_with_forwarding(AppEvent::AgentProcessDetected {
+        pane_id,
+        agent: crate::detect::Agent::Pi,
+        observed_at: Instant::now(),
+    });
+    let public = server.app.public_pane_id(0, pane_id).unwrap();
+    report_pane_state(
+        &mut server,
+        &public,
+        api::schema::PaneAgentState::Working,
+        1,
+    );
+    report_pane_state(&mut server, &public, api::schema::PaneAgentState::Idle, 2);
+    let start = Instant::now();
+    deliver_due_notifications(&mut server, start + Duration::from_secs(5));
+    assert!(
+        completion_guard_notifications(&mut server, &control_rx).is_empty(),
+        "finished waits 30 s, not 1 s"
+    );
+    deliver_due_notifications(&mut server, start + Duration::from_secs(40));
+    let sent = completion_guard_notifications(&mut server, &control_rx);
+    assert!(
+        sent.contains(&Finished) && !sent.contains(&NeedsAttention),
+        "{sent:?}"
+    );
+}
+
 #[test]
 fn completion_guard_api_startup_blocker_respects_suppression() {
     use protocol::SemanticNotificationKind::{Finished, NeedsAttention};

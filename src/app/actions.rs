@@ -1886,8 +1886,7 @@ impl AppState {
                 deadline: {
                     let now = std::time::Instant::now();
                     let delay_seconds = self
-                        .toast_config
-                        .delay_seconds
+                        .notification_delay_seconds(kind)
                         .min(crate::config::MAX_TOAST_DELAY_SECONDS);
                     now.checked_add(std::time::Duration::from_secs(delay_seconds))
                         .unwrap_or(now)
@@ -1895,6 +1894,19 @@ impl AppState {
             },
         );
         None
+    }
+
+    /// Seconds an agent notification waits before it is delivered: the pane
+    /// must still be in the same state then. A "finished" one may wait longer
+    /// (`ui.toast.finished_delay_seconds`), since an agent often continues at once.
+    pub fn notification_delay_seconds(&self, kind: ToastKind) -> u64 {
+        match kind {
+            ToastKind::Finished => self
+                .toast_config
+                .finished_delay_seconds
+                .unwrap_or(self.toast_config.delay_seconds),
+            _ => self.toast_config.delay_seconds,
+        }
     }
 
     fn agent_notification_delivery(

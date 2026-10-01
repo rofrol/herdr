@@ -2519,7 +2519,20 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     one; a repeat without interaction yields none; interaction rearms; awaiting
     reply is immediate; focus and visibility suppress; panes are independent;
     toast, shell and history get the same stream.
-  - Done: nothing yet. Related: the entry above about what the history rows say.
+  - Done 2026-10-01 (committed, not installed; `just check` passes): the
+    delay now applies to the semantic path as well: the client-shell
+    notification and the history row are sent when the delay has run out and
+    the pane is still in the same state (`forward_agent_notification_delivery`),
+    so `blocked` then `working` within the delay leaves no notification and no
+    history row. New option `ui.toast.finished_delay_seconds` (a finished one
+    may wait longer); fork defaults `delay_seconds` 3 (upstream 1) and
+    `finished_delay_seconds` 10; `delay_seconds = 0` is still instant for
+    everything. Tests: `a_notification_the_agent_undoes_within_the_delay_...`
+    and `a_finished_notification_may_wait_longer_...`. Not done from the list:
+    dedupe of a repeated needs-attention until the user interacts, suppression
+    by pane visibility plus client focus (still by active tab), honest kind
+    names ("Reply needed", "Needs approval", "Turn ended"), the diagnostic log.
+    Related: the entry above about what the history rows say.
 
 - [ ] The flaky `federated_client_starts_without_local_and_survives_its_restart`
   fails more often now (2026-10-01): three full `just check` runs in a row

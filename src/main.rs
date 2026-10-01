@@ -395,7 +395,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
 # terminal = ask the outer terminal to show a desktop notification
 # system = ask the OS notification service directly
 # delivery = "off"
-# delay_seconds = 1
+# delay_seconds = 3
+# A finished notification can wait longer than needs-input ones (unset: the same).
+# finished_delay_seconds = 10
 
 [ui.toast.herdr]
 # position = "bottom-right"
