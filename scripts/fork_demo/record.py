@@ -432,7 +432,17 @@ def scenes(rec, args):
         rec.cli("tab", "parent", tab_id, args.agent_tab)
         rec.cli("tab", "status", tab_id, status)
         time.sleep(2.2)
-    jy, jx = rec.find(lambda y, line: (y, line.index("⧖")) if "herdr" in line[:24] and "⧖" in line[:24] else None)
+    # The running-job counter is a turning half circle, so any frame will do.
+    turning = "◐◓◑◒"
+
+    def job_counter(y, line):
+        head = line[:24]
+        if "herdr" not in head:
+            return None
+        at = [i for i, c in enumerate(head) if c in turning]
+        return (y, at[-1]) if at else None
+
+    jy, jx = rec.find(job_counter)
     # Point at the counter from below: the arrow would cover it otherwise.
     rec.move_to(jy + 1, jx)
     time.sleep(2.8)
