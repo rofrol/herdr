@@ -115,7 +115,8 @@
     `Zakładki poziome n…`, `Anthropic limit wyczerp…`, `π - herdr`,
     `ask claude claude-opus-…`, `ask gemini 3.8-flash-lo…`, then a worktree
     group `▼ Pi compact job act…` with a `└─` connector, then `zsh`.
-  - [ ] Why are `ask claude` and `ask gemini` (consult helpers) shown as
+  - [x] (fixed: `herdr-job run` nests under the owner tab's top-level parent
+    and reports a refused `tab parent`) Why are `ask claude` and `ask gemini` (consult helpers) shown as
     ordinary top-level tabs instead of inside the herdr-job group? They are
     presumably launched by `plugins/consult` outside `herdr-job run`; check
     whether they should go through it (see `herdr-job` in the global rules).
