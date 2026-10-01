@@ -318,7 +318,8 @@
     and focus: `herdr-job open` scanned all 1209 stored jobs (0.2-0.35 s) and
     now asks `tab get` for the one tab and checks its job id (0.1 s); from the
     API call to the focus change measured 0.12-0.25 s. The physical
-    Ctrl+click on macOS is still the user's to confirm.
+    Ctrl+click on macOS: confirmed by the user ("działa", 2026-10-01) on
+    the installed build `47ba72b8`.
 - [ ] Add easily accessible advisor checkboxes in Herdr so it injects
   `Consult with <selected agents>` into coding-agent requests. Let the user
   select advisors (for example DeepSeek) and disable the instruction easily.
