@@ -221,6 +221,12 @@ impl HeadlessServer {
                 delivery.known_agent,
             );
         }
+        // A quiet finished turn stops at the history row recorded above.
+        if delivery.kind == crate::app::state::ToastKind::Finished
+            && !self.app.state.toast_config.alert_on_finished
+        {
+            return;
+        }
         if let Some(sound) = delivery.sound {
             self.send_notify_to_foreground_client(
                 protocol::NotifyKind::Sound,

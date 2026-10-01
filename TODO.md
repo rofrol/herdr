@@ -2692,6 +2692,15 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     in order and stops at the first failure.
   - Done: nothing yet (the plugin's stage 1 exists).
 
+- [x] A finished turn is quiet by default (user, 2026-10-01, "Cicho: wiersz w
+  liście + kropka"): `claude finished` for a tab you are not looking at no
+  longer plays a sound or shows a toast or system notification; it adds the
+  quiet row to the notification list and the unread dot. New option
+  `ui.toast.alert_on_finished` (default `false`) restores the alert. A question
+  or approval (needs attention) is unaffected. Done 2026-10-01 (client drops
+  the effects in `receive_notification`; server skips its sound and toast in
+  `forward_agent_notification_delivery`; history still records it).
+
 - [ ] The flaky `federated_client_starts_without_local_and_survives_its_restart`
   fails more often now (2026-10-01): three full `just check` runs in a row
   at about 07:00 failed it ("recovered Local must be selectable", after

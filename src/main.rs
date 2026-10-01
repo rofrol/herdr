@@ -398,6 +398,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
 # Seconds to wait, then notify only if the agent is still in the same state
 # (it often carries on by itself). 0 notifies at once.
 # delay_seconds = 3
+# Alert (sound, toast) when an agent just finishes a turn and asks nothing.
+# Off: only a quiet row in the notification list and the unread dot.
+# alert_on_finished = false
 
 [ui.toast.herdr]
 # position = "bottom-right"
