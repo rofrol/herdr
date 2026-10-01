@@ -292,6 +292,12 @@ impl ClientShellState {
                     super::space_filter::FilterView::new(snapshot, &self.space_filter.query)
                 }),
             });
+        let filter_selected = self
+            .space_filter
+            .open
+            .then(|| self.space_filter.selected.clone())
+            .flatten()
+            .and_then(|id| self.navigation_target(&self.active_endpoint_id, &id));
         let no_collapsed_groups = HashSet::new();
         let collapsed_groups = if space_filter.as_ref().is_some_and(|f| f.view.is_some()) {
             &no_collapsed_groups
@@ -340,7 +346,8 @@ impl ClientShellState {
                     .navigate_workspace_id
                     .as_ref()
                     .filter(|_| valid_navigation_target)
-                    .or_else(|| pending_workspace_highlight.map(|pending| &pending.target)),
+                    .or_else(|| pending_workspace_highlight.map(|pending| &pending.target))
+                    .or(filter_selected.as_ref()),
                 reveal_navigation_workspace: &mut self.reveal_navigation_workspace,
                 dragged_workspace_id,
                 workspace_drop_before,

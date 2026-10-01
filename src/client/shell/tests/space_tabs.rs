@@ -1697,3 +1697,40 @@ fn the_waiting_icon_and_the_job_count_turn_in_step() {
     assert_eq!(seen[0].chars().next(), Some('◐'));
     assert_eq!(seen[2].chars().next(), Some('◒'));
 }
+
+#[test]
+fn arrows_move_the_filter_selection_and_enter_opens_the_selected_space() {
+    let mut state = state_with_named_tabs();
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    for (id, label) in [("ws_2", "notes"), ("ws_3", "client-docs")] {
+        let mut workspace = projected.workspaces[0].clone();
+        workspace.workspace_id = id.into();
+        workspace.label = label.into();
+        workspace.focused = false;
+        projected.workspaces.push(workspace);
+    }
+    state.set_snapshot(Box::new(projected));
+    state.space_filter.open = true;
+    state.space_filter.focused = true;
+    state.compose(106, 30).unwrap();
+    // Down from the first space selects the second; Up goes back, and the
+    // ends do not wrap.
+    state.handle_input_bytes(b"\x1b[B");
+    assert_eq!(state.space_filter.selected.as_deref(), Some("ws_2"));
+    state.handle_input_bytes(b"\x1b[B");
+    state.handle_input_bytes(b"\x1b[B");
+    assert_eq!(state.space_filter.selected.as_deref(), Some("ws_3"));
+    state.handle_input_bytes(b"\x1b[A");
+    assert_eq!(state.space_filter.selected.as_deref(), Some("ws_2"));
+    state.compose(106, 30).unwrap();
+    // Typing narrows the list and selects its first space again.
+    type_text(&mut state, "docs");
+    assert_eq!(state.space_filter.selected.as_deref(), Some("ws_3"));
+    // Enter opens the selected space.
+    let outcome = state.handle_input_bytes(b"\r");
+    assert!(outcome.actions.iter().any(|action| matches!(action,
+        ClientShellAction::Endpoint { request, .. }
+            if matches!(&request.method, crate::api::schema::Method::WorkspaceFocus(target)
+                if target.workspace_id == "ws_3"))));
+    assert!(!state.space_filter.open);
+}

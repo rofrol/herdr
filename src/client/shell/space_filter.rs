@@ -31,6 +31,9 @@ pub(super) struct SpaceFilter {
     pub(super) open: bool,
     pub(super) focused: bool,
     pub(super) query: String,
+    /// The space Enter opens, moved with Up and Down; the first shown one
+    /// while none is chosen.
+    pub(super) selected: Option<String>,
 }
 
 impl SpaceFilter {
@@ -143,6 +146,11 @@ impl FilterView {
         view
     }
 
+    /// Whether the query shows a space, by itself or for a matching tab.
+    pub(super) fn is_shown(&self, workspace_id: &str) -> bool {
+        self.visible.contains(workspace_id)
+    }
+
     /// Whether a space's tab line is shown: all of them for a matching space,
     /// else the matching ones.
     pub(super) fn shows_tab(&self, workspace: &ClientShellWorkspace, tab_id: &str) -> bool {
@@ -192,27 +200,41 @@ impl FilterView {
         &self,
         snapshot: &ClientShellSnapshot,
         entries: &[WorkspaceEntry],
+        preferred: Option<&str>,
     ) -> Option<(String, Option<String>)> {
-        entries.iter().find_map(|entry| {
-            let workspace = snapshot.workspaces.get(entry.index)?;
-            if !self.visible.contains(&workspace.workspace_id) {
-                return None;
-            }
-            let tab = (!self.spaces.contains(&workspace.workspace_id))
-                .then(|| {
-                    snapshot
-                        .tabs
-                        .iter()
-                        .find(|tab| {
-                            tab.workspace_id == workspace.workspace_id
-                                && tab.parent_tab_id.is_none()
-                                && self.tabs.contains(&tab.tab_id)
-                        })
-                        .map(|tab| tab.tab_id.clone())
-                })
-                .flatten();
-            Some((workspace.workspace_id.clone(), tab))
-        })
+        let shown = |entry: &&WorkspaceEntry| {
+            snapshot
+                .workspaces
+                .get(entry.index)
+                .is_some_and(|workspace| self.is_shown(&workspace.workspace_id))
+        };
+        // The preferred space when it is still shown, else the first shown.
+        let preferred = entries.iter().filter(shown).find(|entry| {
+            snapshot
+                .workspaces
+                .get(entry.index)
+                .is_some_and(|workspace| Some(workspace.workspace_id.as_str()) == preferred)
+        });
+        preferred
+            .into_iter()
+            .chain(entries.iter().filter(shown))
+            .find_map(|entry| {
+                let workspace = snapshot.workspaces.get(entry.index)?;
+                let tab = (!self.spaces.contains(&workspace.workspace_id))
+                    .then(|| {
+                        snapshot
+                            .tabs
+                            .iter()
+                            .find(|tab| {
+                                tab.workspace_id == workspace.workspace_id
+                                    && tab.parent_tab_id.is_none()
+                                    && self.tabs.contains(&tab.tab_id)
+                            })
+                            .map(|tab| tab.tab_id.clone())
+                    })
+                    .flatten();
+                Some((workspace.workspace_id.clone(), tab))
+            })
     }
 }
 
@@ -239,25 +261,80 @@ impl ClientShellState {
                     self.space_filter.close();
                 } else {
                     self.space_filter.query.clear();
+                    self.reset_filter_selection();
                 }
             }
-            KeyCode::Enter => self.open_first_filter_match(outcome),
+            KeyCode::Enter => self.open_filter_selection(outcome),
+            KeyCode::Up | KeyCode::Down => {
+                let step = if key.code == KeyCode::Up { -1 } else { 1 };
+                self.move_filter_selection(step);
+            }
             KeyCode::Backspace => {
                 self.space_filter.query.pop();
+                self.reset_filter_selection();
             }
             KeyCode::Char('u') if key.modifiers == KeyModifiers::CONTROL => {
                 self.space_filter.query.clear();
+                self.reset_filter_selection();
             }
-            KeyCode::Char(c) if plain && !c.is_control() => self.space_filter.query.push(c),
+            KeyCode::Char(c) if plain && !c.is_control() => {
+                self.space_filter.query.push(c);
+                self.reset_filter_selection();
+            }
             _ => return false,
         }
         outcome.repaint = true;
         true
     }
 
-    /// Opens the first space the query shows (or its first matching tab) and
+    /// The spaces the query shows, in the order the list draws them.
+    fn filtered_workspace_ids(&self) -> Vec<String> {
+        let Some(snapshot) = self.snapshot.as_deref() else {
+            return Vec::new();
+        };
+        let view = FilterView::new(snapshot, &self.space_filter.query);
+        let none = HashSet::new();
+        let entries = self.sorted_for_sidebar(
+            snapshot,
+            super::render::workspace_entries(snapshot, &none),
+            &none,
+        );
+        view.filter_entries(snapshot, entries)
+            .into_iter()
+            .filter_map(|entry| snapshot.workspaces.get(entry.index))
+            .filter(|workspace| view.is_shown(&workspace.workspace_id))
+            .map(|workspace| workspace.workspace_id.clone())
+            .collect()
+    }
+
+    /// Selects the first shown space after the text changed.
+    fn reset_filter_selection(&mut self) {
+        self.space_filter.selected = self.filtered_workspace_ids().into_iter().next();
+        self.reveal_navigation_workspace = true;
+    }
+
+    /// Moves the selection one shown space up or down, stopping at the ends.
+    fn move_filter_selection(&mut self, step: isize) {
+        let shown = self.filtered_workspace_ids();
+        if shown.is_empty() {
+            self.space_filter.selected = None;
+            return;
+        }
+        let at = self
+            .space_filter
+            .selected
+            .as_ref()
+            .and_then(|selected| shown.iter().position(|id| id == selected))
+            .unwrap_or(0);
+        let next = at.saturating_add_signed(step).min(shown.len() - 1);
+        self.space_filter.selected = Some(shown[next].clone());
+        self.reveal_navigation_workspace = true;
+    }
+
+    /// Opens the selected space (the first shown one without a selection), or
+    /// its first matching tab when the space itself does not match, and
     /// closes the bar.
-    fn open_first_filter_match(&mut self, outcome: &mut ClientShellInput) {
+    fn open_filter_selection(&mut self, outcome: &mut ClientShellInput) {
         let target = self.snapshot.as_deref().and_then(|snapshot| {
             let view = FilterView::new(snapshot, &self.space_filter.query);
             let none = HashSet::new();
@@ -267,7 +344,7 @@ impl ClientShellState {
                 &none,
             );
             let entries = view.filter_entries(snapshot, entries);
-            view.first_target(snapshot, &entries)
+            view.first_target(snapshot, &entries, self.space_filter.selected.as_deref())
         });
         let Some((workspace_id, tab_id)) = target else {
             return;

@@ -236,7 +236,12 @@
     matching child, folded groups open for the view only, `no match` when
     nothing fits. Space and tab drag are off while filtering (the header
     says `clear the filter to reorder`). Client-only, not saved.
-  - Left for later: Up/Down selection, highlighting the matched characters,
+  - Up/Down selection done 2026-10-01 (committed, not installed): Up and
+    Down move a selected space (the list highlights it like the navigation
+    selection and scrolls to it, no wrap), typing selects the first shown
+    space again, and Enter opens the selected space, or its first matching
+    tab when the space itself does not match.
+  - Left for later: highlighting the matched characters,
     a key to open the bar (needs a keybind action and its docs), AND tokens
     and the `7/23` counter, the multi-machine sidebar (it ignores the
     filter), the mobile layout, and a live check.
