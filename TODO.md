@@ -1789,7 +1789,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     closes the tab.
   - Verify on Linux: plain Ctrl+T/W still reach the shell inside herdr.
 
-- [ ] Raise the default sidebar width: it now carries spaces with branch
+- [x] Raise the default sidebar width: it now carries spaces with branch
   and git status, agents with their task, job lines and tab lines, and
   truncates a lot at 26 columns. Plan: `sidebar_width` 26 → 32,
   `sidebar_max_width` 36 → 44 (so dragging can go wider), min stays 18.
@@ -1812,6 +1812,13 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     "auto-scaled based on workspace names"; nothing scales it. Update the
     defaults in `src/config/model.rs`, the doc comments and the sample
     config together.
+  - Done 2026-10-01 (committed, not installed): `sidebar_width` 32,
+    `sidebar_max_width` 44, min 18; the sample config, the config reference
+    and the stale "auto-scaled" comment are updated. Six layout tests that
+    pinned columns for the old default now set 26 explicitly
+    (`config_with_sidebar_width`). Not done: the cap at a share of the
+    terminal below about 120 columns (still "consider"); a dragged width
+    is unchanged.
 
 ## Deferred
 

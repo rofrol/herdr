@@ -2,7 +2,7 @@ use super::*;
 use crate::api::schema::TabStatus;
 
 fn state_with_tabs(tabs: bool) -> ClientShellState {
-    let mut config = ClientShellConfig::from_config(&Config::default());
+    let mut config = config_with_sidebar_width(26);
     config.spaces.tabs = tabs;
     let mut state = ClientShellState::new(config);
     let mut projected = snapshot();
