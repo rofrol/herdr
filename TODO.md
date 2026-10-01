@@ -183,7 +183,7 @@
   the design and the consultations; this one only records that the user
   still sees it and wants it done.
 
-- [ ] Show herdr's own toasts in the top right corner instead of the bottom
+- [x] Show herdr's own toasts in the top right corner instead of the bottom
   right (2026-10-01). The option already exists: `[ui.toast.herdr]
   position = "top-right"` (values `top-left`, `top-right`, `bottom-left`,
   `bottom-right`; default `bottom-right`). The user's `config.toml` does not
@@ -191,6 +191,10 @@
   `top-right`; then check that a top-right toast does not hide the tab bar's
   right side or the notification button and that its dismiss click still
   works.
+  - Set 2026-10-01 in `~/.config/herdr/config.toml` (`[ui.toast.herdr]
+    position = "top-right"`), not in the fork's default. With
+    `delivery = "system"` herdr's own toast shows only while the window is
+    focused; the overlap checks above are still to do by eye.
 
 - [ ] Filter bar above the spaces list, like fzf (2026-10-01): a text field
   at the top of the sidebar that narrows the visible spaces and tabs as the
