@@ -183,6 +183,14 @@
   the design and the consultations; this one only records that the user
   still sees it and wants it done.
 
+- [ ] Show herdr's own toasts in the top right corner instead of the bottom
+  right (2026-10-01). Not investigated yet: find where the toast is placed
+  (`ui.toast`), check whether it covers the footer or the tab bar's right
+  side at the top, and whether a positively named option (for example
+  `ui.toast.position = "top_right"`) should keep the bottom right as the
+  default for upstream behavior. Keep stacking, hit areas and the dismiss
+  click consistent with the new corner.
+
 - [ ] Filter bar above the spaces list, like fzf (2026-10-01): a text field
   at the top of the sidebar that narrows the visible spaces and tabs as the
   user types. Not designed yet: decide what it matches (space names,
