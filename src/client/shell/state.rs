@@ -27,6 +27,7 @@ pub(crate) struct ClientShellConfig {
     pub(super) agents: crate::config::AgentsSidebarConfig,
     pub(super) agent_panel_sort: crate::config::AgentPanelSortConfig,
     pub(super) status_indicators: crate::config::StatusIndicatorStyle,
+    pub(super) animations: bool,
     pub(super) sound_enabled: bool,
     pub(super) toast_delivery: crate::config::ToastDelivery,
     pub(super) toast_delay_seconds: u64,
@@ -1101,6 +1102,12 @@ pub(crate) struct ClientShellState {
     pub(super) tab_press: Option<ClientTabPress>,
     /// The spaces filter bar (client-only).
     pub(super) space_filter: super::space_filter::SpaceFilter,
+    /// When the animated glyphs started together (see `ui::motion`).
+    pub(super) motion_epoch: std::time::Instant,
+    /// The frames the glyphs are drawn with.
+    pub(super) motion: crate::ui::motion::Motion,
+    /// Whether the last frame had a glyph that turns; the timer runs only then.
+    pub(super) motion_active: bool,
     /// Last focused tab of each tab group, by endpoint and the group's
     /// top-level tab. Kept by this client, so one client's navigation never
     /// moves another's.
@@ -1296,6 +1303,9 @@ impl ClientShellState {
             tooltip: None,
             tab_press: None,
             space_filter: Default::default(),
+            motion_epoch: std::time::Instant::now(),
+            motion: crate::ui::motion::Motion::at(std::time::Duration::ZERO),
+            motion_active: false,
             last_group_tabs: HashMap::new(),
             collapsed_groups: preferences.collapsed_groups.into_iter().collect(),
             remote_collapsed_groups,
@@ -2211,10 +2221,28 @@ impl ClientShellState {
         false
     }
 
+    /// Advances the turning glyphs to the frame for `now`; whether the frame
+    /// changed, so a repaint is due. Nothing happens while none is drawn.
+    pub(crate) fn tick_motion(&mut self, now: std::time::Instant) -> bool {
+        if !self.motion_active {
+            return false;
+        }
+        let next = crate::ui::motion::Motion::at(now.saturating_duration_since(self.motion_epoch));
+        let changed = next != self.motion;
+        self.motion = next;
+        changed
+    }
+
     pub(crate) fn timer_delay(&self, now: std::time::Instant) -> std::time::Duration {
         let default = std::time::Duration::from_millis(100);
+        let next_frame = self.motion_active.then(|| {
+            now + crate::ui::motion::Motion::until_next_frame(
+                now.saturating_duration_since(self.motion_epoch),
+            )
+        });
         self.selection_autoscroll_deadline
             .into_iter()
+            .chain(next_frame)
             .chain(self.selection_repaint_deadline)
             .chain(self.space_drag_autoscroll.map(|(_, _, deadline)| deadline))
             .chain(self.tooltip_deadline())

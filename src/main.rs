@@ -347,6 +347,12 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
 # ● done, ○ idle.
 # status_indicators = "shapes"
 
+# Turn the half circles of a working agent (clockwise) and of a running job
+# (counter-clockwise, slower) instead of showing them still. Only the "symbols"
+# and "shapes" styles use these glyphs. Set false for static glyphs: ◐ working,
+# ◑ job running.
+# animations = true
+
 # Accent color for highlights, borders, and navigation UI.
 # Accepts: hex (#89b4fa), named colors (cyan, blue, magenta), or rgb(r,g,b)
 # accent = "cyan"

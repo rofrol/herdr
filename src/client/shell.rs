@@ -198,11 +198,11 @@ fn status_icon(
         (StatusIndicatorStyle::Dots, AgentStatus::Idle) => "○",
         (StatusIndicatorStyle::Dots, AgentStatus::Unknown) => "·",
         (StatusIndicatorStyle::Symbols, AgentStatus::Blocked) => "×",
-        (StatusIndicatorStyle::Symbols, AgentStatus::Working) => "◐",
+        (StatusIndicatorStyle::Symbols, AgentStatus::Working) => crate::ui::motion::working_glyph(),
         (StatusIndicatorStyle::Symbols, AgentStatus::Done) => "✓",
         (StatusIndicatorStyle::Symbols, AgentStatus::Idle) => "○",
         (StatusIndicatorStyle::Symbols, AgentStatus::Unknown) => "·",
-        (StatusIndicatorStyle::Shapes, AgentStatus::Working) => "◐",
+        (StatusIndicatorStyle::Shapes, AgentStatus::Working) => crate::ui::motion::working_glyph(),
         (StatusIndicatorStyle::Shapes, AgentStatus::Blocked) => "◉",
         (StatusIndicatorStyle::Shapes, AgentStatus::Done) => "●",
         (StatusIndicatorStyle::Shapes, AgentStatus::Idle) => "○",
@@ -274,7 +274,7 @@ fn aggregate_icon(
 
 /// `status_icon`, or the mark: `?` for a question in both styles; for a
 /// running job a filled dot in the Dots style (easy to spot in a long list),
-/// `⧖` in the Symbols style.
+/// the running-job half circle (`ui::motion`) in the Symbols and Shapes styles.
 fn agent_icon(
     status: crate::api::schema::AgentStatus,
     mark: AgentMark,
@@ -287,7 +287,7 @@ fn agent_icon(
             AgentMark::WaitsOnJob,
             crate::config::StatusIndicatorStyle::Symbols
             | crate::config::StatusIndicatorStyle::Shapes,
-        ) => "⧖",
+        ) => crate::ui::motion::job_glyph(),
         (AgentMark::None, style) => status_icon(status, style),
     }
 }

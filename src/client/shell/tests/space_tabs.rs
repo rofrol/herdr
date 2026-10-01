@@ -65,7 +65,7 @@ fn spaces_list_their_tabs_without_nested_jobs_when_enabled() {
     // The label is cut first; the counts include the succeeded job.
     assert!(sidebar(&rows[line]).contains("agent…"), "{}", rows[line]);
     assert!(
-        sidebar(&rows[line]).contains("► ⧖ 1 !1 ✓1"),
+        sidebar(&rows[line]).contains("► ◐ 1 !1 ✓1"),
         "{}",
         rows[line]
     );
@@ -231,12 +231,12 @@ fn the_triangle_before_the_counts_folds_and_unfolds_the_squares() {
     let frame = state.compose(106, 30).unwrap();
     let rows = frame_rows(&frame);
     assert!(
-        rows[line.y as usize].contains("⧖ 1 !1"),
+        rows[line.y as usize].contains("◐ 1 !1"),
         "{}",
         rows[line.y as usize]
     );
     let square_row = rows[square.y as usize].chars().collect::<Vec<_>>();
-    assert_eq!(square_row[square.x as usize + 1], '⧖');
+    assert_eq!(square_row[square.x as usize + 1], '◐');
     // The first square starts under the tab's fill, past the state icon.
     assert_eq!(square.x, line.x + 5);
     let fold_line = rows[line.y as usize].chars().collect::<Vec<_>>();
@@ -603,7 +603,7 @@ fn an_idle_tab_with_a_running_job_shows_the_waiting_mark() {
     with_job(&mut state, "job_1", TabStatus::Running);
     let mauve = state.config.palette.mauve;
     // The shapes style (the default) marks it with a clock.
-    assert_eq!(tab_icon_color(&mut state), ("⧖".to_owned(), mauve));
+    assert_eq!(tab_icon_color(&mut state), ("◐".to_owned(), mauve));
 
     // A finished job, or a working agent, keeps the usual status.
     let mut state = state_with_tabs(true);
@@ -638,12 +638,12 @@ fn a_tab_with_an_agent_awaiting_a_reply_shows_a_question_mark_in_the_tab_bar() {
 }
 
 #[test]
-fn the_symbols_style_uses_an_hourglass_for_waiting() {
+fn the_symbols_style_uses_a_half_circle_for_waiting() {
     let mut state = state_with_tabs(true);
     state.config.status_indicators = crate::config::StatusIndicatorStyle::Symbols;
     set_agent_status(&mut state, AgentStatus::Done, false);
     with_job(&mut state, "job_1", TabStatus::Running);
-    assert_eq!(tab_icon_color(&mut state).0, "⧖");
+    assert_eq!(tab_icon_color(&mut state).0, "◐");
 }
 
 #[test]
@@ -985,7 +985,7 @@ fn the_spaces_list_scrolls_by_rows_to_the_last_square_of_a_tall_space() {
     let row = frame_rows(&frame)[last.y as usize]
         .chars()
         .collect::<Vec<_>>();
-    assert_eq!(row[last.x as usize + 1], '⧖');
+    assert_eq!(row[last.x as usize + 1], '◐');
     assert!(focuses(
         &left_click(&mut state, (last.x + 1, last.y)),
         "job_59"
@@ -1266,7 +1266,7 @@ fn the_tab_menu_closes_its_jobs_by_state_from_chips() {
     let (rows, hits) = open_menu(&mut state);
     let chips_row = chip(&rows, &hits, "!1").y as usize;
     assert!(
-        rows[chips_row].contains("Close jobs:  ⧖ 1   !1   ✓1 "),
+        rows[chips_row].contains("Close jobs:  ◐ 1   !1   ✓1 "),
         "{}",
         rows[chips_row]
     );
@@ -1279,7 +1279,7 @@ fn the_tab_menu_closes_its_jobs_by_state_from_chips() {
 
     // Running jobs ask first, then close only them, not the tab.
     let (rows, hits) = open_menu(&mut state);
-    let running = chip(&rows, &hits, "⧖ 1");
+    let running = chip(&rows, &hits, "◐ 1");
     assert!(closes(&left_click(&mut state, (running.x + 1, running.y))).is_empty());
     assert!(matches!(
         state.overlay,
@@ -1605,4 +1605,56 @@ fn tabs_are_not_dragged_while_the_list_is_filtered() {
     left_click(&mut state, (first.x + 6, first.y));
     left_drag(&mut state, (first.x + 6, first.y + 1));
     assert!(state.chrome_drag.is_none());
+}
+
+#[test]
+fn working_and_job_glyphs_turn_with_the_clock_and_stand_still_when_animations_are_off() {
+    let mut state = state_with_tabs(true);
+    with_job(&mut state, "job_1", TabStatus::Running);
+    // The agent works and a job runs: something turns, so the timer runs.
+    state.compose(106, 30).unwrap();
+    assert!(state.motion_active);
+    let delay = state.timer_delay(state.motion_epoch);
+    assert!(delay <= std::time::Duration::from_millis(100));
+    let row = |state: &mut ClientShellState| {
+        let frame = state.compose(106, 30).unwrap();
+        frame_rows(&frame)[state.hits.space_tabs[0].0.y as usize].clone()
+    };
+    let first = row(&mut state);
+    assert!(first.contains("◐  agent tab"), "{first}");
+    // 160 ms later the working circle has turned once, the job's has not.
+    assert!(state.tick_motion(state.motion_epoch + std::time::Duration::from_millis(170)));
+    let second = row(&mut state);
+    assert!(second.contains("◓  agent tab"), "{second}");
+    assert!(
+        second.contains("◐ 1"),
+        "the job loop is still on its first frame: {second}"
+    );
+    // A tick inside the same frame changes nothing, so nothing repaints.
+    assert!(!state.tick_motion(state.motion_epoch + std::time::Duration::from_millis(180)));
+    // Animations off: static glyphs, no timer.
+    state.config.animations = false;
+    let still = row(&mut state);
+    assert!(
+        still.contains("◐  agent tab") && still.contains("◑ 1"),
+        "{still}"
+    );
+    assert!(!state.motion_active);
+}
+
+#[test]
+fn nothing_turns_without_a_working_agent_or_a_running_job() {
+    let mut state = state_with_tabs(true);
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    for agent in &mut projected.agents {
+        agent.agent_status = AgentStatus::Idle;
+    }
+    state.set_snapshot(Box::new(projected));
+    state.compose(106, 30).unwrap();
+    assert!(!state.motion_active);
+    assert!(!state.tick_motion(state.motion_epoch + std::time::Duration::from_secs(5)));
+    assert_eq!(
+        state.timer_delay(state.motion_epoch),
+        std::time::Duration::from_millis(100)
+    );
 }

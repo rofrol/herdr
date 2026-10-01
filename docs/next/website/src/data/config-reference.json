@@ -1168,6 +1168,12 @@
           ]
         },
         {
+          "key": "ui.animations",
+          "type": "boolean",
+          "default": "true",
+          "description": "Turn the half circles of a working agent (clockwise) and of a running job (counter-clockwise, slower) instead of showing them still. They only exist in the symbols and shapes styles. When false they stay still: ◐ for working and ◑ for a running job."
+        },
+        {
           "key": "ui.sidebar.agents.row_gap",
           "type": "integer",
           "default": "0",

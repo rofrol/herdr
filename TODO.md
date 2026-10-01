@@ -363,6 +363,23 @@
     and tmux bandwidth (diff only). GPT: direction and colour alone are weak
     cues, so keep text labels in details. First step: a Python demo of both
     loops side by side, monochrome and reduced motion.
+  - Done 2026-10-01 at the user's request (committed; `just check` passes;
+    no Python demo was made, the user chose the implementation directly):
+    `ui.animations` (default true). Working `◐ ◓ ◑ ◒` clockwise, 160 ms a
+    frame; a running job `◐ ◒ ◑ ◓` counter-clockwise, 320 ms a frame, still
+    mauve; the hourglass `⧖` is gone from the client UI (state icon, counts
+    in tab lines and space rows, squares, job footer, tab menu, the legacy
+    `ui` sidebar token). Without animations: `◐` working, `◑` job. One timer
+    deadline at the next frame change, only while an agent works or a job
+    runs (`motion_active`, computed in compose); `ui::motion` holds the
+    frames and a thread-local phase set around each compose, so the many
+    `status_icon` call sites need no new argument. Not changed: the plugin
+    texts (`herdr-job` labels for old builds, the `$jobs` token, README and
+    plugin docs still say `⧖`); the confirm-close dialog text, built when it
+    opens, shows the static `◑`; Dots style keeps `●`. Open: a live look at
+    the cadence in a real terminal, ambiguous-width terminals, the 100 ms
+    wake-up that already existed (the new deadline only adds the exact frame
+    boundaries).
 
 - [x] Indent vertical tab rows under nested worktree spaces (screenshot,
   2026-09-30 00:49). The `Job client footer` worktree header is indented,

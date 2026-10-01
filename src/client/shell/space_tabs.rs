@@ -870,7 +870,7 @@ mod tests {
                     "tab_1",
                     true,
                     vec![
-                        (Some(TabStatus::Running), "⧖ 1".to_owned()),
+                        (Some(TabStatus::Running), "◑ 1".to_owned()),
                         (Some(TabStatus::Failed), "!1".to_owned()),
                         (Some(TabStatus::Succeeded), "✓1".to_owned()),
                     ]

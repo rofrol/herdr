@@ -185,6 +185,24 @@ impl ClientShellState {
     ) -> Option<crate::client::frame_output::ComposedFrame> {
         self.last_composed_at = Some(std::time::Instant::now());
         self.selection_repaint_deadline = None;
+        // Glyphs turn while an agent works or a job runs; with nothing to
+        // turn (or animations off) the timer stays idle.
+        self.motion_active = self.config.animations
+            && self.snapshot.as_deref().is_some_and(|snapshot| {
+                snapshot
+                    .agents
+                    .iter()
+                    .any(|agent| agent.agent_status == crate::api::schema::AgentStatus::Working)
+                    || snapshot
+                        .tabs
+                        .iter()
+                        .any(|tab| tab.status == Some(crate::api::schema::TabStatus::Running))
+            });
+        let _motion = crate::ui::motion::scope(if self.config.animations {
+            self.motion
+        } else {
+            crate::ui::motion::Motion::STATIC
+        });
         if self.last_composed_size != Some((cols, rows)) && self.mode == ClientShellMode::Navigate {
             self.reveal_navigation_workspace = true;
             self.reveal_mobile_workspace = true;

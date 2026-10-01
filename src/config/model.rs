@@ -1003,6 +1003,9 @@ pub struct UiConfig {
     /// Agent status indicator style. Saved values are "dots", "symbols" or
     /// "shapes". Default: "shapes".
     pub status_indicators: StatusIndicatorStyle,
+    /// Turn the working and running-job half circles instead of showing them
+    /// still. Default: true.
+    pub animations: bool,
     /// Expanded sidebar row composition.
     pub sidebar: SidebarConfig,
     /// Accent color for highlights, borders, and navigation UI.
@@ -1232,6 +1235,7 @@ impl Default for UiConfig {
             agent_panel_sort: AgentPanelSortConfig::Spaces,
             _legacy_agent_panel_scope: None,
             status_indicators: StatusIndicatorStyle::Shapes,
+            animations: true,
             sidebar: SidebarConfig::default(),
             accent: "cyan".into(),
             toast: ToastConfig::default(),
