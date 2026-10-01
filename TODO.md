@@ -380,6 +380,9 @@
     the cadence in a real terminal, ambiguous-width terminals, the 100 ms
     wake-up that already existed (the new deadline only adds the exact frame
     boundaries).
+  - Installed as `b4c56cec` and the speeds confirmed by the user on a live
+    demo job ("ok", 2026-10-01): installed build, working clockwise at 160 ms
+    and job counter-clockwise at 320 ms.
 
 - [x] Indent vertical tab rows under nested worktree spaces (screenshot,
   2026-09-30 00:49). The `Job client footer` worktree header is indented,
