@@ -126,7 +126,8 @@
   - [ ] Why does the worktree's `└─` connector hang under `ask gemini`, as
     if it were its child? Verify the real parent ids (`tab_parent_index`)
     versus a purely visual artefact of the connector drawing.
-  - [ ] Why is `zsh` after the worktree group not indented like the other
+  - [x] (fixed by the worktree tab indent below; installed build pending)
+    Why is `zsh` after the worktree group not indented like the other
     tabs? Check whether it is a child of the group or a top-level tab drawn
     at the wrong depth.
   - Findings from `herdr tab list --workspace wR` and the code (2026-10-01):
@@ -145,9 +146,11 @@
     - Q2-Q4: `Pi compact job act…` is not a tab: it is the separate
       workspace `w1B` (linked worktree of `herdr`), drawn as a child of the
       repo workspace, and `zsh` is that workspace's only tab (`w1B:t1`).
-      Not investigated: why its tabs are not indented below the worktree
-      header, and why the `└─` stub starts under `ask gemini` (the last
-      row of the parent workspace's tabs). Read the sidebar renderer
+      The tabs were not indented below the worktree header (fixed). The
+      `└─` stub is the worktree's tree connector to its parent space; it
+      starts under `ask gemini` only because that is the parent space's
+      last tab line. Whether the stub needs more separation is a design
+      question for the user. Read the sidebar renderer
       (`src/ui`) for worktree-workspace rows before judging.
   - Consulted DeepSeek (generic hypotheses, nothing the data above did not
     settle better); GPT sol hit the Plus usage limit this round.
