@@ -2549,6 +2549,86 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     Open decision for the user: should "finished" alert at all?
     Related: the entry above about what the history rows say.
 
+- [ ] A sound but no notification for an approval prompt (user, 2026-10-01,
+  screenshot): a Claude Code permission prompt ("This command requires
+  approval", 1 Yes / 2 Yes and don't ask again / 3 No) appeared in the tab
+  that was displayed; the sound played, nothing was shown.
+  - Cause (client notification policy, `src/client/shell/notification_policy.rs`,
+    read in the code and confirmed by the server's history, which recorded
+    `needs_attention` for that pane at 14:43:56 and 14:44:58): with
+    `delivery = "system"` and the Herdr window focused, `herdr_toast` is
+    true, and a target tab that is the focused tab counts as "looking at it"
+    (`target_active`): neither Herdr's toast (`herdr_toast && !target_active`)
+    nor the system one (`!suppress_external`) is shown, while the needs-attention
+    sound still plays (only Finished sounds are suppressed). By design, but the
+    result is a phantom ping.
+  - Consulted DeepSeek, Opus 5.5, GPT sol 6.1 and Gemini high 2026-10-01: all
+    four say sound without a visible cue is wrong; focused tab is not focused
+    pane is not a user looking; suppress the system toast (it would cover the
+    window) but show a compact in-window cue: a Herdr toast or chip ("Claude
+    needs approval · tab/pane", click to go there) plus a persistent mark on the
+    sidebar row until answered; one alert per episode, no repeated toast or
+    chime for a repeated needs-attention. Disagreement on whether recent input
+    in that pane (15-30 s) should suppress the toast: DeepSeek, Opus and
+    Gemini yes, GPT no (input is not proof it was seen).
+  - The user's answer (2026-10-01): the toast need not appear when the tab
+    is the active one, but the notification should appear at the top of the
+    notification list (the `✉` dropdown). I tried a Herdr toast for the active
+    tab and took it out again. What the list does today: the server records
+    the `needs_attention` (14:43:56 and 14:44:58 are in `notification.list`),
+    the dropdown fetches the list when it opens and shows the newest first, but
+    the `✉` badge counts only tabs that are not shown (`notification_log_
+    received`), so a question in the displayed tab raises no count, and
+    nothing marks the row. Open: make the row stand out (an unread mark and
+    the badge count until the prompt is answered or the tab's state changes),
+    and say in the row what it is (see the next entry).
+  - Not done: the persistent row mark in the sidebar, the input-recency rule,
+    deduping repeats per episode.
+- [ ] History rows for a repeated notification from one session (user,
+  2026-10-01, screenshot: `14:42`, `14:39`, `14:38 claude finished · ~ · 7 · 4`):
+  "I cannot see WHAT this claude finished", and "shouldn't a new notification
+  from the same session clear the previous ones?"
+  - Today the client already replaces a pending, queued or visible toast of
+    the same pane when a new one arrives (`receive_notification`), but the
+    server's history list keeps every record.
+  - Consulted DeepSeek, Opus, GPT and Gemini 2026-10-01: merge, do not append:
+    key by pane; a new unread event of the same kind replaces the older unread
+    row (newest time, a counter `x3`, first time kept); a seen row stays as it
+    was and the new event starts a fresh unread row; a different kind stays
+    separate (a finished must never hide an unanswered needs-attention);
+    needs-attention that was answered is marked resolved/greyed; the unread
+    badge counts tabs with unread rows, not rows. Row text: `time mark task ·
+    agent · cwd@branch · duration x3` from a snapshot taken when the event
+    fires (terminal title, treating generic titles like `claude` as none), with
+    the fallback agent summary, then `basename(cwd)@branch`, then cwd (`~`); no
+    workspace position or auto tab number. Closed pane: keep the row, note it,
+    click opens the tab or says so. Memory only. Tests as in the two entries
+    above.
+  - Done: nothing yet.
+
+- [x] A close confirmation when nothing is happening (user, 2026-10-01,
+  screenshot): closing the tab "ask gemini 3.8-flash-low: Des…" asked `Close
+  tab with running work? … stops: agy idle in ask gemini …`; the job had
+  finished and the agent was idle. "Why does it ask me when nothing is going
+  on?"
+  - Cause: `close_impact::pane_work` counted a pane's agent in every state
+    (a deliberate comment: an idle agent loses a draft, background tasks and
+    its place), also in a finished job's tab.
+  - Consulted DeepSeek, Opus, GPT and Gemini 2026-10-01 (unanimous): ask only
+    when a close would lose something: a turn in progress, an approval
+    waiting, background tasks, a question the user has yet to answer, a
+    running job or program, an unknown state (to be safe); an idle or done
+    agent with none of them is not worth a question; an agent in a finished
+    job's tab is the one-shot command's leftover (it counts only if working,
+    blocked or with background tasks, and an unknown state does not count
+    there); uncommitted files survive a close, so they are no reason. They
+    also suggest a `confirm_close = work | always | never` setting (the config
+    already has `confirm_close` and `confirm_close_running`) and dialog lines
+    that name the loss instead of the tab title.
+  - Done 2026-10-01 (committed, not installed): the rules above in
+    `close_impact.rs`; an agent that is idle with `awaiting_reply` reads
+    `waiting for a reply`. Not done: the dialog wording.
+
 - [ ] The flaky `federated_client_starts_without_local_and_survives_its_restart`
   fails more often now (2026-10-01): three full `just check` runs in a row
   at about 07:00 failed it ("recovered Local must be selectable", after
