@@ -953,13 +953,19 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   reset on target change, pending dismissal tests; full check and release
   passed, installed and accepted. Consulted DeepSeek only at the user's
   request because Astra was near its usage limit.
-- [ ] Regression (2026-09-29): closing a tab asks whether to close the
+- [x] Regression (2026-09-29): closing a tab asks whether to close the
   space, and cancelling leaves an odd highlight on the space. Probably
   the tab is the space's last one, so the close becomes a space close
   (`request_tab_close` opens the workspace confirmation when no other tab
   is left), and the cancelled confirmation leaves the space selected or
   highlighted. Reproduce, check whether it predates the vertical tabs, and
   consult (GPT-6 Astra, DeepSeek) on what closing the last tab should do.
+  - Cause found and fixed 2026-10-01 (committed, not installed): Esc on a
+    close confirmation always set navigate mode and highlighted the focused
+    space, even when the confirmation came from closing a tab in the
+    terminal. Now Esc on a tab or pane close just closes the dialog; a
+    workspace close still returns to navigate mode. Mouse cancel already left
+    the mode alone. Test: `last_tab_close_confirmation_can_be_cancelled`.
 - [x] Disable upstream binary update notifications in fork builds
   (reported 2026-09-29, confirmed 2026-09-30). The fork is installed with
   `scripts/herdr_live.sh`; upstream `herdr update` would replace it.
@@ -1576,7 +1582,7 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     (hash and subject) in a tooltip, and both builds when the client's
     differs (`server <line> · client <hash>`). Still open: the modal and
     the build metadata it needs.
-- [ ] Reopen the last closed tab, `prefix+u` ("undo close", configurable).
+- [x] Reopen the last closed tab, `prefix+u` ("undo close", configurable). (v1 done, see the last bullet)
   - Closing a tab kills its processes, so this recreates the tab rather
     than undoing the close: same place in the space, name, pane layout,
     working directories, and agents resumed through the existing session
@@ -1593,6 +1599,18 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   - Alternative to weigh (mine, not consulted): keep a closed tab's
     processes alive for a few seconds with an "undo" toast, which restores
     them exactly.
+  - Consulted DeepSeek, Opus 5.5, GPT sol 6.1 and Gemini high 2026-10-01 on
+    a client-local v1: record only a close the server accepted, top-level
+    tabs without jobs, a custom label only, at most 10, not persisted; skip
+    entries whose space is gone; use an entry up when sent; document that
+    other clients' closes and process exits are not covered; server-owned
+    history later. Done and committed (not installed): `keys.reopen_tab`
+    (default `prefix+u`) opens a new tab in the same space with the focused
+    pane's directory and the tab's own name, then moves it after the tab
+    that stood before it when that one is still there. A refused create
+    keeps the entry. New file `src/client/shell/closed_tabs.rs`; no protocol
+    change. Not done: a server-owned history, closes by other clients or
+    exits, restoring splits or agents, a live check.
 - [x] Which tab gets focus after closing the active one (done 2026-10-01; the user said to decide, so see the last bullet): should it be the
   next one (right) instead of the previous one (left), or should that be
   configurable? Today `Workspace::close_tab` focuses the previous tab (the

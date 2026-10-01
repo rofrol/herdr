@@ -1769,3 +1769,183 @@ fn the_filter_spaces_key_opens_the_bar_even_with_the_sidebar_collapsed() {
     assert_eq!(state.space_filter.query, "rev");
     assert_eq!(shown_tabs(&mut state), ["tab_3"]);
 }
+
+fn endpoint_requests(outcome: &ClientShellInput) -> Vec<(String, crate::api::schema::Method)> {
+    outcome
+        .actions
+        .iter()
+        .filter_map(|action| match action {
+            ClientShellAction::Endpoint { request, .. } => {
+                Some((request.id.clone(), request.method.clone()))
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+fn accept(state: &mut ClientShellState, id: &str) -> Vec<ClientShellAction> {
+    let boot = state.snapshot.as_deref().expect("snapshot").boot_id.clone();
+    state
+        .handle_endpoint_result(&boot, id, Ok(crate::api::schema::ResponseResult::Ok {}))
+        .1
+}
+
+/// Closes `tab_id` as the user does and has the server accept it.
+fn close_tab_accepted(state: &mut ClientShellState, tab_id: &str) {
+    let mut outcome = ClientShellInput::default();
+    state.config.confirm_close = false;
+    state.request_tab_close(tab_id.into(), &mut outcome);
+    let [(id, crate::api::schema::Method::TabClose(target))] = &endpoint_requests(&outcome)[..]
+    else {
+        panic!("expected one tab close: {:?}", outcome.actions);
+    };
+    assert_eq!(target.tab_id, tab_id);
+    accept(state, id);
+}
+
+fn reopen(state: &mut ClientShellState) -> ClientShellInput {
+    let mut outcome = ClientShellInput::default();
+    state.record_binding(
+        crate::input::KeybindMatch::Action(crate::input::KeybindAction::ReopenTab),
+        &mut outcome,
+    );
+    outcome
+}
+
+#[test]
+fn a_closed_tab_reopens_with_its_directory_and_own_name_in_its_place() {
+    let mut state = state_with_named_tabs();
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    projected.panes.push(ClientShellPane {
+        pane_id: "pane_2".into(),
+        tab_id: "tab_2".into(),
+        cwd: Some("/work/tests".into()),
+        foreground_cwd: None,
+        ..projected.panes[0].clone()
+    });
+    state.set_snapshot(Box::new(projected));
+    close_tab_accepted(&mut state, "tab_2");
+    assert_eq!(state.closed_tabs.len(), 1);
+    // Gone from the snapshot, as the server would project it.
+    let mut projected = state.snapshot.as_deref().expect("snapshot").clone();
+    projected.tabs.retain(|tab| tab.tab_id != "tab_2");
+    state.set_snapshot(Box::new(projected));
+
+    let outcome = reopen(&mut state);
+    let requests = endpoint_requests(&outcome);
+    let [(create_id, crate::api::schema::Method::TabCreate(params))] = &requests[..] else {
+        panic!("expected one tab create: {:?}", outcome.actions);
+    };
+    assert_eq!(params.workspace_id.as_deref(), Some("ws_1"));
+    assert_eq!(params.cwd.as_deref(), Some("/work/tests"));
+    assert_eq!(params.label.as_deref(), Some("tests"));
+    assert!(params.focus);
+    assert!(state.closed_tabs.is_empty(), "used up when sent");
+    // A second press has nothing to reopen.
+    assert!(endpoint_requests(&reopen(&mut state)).is_empty());
+
+    // The server created the tab; it goes back after `build`, the tab that
+    // stood before it, ahead of `review`.
+    let boot = state.snapshot.as_deref().expect("snapshot").boot_id.clone();
+    let tab = crate::api::schema::TabInfo {
+        job: None,
+        tab_id: "tab_9".into(),
+        workspace_id: "ws_1".into(),
+        number: 9,
+        label: "tests".into(),
+        focused: true,
+        pane_count: 1,
+        agent_status: AgentStatus::Unknown,
+        parent_tab_id: None,
+        status: None,
+    };
+    let root_pane = crate::api::schema::PaneInfo {
+        pane_id: "pane_9".into(),
+        terminal_id: "term_9".into(),
+        workspace_id: "ws_1".into(),
+        tab_id: "tab_9".into(),
+        focused: true,
+        cwd: None,
+        foreground_cwd: None,
+        restore_error: None,
+        label: None,
+        agent: None,
+        title: None,
+        terminal_title: None,
+        terminal_title_stripped: None,
+        display_agent: None,
+        agent_status: AgentStatus::Unknown,
+        state_labels: Default::default(),
+        tokens: Default::default(),
+        agent_session: None,
+        scroll: None,
+        revision: 0,
+    };
+    let (_, actions) = state.handle_endpoint_result(
+        &boot,
+        create_id,
+        Ok(crate::api::schema::ResponseResult::TabCreated { tab, root_pane }),
+    );
+    let moves = actions
+        .iter()
+        .filter_map(|action| match action {
+            ClientShellAction::Endpoint { request, .. } => match &request.method {
+                crate::api::schema::Method::TabMove(params) => {
+                    Some((params.tab_id.clone(), params.insert_index))
+                }
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(moves, [("tab_9".to_string(), 1)]);
+}
+
+#[test]
+fn a_refused_close_and_a_closed_job_or_parent_are_not_remembered() {
+    let mut state = state_with_three_tabs();
+    with_job(&mut state, "job_1", TabStatus::Failed);
+    state.config.confirm_close = false;
+    // A tab with a job under it is not recorded.
+    assert!(state.closed_tab_record("tab_1").is_none());
+    // Neither is the job (a child).
+    assert!(state.closed_tab_record("job_1").is_none());
+    // A refused close leaves no entry.
+    let mut outcome = ClientShellInput::default();
+    state.request_tab_close("tab_3".into(), &mut outcome);
+    let [(id, _)] = &endpoint_requests(&outcome)[..] else {
+        panic!("one request");
+    };
+    let boot = state.snapshot.as_deref().expect("snapshot").boot_id.clone();
+    state.handle_endpoint_result(
+        &boot,
+        id,
+        Err(ClientShellEndpointError {
+            code: Some("tab_close_failed".into()),
+            message: "no".into(),
+        }),
+    );
+    assert!(state.closed_tabs.is_empty());
+}
+
+#[test]
+fn reopening_skips_a_vanished_space_keeps_ten_and_reuses_nothing_twice() {
+    let mut state = state_with_three_tabs();
+    for n in 0..12 {
+        state.remember_closed_tab(crate::client::shell::closed_tabs::ClosedTab {
+            endpoint_id: ClientEndpointId::Local,
+            workspace_id: if n == 11 { "ws_gone" } else { "ws_1" }.into(),
+            label: Some(format!("t{n}")),
+            cwd: None,
+            after_tab_id: None,
+        });
+    }
+    assert_eq!(state.closed_tabs.len(), 10);
+    // The newest entry's space is gone: it is skipped, the next one reopens.
+    let outcome = reopen(&mut state);
+    let requests = endpoint_requests(&outcome);
+    let [(_, crate::api::schema::Method::TabCreate(params))] = &requests[..] else {
+        panic!("expected a tab create");
+    };
+    assert_eq!(params.label.as_deref(), Some("t10"));
+}

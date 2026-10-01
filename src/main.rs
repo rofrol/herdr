@@ -195,6 +195,7 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
 # resize_pane_right = ""  # optional, e.g. "ctrl+shift+alt+right"
 # toggle_sidebar = "prefix+b"
 # filter_spaces = "prefix+/"   # open the spaces filter bar (type to narrow the list)
+# reopen_tab = "prefix+u"       # open the last closed tab again (fresh shell, same place)
 
 # Navigate-mode movement. These local shortcuts win while navigate mode is open.
 # They are independent from focus_pane_*. Do not include prefix+, esc, enter, tab, or 1..9 here.

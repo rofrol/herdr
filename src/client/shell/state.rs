@@ -823,6 +823,14 @@ impl ClientShellOverlay {
 #[derive(Debug)]
 pub(super) enum PendingEndpointKind {
     Generic,
+    /// A tab close; a close the server accepts is remembered for reopening.
+    TabClose {
+        closed: Option<Box<super::closed_tabs::ClosedTab>>,
+    },
+    /// The tab create of a reopened tab; its place is restored afterwards.
+    ReopenTab {
+        closed: Box<super::closed_tabs::ClosedTab>,
+    },
     ProductAnnouncementDismiss {
         version: String,
         id: String,
@@ -1102,6 +1110,8 @@ pub(crate) struct ClientShellState {
     pub(super) tab_press: Option<ClientTabPress>,
     /// The spaces filter bar (client-only).
     pub(super) space_filter: super::space_filter::SpaceFilter,
+    /// Tabs this client closed, newest last (see `closed_tabs`).
+    pub(super) closed_tabs: std::collections::VecDeque<super::closed_tabs::ClosedTab>,
     /// When the animated glyphs started together (see `ui::motion`).
     pub(super) motion_epoch: std::time::Instant,
     /// The frames the glyphs are drawn with.
@@ -1303,6 +1313,7 @@ impl ClientShellState {
             tooltip: None,
             tab_press: None,
             space_filter: Default::default(),
+            closed_tabs: Default::default(),
             motion_epoch: std::time::Instant::now(),
             motion: crate::ui::motion::Motion::at(std::time::Duration::ZERO),
             motion_active: false,

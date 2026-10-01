@@ -109,6 +109,9 @@ fn last_tab_close_confirmation_can_be_cancelled() {
         };
         assert_no_close(&cancelled);
         assert!(state.overlay.is_none());
+        // Cancelling must not leave the space selected as in navigate mode.
+        assert_ne!(state.mode, ClientShellMode::Navigate, "mouse: {mouse}");
+        assert!(state.navigate_workspace_id.is_none(), "mouse: {mouse}");
     }
 }
 

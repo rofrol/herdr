@@ -938,6 +938,12 @@
           "description": "Open the spaces filter bar: type to narrow the spaces list to the spaces and tabs that match; Enter opens the first match or the one chosen with Up and Down, Esc clears and then closes."
         },
         {
+          "key": "keys.reopen_tab",
+          "type": "keybinding",
+          "default": "\"prefix+u\"",
+          "description": "Open the last tab this client closed again: a new tab in the same space and place, with its working directory and name. It starts a fresh shell: no command is replayed, no agent resumed, no jobs restored. Only closes this client made are remembered (10 at most, not kept across restarts)."
+        },
+        {
           "key": "keys.indexed.tabs",
           "type": "string",
           "default": "unset",
