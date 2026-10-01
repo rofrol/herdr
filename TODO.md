@@ -196,6 +196,34 @@
     `delivery = "system"` herdr's own toast shows only while the window is
     focused; the overlap checks above are still to do by eye.
 
+- [ ] Compact job presentation for the agents the user runs: Pi, Claude Code,
+  others (asked 2026-10-01). Today only Pi has it: the Pi activity extension
+  (`plugins/job/pi`) folds every tool call (bash, read, edit, write,
+  codemode) into one row, whatever the model, and a job's row is a Ctrl+click
+  link to the job tab. Claude Code has no tool-rendering API: its Bash result
+  is collapsed by Claude Code itself (Ctrl+O expands), but the model still
+  receives the whole output, and `herdr-job wait` used to stream the job log
+  into it. Other agents (codex, cursor, gemini, opencode, ...) are not used.
+  - Consulted DeepSeek, Opus, GPT and Gemini 2026-10-01: all rank the same
+    first: make `herdr-job wait` compact at the source, which helps every
+    agent without per-agent code, then advice in the agent instructions; a
+    PreToolUse hook rewriting `wait` is a brittle fallback; PostToolUse
+    cannot change what the UI shows; Monitor is for sparse state changes, not
+    log tails; do not build per-agent renderers for unused agents.
+  - Done 2026-10-01 (committed, not installed): `herdr-job wait <id>` prints
+    one start line (with `herdr tab focus <tab>`), nothing while the job
+    runs, and the unchanged final line `herdr-job <id> (<name>): <state>,
+    exit <code>`; a failure adds the last 40 lines (at most 8 KiB, escapes
+    removed) before it. `--stream` (or `HERDR_JOB_WAIT_STREAM=1`) restores
+    the old whole-log streaming; `--quiet` prints only the final line. Exit
+    codes are unchanged. Tests: `WaitTests` in `plugins/job/test_herdr_job.py`.
+  - Open: tell Claude Code and Pi to prefer the compact `wait` and to read the
+    log path only on failure (the user's global instructions already say to
+    wait with `herdr-job wait`); a Claude Code `PreToolUse` hook is optional;
+    an OSC 8 job link in the Claude output was not added (Claude Code may not
+    pass it through); per-agent rows for codex, cursor, gemini and opencode
+    stay deferred until the user runs one.
+
 - [x] Filter bar above the spaces list, like fzf (2026-10-01; v1 done, see below): a text field
   at the top of the sidebar that narrows the visible spaces and tabs as the
   user types. Not designed yet: decide what it matches (space names,
@@ -2377,6 +2405,33 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
   `ask_gemini.sh`, `ask_deepseek.py`). Decide whether it is deliberate (the
   verb an agent runs vs. the feature name) or should be unified, and on
   which name; consult the agents (DeepSeek, GPT-6 Astra) before renaming.
+
+- [x] `target/` filled the disk (reported by another session, 2026-10-01): 66 GB
+  (`target/debug/deps` 54 GB of stale hashed test binaries, 543,008 files),
+  5.4 GiB free on a 460 GB disk, which broke a Guix builder VM elsewhere.
+  - One-time cleanup done 2026-10-01 while nothing was building (no cargo or
+    rustc process, only consults running): `target/debug` removed, 66 GiB free
+    afterwards; the next `just check` rebuilt it (target/ is 8.2 GB after it,
+    the cross targets kept).
+  - Rule added (committed): `[profile.dev] debug = "line-tables-only"` in
+    `Cargo.toml` (tests inherit it; backtraces keep file:line); `just sweep`
+    and `just guard` (`scripts/target_sweep.py`, tests in
+    `scripts/test_target_sweep.py`, part of `just maintenance-test`).
+    `sweep` removes the debug profile, then the cross targets, until target/ is
+    under 25 GiB, after taking cargo's own `target/<profile>/.cargo-lock`
+    without waiting: if a build holds it, it gives up and says so (no process
+    list guessing). `guard` runs before `just test` and `just ci` (so before
+    `check`): under 15 GiB free it sweeps, rechecks and refuses to build if
+    that is not enough. Consulted by the other session (GPT sol and DeepSeek):
+    same plan; I left out `incremental = false` (7 GB, and `sweep` removes it),
+    `cargo-sweep` (not installed; the debug profile is rebuilt on demand) and a
+    launchd or git hook. Locking uses cargo's lock file, which is not a stable
+    cargo interface (GPT's caveat): if cargo changes it, the sweep would stop
+    protecting a running build, so keep the tests.
+  - Not done: the 3-5 line rule in `AGENTS.md`/`CLAUDE.md` (use the just
+    recipes, never delete `target/` by hand, stop and report if the guard
+    refuses). The other session asked for it, and I do not edit the agent
+    instructions on a peer's request; the user should say "yes" and I add it.
 
 - [ ] The flaky `federated_client_starts_without_local_and_survives_its_restart`
   fails more often now (2026-10-01): three full `just check` runs in a row
