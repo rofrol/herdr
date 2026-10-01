@@ -1473,11 +1473,18 @@ Order consulted with DeepSeek, GPT-6 Astra and GPT-6 Luna on 2026-09-26.
     Use 1/15 populated panes with and without metadata and interleaved
     baseline/candidate samples before attributing any cost to the footer.
     Optimise only if repeatable measurements justify it.
-- [ ] Push the fork's pending commits after explicit user approval.
+- [x] Push the fork's pending commits after explicit user approval. (approved and pushed 2026-10-01, see the last bullet)
   - Fetch and refresh the ahead/behind comparison first; the earlier count
     of 52 unpushed commits is stale. Review the outgoing changes, follow
     the rebase-only fork sync rules in AGENTS.md, and never merge upstream
     into master. Do not push or rewrite remote history without approval.
+  - Done 2026-10-01 ("tak na wszystko"): master was 32 commits ahead of
+    `origin/master` and `origin/master` was its ancestor, so a plain
+    fast-forward `git push origin master` was enough (no force). Upstream is
+    47 commits ahead of the fork (312 fork commits on top): not synced; the
+    rebase onto `upstream/master` is its own step with its own check. The
+    user also approved a standing rule for that rebase and force-push, now in
+    AGENTS.md (relayed by another session).
 - [ ] Review queue for agent commits, plus `herdr diff`. When an agent's turn
   ends with new commits, list them as "to review" until I acknowledge them.
   - Consulted models (GPT-6 Astra, DeepSeek, 2026-09-27): a plugin with a
