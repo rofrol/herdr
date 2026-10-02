@@ -994,6 +994,13 @@ fn federated_launch_opens_local_directly_while_saved_ssh_is_unavailable() {
     }
 }
 
+/// A wait that only fails a test when something is stuck: three times the
+/// nominal time, since a full run on a loaded machine can starve the servers
+/// this test starts for far longer than they take when alone.
+fn patient(secs: u64) -> Duration {
+    Duration::from_secs(secs * 3)
+}
+
 #[test]
 fn federated_client_starts_without_local_and_survives_its_restart() {
     use std::os::unix::fs::PermissionsExt;
@@ -1010,8 +1017,8 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
     let remote_client = remote_runtime.join("herdr-client.sock");
     let mut remote_server =
         spawn_server(&remote_config, &remote_runtime, &remote_api, &remote_client);
-    wait_for_socket(&remote_api, Duration::from_secs(10));
-    wait_for_socket(&remote_client, Duration::from_secs(10));
+    wait_for_socket(&remote_api, patient(10));
+    wait_for_socket(&remote_client, patient(10));
     let created = send_json_request(
         &remote_api,
         &serde_json::json!({
@@ -1077,7 +1084,7 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
         terminal_screen::text(&bytes, 80, 24)
     };
     assert!(
-        wait_until(Duration::from_secs(12), Duration::from_millis(20), || {
+        wait_until(patient(12), Duration::from_millis(20), || {
             screen_text().contains("REMOTE_INITIAL_FRAME")
         }),
         "remote must be usable before Local exists: {}",
@@ -1102,7 +1109,7 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
         let marker = format!("REMOTE_RECONNECTED_{cycle}");
         send_pane_shell_command(&remote_api, remote_pane, &format!("printf '{marker}\\n'"));
         assert!(
-            wait_until(Duration::from_secs(15), Duration::from_millis(20), || {
+            wait_until(patient(15), Duration::from_millis(20), || {
                 screen_text().contains(&marker)
             }),
             "remote reconnect {cycle} must restore the visible screen without switching machines"
@@ -1110,7 +1117,7 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
         assert!(
             // As long as the screen wait above: under a full parallel test
             // run the reconnect can take more than 8 s (it failed so twice).
-            wait_until(Duration::from_secs(15), Duration::from_millis(100), || {
+            wait_until(patient(15), Duration::from_millis(100), || {
                 if screen_text().contains(&format!("REMOTE_ALIVE_INPUT_{cycle}")) {
                     return true;
                 }
@@ -1126,7 +1133,7 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
     }
 
     let mut local = spawn_server(&config_home, &runtime_dir, &api_socket, &client_socket);
-    wait_for_socket(&api_socket, Duration::from_secs(10));
+    wait_for_socket(&api_socket, patient(10));
     let created = send_json_request(
         &api_socket,
         &serde_json::json!({
@@ -1136,17 +1143,15 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
         .to_string(),
     );
     assert_eq!(created["result"]["type"], "workspace_created");
-    assert!(wait_until(
-        Duration::from_secs(10),
-        Duration::from_millis(20),
-        || screen_text().contains("local-online")
-    ));
+    assert!(wait_until(patient(10), Duration::from_millis(20), || {
+        screen_text().contains("local-online")
+    }));
 
     local.child.kill().unwrap();
     local.close_master();
     drop(local);
     assert!(
-        wait_until(Duration::from_secs(8), Duration::from_millis(20), || {
+        wait_until(patient(8), Duration::from_millis(20), || {
             if screen_text().contains("REMOTE_SURVIVED") {
                 return true;
             }
@@ -1161,7 +1166,7 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
     assert!(client.child.try_wait().unwrap().is_none());
 
     let restarted = spawn_server(&config_home, &runtime_dir, &api_socket, &client_socket);
-    wait_for_socket(&api_socket, Duration::from_secs(10));
+    wait_for_socket(&api_socket, patient(10));
     let created = send_json_request(
         &api_socket,
         &serde_json::json!({
@@ -1172,7 +1177,7 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
     );
     assert_eq!(created["result"]["type"], "workspace_created");
     assert!(
-        wait_until(Duration::from_secs(12), Duration::from_millis(20), || {
+        wait_until(patient(12), Duration::from_millis(20), || {
             screen_text().contains("local-returned")
         }),
         "Local must reconnect with fresh metadata"
@@ -1181,7 +1186,7 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
         .write_all(b"printf 'REMOTE_%s\\n' STILL_SELECTED\r")
         .unwrap();
     assert!(
-        wait_until(Duration::from_secs(8), Duration::from_millis(20), || {
+        wait_until(patient(8), Duration::from_millis(20), || {
             screen_text().contains("REMOTE_STILL_SELECTED")
         }),
         "Local recovery must not steal selection: {}",
@@ -1211,14 +1216,14 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
             .write_all(&sidebar_row_click(&screen_text(), "local-returned"))
             .unwrap();
         assert!(
-            wait_until(Duration::from_secs(3), Duration::from_millis(20), || {
+            wait_until(patient(3), Duration::from_millis(20), || {
                 screen_text().contains("LOCAL_WHILE_REMOTE_STALLED")
             }),
             "one Local selection must not wait for the remote bridge: {}",
             screen_text()
         );
         assert!(
-            wait_until(Duration::from_secs(3), Duration::from_millis(100), || {
+            wait_until(patient(3), Duration::from_millis(100), || {
                 if screen_text().contains("LOCAL_INPUT_WHILE_REMOTE_STALLED") {
                     return true;
                 }
@@ -1233,16 +1238,14 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
     input
         .write_all(&sidebar_row_click(&screen_text(), "remote-ready"))
         .unwrap();
-    assert!(wait_until(
-        Duration::from_secs(10),
-        Duration::from_millis(20),
-        || screen_text().contains("REMOTE_STILL_SELECTED")
-    ));
+    assert!(wait_until(patient(10), Duration::from_millis(20), || {
+        screen_text().contains("REMOTE_STILL_SELECTED")
+    }));
 
     let watermark = output_len(&output);
     remote_server.child.kill().unwrap();
     assert!(
-        wait_until(Duration::from_secs(10), Duration::from_millis(20), || {
+        wait_until(patient(10), Duration::from_millis(20), || {
             read_output(&output)[watermark..].contains("reconnecting")
         }),
         "the selected remote must be marked disconnected"
@@ -1262,7 +1265,7 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
     // A fast shutdown may leave no saved workspace, so locate the actual row
     // once losing the remote has redrawn the sidebar with Local's workspaces.
     assert!(
-        wait_until(Duration::from_secs(10), Duration::from_millis(20), || {
+        wait_until(patient(10), Duration::from_millis(20), || {
             sidebar_shows(&screen_text(), "local-returned")
         }),
         "recovered Local must list its workspace: {}",
@@ -1272,7 +1275,7 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
         .write_all(&sidebar_row_click(&screen_text(), "local-returned"))
         .unwrap();
     assert!(
-        wait_until(Duration::from_secs(10), Duration::from_millis(20), || {
+        wait_until(patient(10), Duration::from_millis(20), || {
             screen_text().contains("LOCAL_RECOVERED_SURFACE")
         }),
         "recovered Local must be selectable: {}",
@@ -1280,7 +1283,7 @@ fn federated_client_starts_without_local_and_survives_its_restart() {
     );
     // A coherent frame precedes the final host-effects fence; input stays gated until then.
     assert!(
-        wait_until(Duration::from_secs(8), Duration::from_millis(100), || {
+        wait_until(patient(8), Duration::from_millis(100), || {
             if screen_text().contains("LOCAL_INPUT_RECOVERED") {
                 return true;
             }
