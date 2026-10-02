@@ -125,7 +125,7 @@ def lint() -> None:
     env = {**os.environ, LIBC_ENV: str(libc), "LIBGHOSTTY_VT_SIMD": "false"}
     subprocess.run(["rustup", "target", "add", TARGET], check=True)
     subprocess.run(
-        ["cargo", "clippy", "--bin", "herdr", "--locked", "--target", TARGET, "--", "-D", "warnings"],
+        ["cargo", "clippy", "--all-targets", "--locked", "--target", TARGET, "--", "-D", "warnings"],
         env=env,
         check=True,
     )
