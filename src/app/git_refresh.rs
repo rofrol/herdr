@@ -105,6 +105,10 @@ impl App {
             match token.parts().0 {
                 crate::config::SpaceSidebarToken::Branch => demand.branch = true,
                 crate::config::SpaceSidebarToken::GitStatus => demand.ahead_behind = true,
+                crate::config::SpaceSidebarToken::PushStatus => {
+                    demand.branch = true;
+                    demand.ahead_behind = true;
+                }
                 _ => {}
             }
         }
@@ -408,6 +412,13 @@ mod tests {
                 crate::config::SpaceSidebarToken::GitStatus,
                 GitStatusRefreshDemand {
                     branch: false,
+                    ahead_behind: true,
+                },
+            ),
+            (
+                crate::config::SpaceSidebarToken::PushStatus,
+                GitStatusRefreshDemand {
+                    branch: true,
                     ahead_behind: true,
                 },
             ),
